@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slanted Tab Folders</title>
+<style>
+  body {
+    background-color: #808489;
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  .folder-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 50px;
+    padding: 20px;
+    margin-top: 30px;
+  }
+
+  .folder {
+    background-color: #171c23;
+    color: white;
+    width: 320px;
+    height: 200px;
+    border-radius: 0 20px 20px 20px; /* Top left is 0 because the tab sits there */
+    position: relative;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+  }
+
+  .folder:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 12px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  /* --- SLANTED TAB CSS --- */
+  .folder::before {
+    content: "";
+    position: absolute;
+    top: -30px; /* Height of the tab */
+    left: 0;
+    width: 180px; /* Width of the tab */
+    height: 30px;
+    background-color: #171c23;
+    
+    /* This creates the slanted shape: 
+       Top-Left, Top-Right (pulled in), Bottom-Right, Bottom-Left */
+    clip-path: polygon(0 0, 85% 0, 100% 100%, 0% 100%);
+    
+    /* Optional: Round the top-left corner slightly for smoothness */
+    border-radius: 10px 0 0 0; 
+    z-index: 1;
+  }
+
+  .folder-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 10px; 
+    position: relative;
+    z-index: 2;
+  }
+
+  /* --- POSITIONS FOR CONTENT --- */
+  .folder-number {
+    font-size: 56px;
+    font-weight: bold;
+    position: absolute;
+    bottom: 20px;
+    left: 25px;
+  }
+
+  .folder-docs {
+    font-size: 16px;
+    font-weight: normal;
+    color: #ccc;
+    position: absolute;
+    bottom: 25px;
+    right: 25px; /* Pinned to bottom right */
+  }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="folder-container">
+  <div class="folder">
+    <div class="folder-title">OFFICES REPORT</div>
+    <div class="folder-number">01</div>
+    <div class="folder-docs">15 Docs</div>
+  </div>
+
+  <div class="folder">
+    <div class="folder-title">EXECUTIVE ORD</div>
+    <div class="folder-number">02</div>
+    <div class="folder-docs">15 Docs</div>
+  </div>
+
+  <div class="folder">
+    <div class="folder-title">ORDINANCE</div>
+    <div class="folder-number">03</div>
+    <div class="folder-docs">15 Docs</div>
+  </div>
+
+  <div class="folder">
+    <div class="folder-title">RESOLUTION</div>
+    <div class="folder-number">04</div>
+    <div class="folder-docs">15 Docs</div>
+  </div>
+</div>
+
+</body>
+</html>
