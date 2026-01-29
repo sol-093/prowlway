@@ -919,20 +919,28 @@ const ADMIN_API = {
 function switchTab(tabName) {
     // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
+        tab.classList.add('hidden');
+        tab.classList.remove('block');
     });
-    document.querySelectorAll('.tab').forEach(btn => {
-        btn.classList.remove('active');
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active', 'text-indigo-600', 'border-indigo-600');
+        btn.classList.add('text-gray-600', 'border-transparent');
     });
     
     // Show selected tab
     const selectedTab = document.getElementById(tabName + '-tab');
-    const selectedBtn = Array.from(document.querySelectorAll('.tab')).find(btn => 
+    const selectedBtn = Array.from(document.querySelectorAll('.tab-button')).find(btn => 
         btn.textContent.toLowerCase().includes(tabName.toLowerCase())
     );
     
-    if (selectedTab) selectedTab.classList.add('active');
-    if (selectedBtn) selectedBtn.classList.add('active');
+    if (selectedTab) {
+        selectedTab.classList.remove('hidden');
+        selectedTab.classList.add('block');
+    }
+    if (selectedBtn) {
+        selectedBtn.classList.add('active', 'text-indigo-600', 'border-indigo-600');
+        selectedBtn.classList.remove('text-gray-600', 'border-transparent');
+    }
     
     // Load data for the tab
     if (tabName === 'announcements') {
@@ -985,7 +993,7 @@ function displayAnnouncementsList(announcements) {
     if (!container) return;
     
     if (announcements.length === 0) {
-        container.innerHTML = '<p>No announcements found. Create your first announcement!</p>';
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No announcements found. Create your first announcement!</p>';
         return;
     }
     
@@ -995,24 +1003,42 @@ function displayAnnouncementsList(announcements) {
             month: 'short',
             day: 'numeric'
         });
-        const imageUrl = ann.image ? (window.BASE_URL + '/public/image.php?path=' + encodeURIComponent(ann.image)) : '';
+        let imageUrl = '';
+        if (ann.image) {
+            // Use PUBLIC_URL if available, otherwise construct from BASE_URL
+            let baseUrl = window.PUBLIC_URL;
+            if (!baseUrl && window.BASE_URL) {
+                baseUrl = window.BASE_URL + '/public';
+            }
+            if (!baseUrl) {
+                // Fallback: try to detect from current location
+                const pathParts = window.location.pathname.split('/');
+                const icdiIndex = pathParts.indexOf('ICDI');
+                if (icdiIndex >= 0) {
+                    baseUrl = pathParts.slice(0, icdiIndex + 1).join('/') + '/public';
+                } else {
+                    baseUrl = '/ICDI/public';
+                }
+            }
+            imageUrl = baseUrl + '/image.php?path=' + encodeURIComponent(ann.image);
+        }
         
         return `
-            <div class="admin-item" style="background: var(--color-card-dark); padding: 1rem; margin-bottom: 1rem; border-radius: 8px; display: flex; gap: 1rem; align-items: start;">
-                ${imageUrl ? `<img src="${imageUrl}" alt="${ann.title}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;">` : ''}
-                <div style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+            <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex gap-4 items-start hover:shadow-md transition-shadow">
+                ${imageUrl ? `<img src="${imageUrl}" alt="${ann.title}" class="w-24 h-24 object-cover rounded-lg flex-shrink-0 bg-gray-100" style="min-width: 96px; min-height: 96px;" onerror="console.error('Image failed to load:', this.src); this.style.display='none'">` : ''}
+                <div class="flex-1">
+                    <div class="flex justify-between items-start mb-2">
                         <div>
-                            <h4 style="margin: 0 0 0.25rem 0; color: var(--color-text-primary);">${ann.title} ${ann.pinned ? '📌' : ''}</h4>
-                            <small style="color: var(--color-text-muted);">${date} • ${ann.category}</small>
+                            <h4 class="text-lg font-semibold text-gray-900 mb-1">${ann.title} ${ann.pinned ? '📌' : ''}</h4>
+                            <p class="text-sm text-gray-500">${date} • ${ann.category}</p>
                         </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-small" onclick="editAnnouncement(${ann.id})">Edit</button>
-                            <button class="btn btn-small" style="background: #dc3545;" onclick="deleteAnnouncement(${ann.id})">Delete</button>
+                        <div class="flex gap-2">
+                            <button onclick="editAnnouncement(${ann.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Edit</button>
+                            <button onclick="deleteAnnouncement(${ann.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Delete</button>
                         </div>
                     </div>
-                    <p style="color: var(--color-text-muted); font-size: 14px; margin: 0;">${ann.description || ''}</p>
-                    <span style="display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: ${ann.status === 'published' ? '#28a745' : '#ffc107'}; color: #fff; border-radius: 4px; font-size: 12px;">${ann.status}</span>
+                    <p class="text-sm text-gray-600 mb-2">${ann.description || ''}</p>
+                    <span class="inline-block px-2 py-1 text-xs font-medium rounded ${ann.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${ann.status}</span>
                 </div>
             </div>
         `;
@@ -1041,7 +1067,13 @@ function editAnnouncement(id) {
                         const preview = document.getElementById('ann-image-preview');
                         const previewImg = document.getElementById('ann-image-preview-img');
                         const oldImage = document.getElementById('ann-old-image');
-                        previewImg.src = window.BASE_URL + '/public/image.php?path=' + encodeURIComponent(ann.image);
+                        let baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : null);
+                        if (!baseUrl) {
+                            const pathParts = window.location.pathname.split('/');
+                            const icdiIndex = pathParts.indexOf('ICDI');
+                            baseUrl = icdiIndex >= 0 ? pathParts.slice(0, icdiIndex + 1).join('/') + '/public' : '/ICDI/public';
+                        }
+                        previewImg.src = baseUrl + '/image.php?path=' + encodeURIComponent(ann.image);
                         oldImage.value = ann.image;
                         preview.style.display = 'block';
                     }
@@ -1161,7 +1193,7 @@ function displayEventsList(events) {
     if (!container) return;
     
     if (events.length === 0) {
-        container.innerHTML = '<p>No events found. Create your first event!</p>';
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No events found. Create your first event!</p>';
         return;
     }
     
@@ -1171,24 +1203,42 @@ function displayEventsList(events) {
             month: 'short',
             day: 'numeric'
         });
-        const imageUrl = event.image ? (window.BASE_URL + '/public/image.php?path=' + encodeURIComponent(event.image)) : '';
+        let imageUrl = '';
+        if (event.image) {
+            // Use PUBLIC_URL if available, otherwise construct from BASE_URL
+            let baseUrl = window.PUBLIC_URL;
+            if (!baseUrl && window.BASE_URL) {
+                baseUrl = window.BASE_URL + '/public';
+            }
+            if (!baseUrl) {
+                // Fallback: try to detect from current location
+                const pathParts = window.location.pathname.split('/');
+                const icdiIndex = pathParts.indexOf('ICDI');
+                if (icdiIndex >= 0) {
+                    baseUrl = pathParts.slice(0, icdiIndex + 1).join('/') + '/public';
+                } else {
+                    baseUrl = '/ICDI/public';
+                }
+            }
+            imageUrl = baseUrl + '/image.php?path=' + encodeURIComponent(event.image);
+        }
         
         return `
-            <div class="admin-item" style="background: var(--color-card-dark); padding: 1rem; margin-bottom: 1rem; border-radius: 8px; display: flex; gap: 1rem; align-items: start;">
-                ${imageUrl ? `<img src="${imageUrl}" alt="${event.title}" style="width: 150px; height: 100px; object-fit: cover; border-radius: 4px;">` : ''}
-                <div style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+            <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex gap-4 items-start hover:shadow-md transition-shadow">
+                ${imageUrl ? `<img src="${imageUrl}" alt="${event.title}" class="w-36 h-24 object-cover rounded-lg flex-shrink-0 bg-gray-100" style="min-width: 144px; min-height: 96px;" onerror="console.error('Image failed to load:', this.src); this.style.display='none'">` : ''}
+                <div class="flex-1">
+                    <div class="flex justify-between items-start mb-2">
                         <div>
-                            <h4 style="margin: 0 0 0.25rem 0; color: var(--color-text-primary);">${event.title}</h4>
-                            <small style="color: var(--color-text-muted);">${date} • ${event.location || 'No location'} • ${event.category}</small>
+                            <h4 class="text-lg font-semibold text-gray-900 mb-1">${event.title}</h4>
+                            <p class="text-sm text-gray-500">${date} • ${event.location || 'No location'} • ${event.category}</p>
                         </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-small" onclick="editEvent(${event.id})">Edit</button>
-                            <button class="btn btn-small" style="background: #dc3545;" onclick="deleteEvent(${event.id})">Delete</button>
+                        <div class="flex gap-2">
+                            <button onclick="editEvent(${event.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Edit</button>
+                            <button onclick="deleteEvent(${event.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Delete</button>
                         </div>
                     </div>
-                    <p style="color: var(--color-text-muted); font-size: 14px; margin: 0 0 0.5rem 0;">${event.caption || event.description || ''}</p>
-                    <span style="display: inline-block; padding: 0.25rem 0.5rem; background: ${event.status === 'published' ? '#28a745' : '#ffc107'}; color: #fff; border-radius: 4px; font-size: 12px;">${event.status}</span>
+                    <p class="text-sm text-gray-600 mb-2">${event.caption || event.description || ''}</p>
+                    <span class="inline-block px-2 py-1 text-xs font-medium rounded ${event.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${event.status}</span>
                 </div>
             </div>
         `;
@@ -1220,7 +1270,13 @@ function editEvent(id) {
                         const preview = document.getElementById('evt-image-preview');
                         const previewImg = document.getElementById('evt-image-preview-img');
                         const oldImage = document.getElementById('evt-old-image');
-                        previewImg.src = window.BASE_URL + '/public/image.php?path=' + encodeURIComponent(event.image);
+                        let baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : null);
+                        if (!baseUrl) {
+                            const pathParts = window.location.pathname.split('/');
+                            const icdiIndex = pathParts.indexOf('ICDI');
+                            baseUrl = icdiIndex >= 0 ? pathParts.slice(0, icdiIndex + 1).join('/') + '/public' : '/ICDI/public';
+                        }
+                        previewImg.src = baseUrl + '/image.php?path=' + encodeURIComponent(event.image);
                         oldImage.value = event.image;
                         preview.style.display = 'block';
                         document.getElementById('evt-image').required = false;
@@ -1250,7 +1306,13 @@ function displayGalleryPreview(gallery) {
     if (!preview || !Array.isArray(gallery)) return;
     
     preview.innerHTML = gallery.map((img, index) => {
-        const imgUrl = window.BASE_URL + '/public/image.php?path=' + encodeURIComponent(img);
+        let baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : null);
+        if (!baseUrl) {
+            const pathParts = window.location.pathname.split('/');
+            const icdiIndex = pathParts.indexOf('ICDI');
+            baseUrl = icdiIndex >= 0 ? pathParts.slice(0, icdiIndex + 1).join('/') + '/public' : '/ICDI/public';
+        }
+        const imgUrl = baseUrl + '/image.php?path=' + encodeURIComponent(img);
         return `<img src="${imgUrl}" alt="Gallery ${index + 1}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;">`;
     }).join('');
     preview.style.display = 'grid';
@@ -1369,7 +1431,7 @@ function displayDocumentsList(documents) {
     if (!container) return;
     
     if (documents.length === 0) {
-        container.innerHTML = '<p>No documents found. Create your first document!</p>';
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No documents found. Create your first document!</p>';
         return;
     }
     
@@ -1390,21 +1452,21 @@ function displayDocumentsList(documents) {
         const fileSize = doc.file_size ? (doc.file_size / 1024).toFixed(2) + ' KB' : 'N/A';
         
         return `
-            <div class="admin-item" style="background: var(--color-card-dark); padding: 1rem; margin-bottom: 1rem; border-radius: 8px; display: flex; gap: 1rem; align-items: start;">
-                <div style="font-size: 48px;">📄</div>
-                <div style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+            <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex gap-4 items-start hover:shadow-md transition-shadow">
+                <div class="text-5xl flex-shrink-0">📄</div>
+                <div class="flex-1">
+                    <div class="flex justify-between items-start mb-2">
                         <div>
-                            <h4 style="margin: 0 0 0.25rem 0; color: var(--color-text-primary);">${doc.title}</h4>
-                            <small style="color: var(--color-text-muted);">${date} • ${categoryNames[doc.category] || doc.category} • ${fileSize}</small>
+                            <h4 class="text-lg font-semibold text-gray-900 mb-1">${doc.title}</h4>
+                            <p class="text-sm text-gray-500">${date} • ${categoryNames[doc.category] || doc.category} • ${fileSize}</p>
                         </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-small" onclick="editDocument(${doc.id})">Edit</button>
-                            <button class="btn btn-small" style="background: #dc3545;" onclick="deleteDocument(${doc.id})">Delete</button>
+                        <div class="flex gap-2">
+                            <button onclick="editDocument(${doc.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Edit</button>
+                            <button onclick="deleteDocument(${doc.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Delete</button>
                         </div>
                     </div>
-                    ${doc.description ? `<p style="color: var(--color-text-muted); font-size: 14px; margin: 0 0 0.5rem 0;">${doc.description}</p>` : ''}
-                    <span style="display: inline-block; padding: 0.25rem 0.5rem; background: ${doc.status === 'published' ? '#28a745' : '#ffc107'}; color: #fff; border-radius: 4px; font-size: 12px;">${doc.status}</span>
+                    ${doc.description ? `<p class="text-sm text-gray-600 mb-2">${doc.description}</p>` : ''}
+                    <span class="inline-block px-2 py-1 text-xs font-medium rounded ${doc.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${doc.status}</span>
                 </div>
             </div>
         `;
@@ -1533,7 +1595,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Load data on page load if logged in
-    if (document.getElementById('dashboardSection') && document.getElementById('dashboardSection').classList.contains('active')) {
+    const dashboardPage = document.getElementById('dashboardPage');
+    if (dashboardPage && !dashboardPage.classList.contains('hidden')) {
         loadAnnouncementsList();
     }
 });

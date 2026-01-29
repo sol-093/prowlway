@@ -47,11 +47,27 @@ if (empty($baseUrl) || $baseUrl === '/') {
     }
 }
 
-// Final fallback for XAMPP: if in htdocs/ICDI, use /ICDI
+// Final fallback for XAMPP: detect from actual file path
 if (empty($baseUrl) || $baseUrl === '/') {
     $docRoot = str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']);
-    if (strpos($docRoot, 'htdocs') !== false && strpos(__FILE__, 'ICDI') !== false) {
-        $baseUrl = '/ICDI';
+    $currentFile = str_replace('\\', '/', __FILE__);
+    
+    if (strpos($currentFile, $docRoot) === 0) {
+        // Get project root (ICDI folder) - two levels up from includes/
+        $projectRoot = dirname(dirname($currentFile));
+        $baseUrl = str_replace($docRoot, '', $projectRoot);
+        $baseUrl = str_replace('\\', '/', $baseUrl);
+        $baseUrl = ($baseUrl === '' || $baseUrl === '/') ? '' : rtrim($baseUrl, '/');
+    }
+    
+    // If still empty, try to detect from SCRIPT_NAME
+    if (empty($baseUrl) || $baseUrl === '/') {
+        $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME']);
+        if (preg_match('~/([^/]+/ICDI)~', $scriptName, $matches)) {
+            $baseUrl = '/' . $matches[1];
+        } elseif (preg_match('~/(ICDI)~', $scriptName, $matches)) {
+            $baseUrl = '/' . $matches[1];
+        }
     }
 }
 
@@ -66,5 +82,3 @@ define('ASSETS_PATH', BASE_PATH . '/assets');
 define('UPLOADS_PATH', BASE_PATH . '/uploads');
 
 // No Node.js API - PHP only
-?>
-

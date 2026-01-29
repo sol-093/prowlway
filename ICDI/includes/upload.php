@@ -175,8 +175,8 @@ function getImageUrl($filepath) {
         return $filepath;
     }
     
-    // Return relative URL for serving
-    return BASE_URL . '/uploads/' . $filepath;
+    // Serve via secure image endpoint so paths work everywhere (admin + public)
+    return PUBLIC_URL . '/image.php?path=' . urlencode($filepath);
 }
 
 /**

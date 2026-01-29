@@ -17,12 +17,22 @@ $messageType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'create' || $_POST['action'] === 'update') {
+            // Handle social media JSON
+            $socialMedia = null;
+            if (!empty($_POST['social_media']['json'])) {
+                $decoded = json_decode($_POST['social_media']['json'], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $socialMedia = json_encode($decoded);
+                }
+            }
+            
             $data = [
                 'name' => $_POST['name'] ?? '',
                 'acronym' => $_POST['acronym'] ?? '',
                 'description' => $_POST['description'] ?? '',
+                'content' => $_POST['content'] ?? null,
                 'website' => $_POST['website'] ?? '',
-                'social_media' => !empty($_POST['social_media']) ? json_encode($_POST['social_media']) : null,
+                'social_media' => $socialMedia,
                 'display_order' => intval($_POST['display_order'] ?? 0),
                 'status' => $_POST['status'] ?? 'active',
                 'created_by' => $_SESSION['admin_id'] ?? null
@@ -96,87 +106,96 @@ if (isset($_GET['edit'])) {
         $editOrg['social_media'] = json_decode($editOrg['social_media'], true);
     }
 }
+
+$pageTitle = 'Manage Organizations - PROWLWAY Admin';
+$hideHeader = true;
+$bodyClass = 'admin-panel-page';
+include '../includes/header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Organizations - PROWLWAY Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo ASSETS_URL; ?>/css/style.css">
-</head>
-<body>
-    <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
-        <div class="header" style="margin-bottom: 2rem;">
-            <h1>Manage Student Organizations</h1>
-            <a href="<?php echo ADMIN_URL; ?>/index.php" class="btn-goto">← Back to Dashboard</a>
+<div class="admin-panel-wrapper min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div class="max-w-6xl mx-auto px-6 py-8">
+        <!-- Page Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Manage Student Organizations</h1>
+                <p class="text-sm text-gray-500 mt-1">Create, update, and manage student organizations.</p>
+            </div>
+            <a href="<?php echo ADMIN_URL; ?>/index.php" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                <span>← Back to Dashboard</span>
+            </a>
         </div>
 
         <?php if ($message): ?>
-            <div class="alert alert-<?php echo $messageType; ?>" style="margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: <?php echo $messageType === 'success' ? '#d4edda' : '#f8d7da'; ?>; color: <?php echo $messageType === 'success' ? '#155724' : '#721c24'; ?>;">
-                <?php echo htmlspecialchars($message); ?>
+            <div class="mb-6">
+                <div class="flex items-center gap-3 p-4 rounded-lg border <?php echo $messageType === 'success' ? 'bg-green-50 border-green-500 text-green-800' : 'bg-red-50 border-red-500 text-red-800'; ?>">
+                    <span class="font-medium"><?php echo htmlspecialchars($message); ?></span>
+                </div>
             </div>
         <?php endif; ?>
 
         <!-- Create/Edit Form -->
-        <div class="form-section" style="background: var(--color-card-dark); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
-            <h2><?php echo $editOrg ? 'Edit Organization' : 'Create New Organization'; ?></h2>
-            <form method="POST" action="" enctype="multipart/form-data">
+        <div class="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-900">
+                    <?php echo $editOrg ? 'Edit Organization' : 'Create New Organization'; ?>
+                </h2>
+            </div>
+            <form method="POST" action="" enctype="multipart/form-data" class="space-y-6">
                 <input type="hidden" name="action" value="<?php echo $editOrg ? 'update' : 'create'; ?>">
                 <?php if ($editOrg): ?>
                     <input type="hidden" name="id" value="<?php echo $editOrg['id']; ?>">
                 <?php endif; ?>
                 
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>Name *</label>
-                        <input type="text" name="name" value="<?php echo htmlspecialchars($editOrg['name'] ?? ''); ?>" required>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Name *</label>
+                        <input type="text" name="name" value="<?php echo htmlspecialchars($editOrg['name'] ?? ''); ?>" required placeholder="Organization name" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <div class="form-group">
-                        <label>Acronym</label>
-                        <input type="text" name="acronym" value="<?php echo htmlspecialchars($editOrg['acronym'] ?? ''); ?>" placeholder="e.g., ICDISG">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Acronym</label>
+                        <input type="text" name="acronym" value="<?php echo htmlspecialchars($editOrg['acronym'] ?? ''); ?>" placeholder="e.g., ICDISG" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" rows="3"><?php echo htmlspecialchars($editOrg['description'] ?? ''); ?></textarea>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                    <textarea name="description" rows="3" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editOrg['description'] ?? ''); ?></textarea>
                 </div>
                 
-                <div class="form-group">
-                    <label>Logo</label>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Core Values (one per line)</label>
+                    <textarea name="content" rows="6" placeholder="Enter core values, one per line:&#10;Value 1&#10;Value 2&#10;Value 3" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editOrg['content'] ?? ''); ?></textarea>
+                    <p class="mt-2 text-xs text-gray-500">Enter each core value on a separate line</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Logo</label>
                     <?php if ($editOrg && !empty($editOrg['logo'])): ?>
-                        <div style="margin-bottom: 0.5rem;">
-                            <img src="<?php echo getImageUrl($editOrg['logo']); ?>" alt="Current logo" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                        <div class="mb-3">
+                            <img src="<?php echo getImageUrl($editOrg['logo']); ?>" alt="Current logo" class="max-w-xs max-h-48 rounded-xl border border-gray-200">
                             <input type="hidden" name="old_logo" value="<?php echo htmlspecialchars($editOrg['logo']); ?>">
                         </div>
-                        <small style="color: var(--color-text-muted); display: block; margin-bottom: 0.5rem;">Upload a new logo to replace the current one</small>
+                        <p class="text-xs text-gray-500 mb-2">Upload a new logo to replace the current one.</p>
                     <?php endif; ?>
-                    <input type="file" name="logo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
-                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.5rem;">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</small>
+                    <input type="file" name="logo" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <p class="mt-2 text-xs text-gray-500">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP.</p>
                 </div>
                 
-                <div class="form-group">
-                    <label>Website URL</label>
-                    <input type="url" name="website" value="<?php echo htmlspecialchars($editOrg['website'] ?? ''); ?>" placeholder="https://example.com">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Social Media Links (JSON format or leave blank)</label>
+                    <textarea name="social_media[json]" rows="2" placeholder='{"facebook": "https://...", "instagram": "https://..."}' class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo $editOrg && $editOrg['social_media'] ? json_encode($editOrg['social_media'], JSON_PRETTY_PRINT) : ''; ?></textarea>
+                    <p class="mt-2 text-xs text-gray-500">Optional: Enter as JSON object</p>
                 </div>
                 
-                <div class="form-group">
-                    <label>Social Media Links (JSON format or leave blank)</label>
-                    <textarea name="social_media[json]" rows="2" placeholder='{"facebook": "https://...", "instagram": "https://..."}'><?php echo $editOrg && $editOrg['social_media'] ? json_encode($editOrg['social_media'], JSON_PRETTY_PRINT) : ''; ?></textarea>
-                    <small style="color: var(--color-text-muted); display: block; margin-top: 0.5rem;">Optional: Enter as JSON object</small>
-                </div>
-                
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>Display Order</label>
-                        <input type="number" name="display_order" value="<?php echo $editOrg['display_order'] ?? 0; ?>">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Display Order</label>
+                        <input type="number" name="display_order" value="<?php echo $editOrg['display_order'] ?? 0; ?>" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select name="status">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                        <select name="status" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="active" <?php echo ($editOrg['status'] ?? 'active') === 'active' ? 'selected' : ''; ?>>Active</option>
                             <option value="draft" <?php echo ($editOrg['status'] ?? '') === 'draft' ? 'selected' : ''; ?>>Draft</option>
                             <option value="archived" <?php echo ($editOrg['status'] ?? '') === 'archived' ? 'selected' : ''; ?>>Archived</option>
@@ -184,53 +203,70 @@ if (isset($_GET['edit'])) {
                     </div>
                 </div>
                 
-                <button type="submit" class="btn btn-primary"><?php echo $editOrg ? 'Update Organization' : 'Create Organization'; ?></button>
-                <?php if ($editOrg): ?>
-                    <a href="<?php echo ADMIN_URL; ?>/organizations.php" class="btn btn-toggle">Cancel</a>
-                <?php endif; ?>
+                <div class="flex items-center gap-3 pt-2">
+                    <button type="submit" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow hover:bg-indigo-700 transition-colors">
+                        <?php echo $editOrg ? 'Update Organization' : 'Create Organization'; ?>
+                    </button>
+                    <?php if ($editOrg): ?>
+                        <a href="<?php echo ADMIN_URL; ?>/organizations.php" class="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors">
+                            Cancel
+                        </a>
+                    <?php endif; ?>
+                </div>
             </form>
         </div>
 
         <!-- Organizations List -->
-        <div class="list-section">
-            <h2>All Organizations</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: var(--color-card-dark);">
-                        <th style="padding: 1rem; text-align: left;">Name</th>
-                        <th style="padding: 1rem; text-align: left;">Acronym</th>
-                        <th style="padding: 1rem; text-align: left;">Status</th>
-                        <th style="padding: 1rem; text-align: left;">Order</th>
-                        <th style="padding: 1rem; text-align: left;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($organizations)): ?>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-900">All Organizations</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <td colspan="5" style="padding: 2rem; text-align: center; color: var(--color-text-muted);">No organizations found.</td>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Acronym</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Order</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Actions</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($organizations as $org): ?>
-                            <tr style="border-bottom: 1px solid var(--color-border);">
-                                <td style="padding: 1rem;"><?php echo htmlspecialchars($org['name']); ?></td>
-                                <td style="padding: 1rem;"><?php echo htmlspecialchars($org['acronym'] ?? '-'); ?></td>
-                                <td style="padding: 1rem;"><?php echo ucfirst($org['status']); ?></td>
-                                <td style="padding: 1rem;"><?php echo $org['display_order']; ?></td>
-                                <td style="padding: 1rem;">
-                                    <a href="<?php echo ADMIN_URL; ?>/organizations.php?edit=<?php echo $org['id']; ?>" class="btn btn-small">Edit</a>
-                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this organization?');">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="<?php echo $org['id']; ?>">
-                                        <button type="submit" class="btn btn-small" style="background: #dc3545;">Delete</button>
-                                    </form>
-                                </td>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <?php if (empty($organizations)): ?>
+                            <tr>
+                                <td colspan="5" class="px-4 py-6 text-center text-gray-500">No organizations found.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($organizations as $org): ?>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3"><?php echo htmlspecialchars($org['name']); ?></td>
+                                    <td class="px-4 py-3"><?php echo htmlspecialchars($org['acronym'] ?? '-'); ?></td>
+                                    <td class="px-4 py-3"><?php echo ucfirst($org['status']); ?></td>
+                                    <td class="px-4 py-3"><?php echo $org['display_order']; ?></td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-2">
+                                            <a href="<?php echo ADMIN_URL; ?>/organizations.php?edit=<?php echo $org['id']; ?>" class="px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100">
+                                                Edit
+                                            </a>
+                                            <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this organization?');">
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="id" value="<?php echo $org['id']; ?>">
+                                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+
+<?php include '../includes/footer.php'; ?>
 

@@ -4,58 +4,70 @@ require_once '../includes/database.php';
 require_once '../includes/upload.php';
 
 $pageTitle = 'Events - PROWLWAY ICDISG';
-$bodyClass = '';
+$bodyClass = 'events-page';
 include '../includes/header.php';
 
 // Fetch events from database
 $events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY date DESC, display_order ASC");
 ?>
 
-<!-- Events Gallery Container -->
-<div class="events-gallery-container">
-    <!-- Page Header -->
-    <div class="events-gallery-header">
-        <h1 class="events-gallery-title">EVENTS</h1>
-    </div>
-
-    <!-- Events Grid -->
-    <div class="events-grid-gallery">
-        <?php if (empty($events)): ?>
-            <div class="no-events" style="grid-column: 1 / -1; text-align: center; padding: var(--spacing-xl); color: var(--color-text-muted);">
-                <p>No events available yet.</p>
+<!-- Main Container -->
+<div class="container">
+    <div class="events-outer-panel">
+        <div class="events-inner-panel">
+            
+            <!-- Page Title -->
+            <h1 class="events-page-title">Events</h1>
+            
+            <!-- Events Rows -->
+            <div class="events-rows-container">
+                <?php if (empty($events)): ?>
+                    <div class="no-events">
+                        <p>No events available yet.</p>
+                    </div>
+                <?php else: 
+                    // Group events into rows of 3
+                    $eventRows = array_chunk($events, 3);
+                    foreach ($eventRows as $rowIndex => $rowEvents):
+                ?>
+                    <div class="events-row">
+                        <?php foreach ($rowEvents as $event): 
+                            $eventDate = new DateTime($event['date']);
+                            $endDate = !empty($event['end_date']) ? new DateTime($event['end_date']) : null;
+                            
+                            // Format date range or single date
+                            if ($endDate && $endDate != $eventDate) {
+                                $dateDisplay = $eventDate->format('F j') . ' - ' . $endDate->format('j, Y');
+                            } else {
+                                $dateDisplay = $eventDate->format('F j, Y');
+                            }
+                        ?>
+                            <a href="<?php echo PUBLIC_URL; ?>/event-detail.php?id=<?php echo $event['id']; ?>" class="event-card-link">
+                                <div class="event-card">
+                                    <div class="event-card-image-wrapper">
+                                        <img src="<?php echo getImageUrl($event['image']); ?>" alt="<?php echo htmlspecialchars($event['title']); ?>" class="event-card-image">
+                                    </div>
+                                    <div class="event-card-overlay">
+                                        <h3 class="event-card-title"><?php echo htmlspecialchars($event['title']); ?></h3>
+                                        <div class="event-card-date"><?php echo $dateDisplay; ?></div>
+                                        <?php if ($event['location']): ?>
+                                            <div class="event-card-location"><?php echo htmlspecialchars($event['location']); ?></div>
+                                        <?php endif; ?>
+                                        <div class="event-card-arrow-button">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endforeach; ?>
+                <?php endif; ?>
             </div>
-        <?php else: ?>
-            <?php foreach ($events as $event): 
-                $eventDate = new DateTime($event['date']);
-                $gallery = !empty($event['gallery']) ? json_decode($event['gallery'], true) : [];
-            ?>
-                <a href="<?php echo PUBLIC_URL; ?>/event-detail.php?id=<?php echo $event['id']; ?>" class="event-card-gallery-link">
-                <div class="event-card-gallery">
-                    <div class="event-card-image">
-                        <img src="<?php echo getImageUrl($event['image']); ?>" alt="<?php echo htmlspecialchars($event['title']); ?>">
-                    </div>
-                    <div class="event-card-content">
-                        <h3 class="event-card-title"><?php echo htmlspecialchars($event['title']); ?></h3>
-                        <?php if ($event['caption']): ?>
-                            <p class="event-card-description"><?php echo htmlspecialchars($event['caption']); ?></p>
-                        <?php endif; ?>
-                        <?php if ($event['description']): ?>
-                            <div class="event-card-name"><?php echo htmlspecialchars(substr($event['description'], 0, 100)) . (strlen($event['description']) > 100 ? '...' : ''); ?></div>
-                        <?php endif; ?>
-                        <div class="event-card-meta">
-                            <span><?php echo $eventDate->format('F j, Y'); ?></span>
-                            <?php if ($event['location']): ?>
-                                <span><?php echo htmlspecialchars($event['location']); ?></span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="event-card-footer">
-                            <span class="event-card-arrow">→</span>
-                        </div>
-                    </div>
-                </div>
-                </a>
-            <?php endforeach; ?>
-        <?php endif; ?>
+            
+        </div>
     </div>
 </div>
 

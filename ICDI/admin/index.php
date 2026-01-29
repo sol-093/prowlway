@@ -3,6 +3,7 @@ session_start();
 require_once '../includes/config.php';
 $pageTitle = 'PROWLWAY Admin Panel';
 $hideHeader = true;
+$bodyClass = 'admin-panel-page';
 include '../includes/header.php';
 
 // Check if logged in
@@ -11,283 +12,689 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
 <script>
     // Make ADMIN_URL available to JavaScript
     window.ADMIN_URL = '<?php echo ADMIN_URL; ?>';
+    
+    // Force light theme on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ensure body has admin class
+        document.body.classList.add('admin-panel-page');
+        
+        // Force light background
+        document.body.style.background = 'linear-gradient(to bottom right, #f8fafc, #e0e7ff, #e9d5ff)';
+        document.body.style.color = '#1f2937';
+        document.documentElement.style.background = 'linear-gradient(to bottom right, #f8fafc, #e0e7ff, #e9d5ff)';
+        
+        // Hide any dark containers
+        const darkContainers = document.querySelectorAll('.admin-container, .admin-header:not(.dashboard-header), .admin-content, .container:not(.admin-panel-wrapper):not(.max-w-7xl):not(.max-w-md):not(.w-full)');
+        darkContainers.forEach(el => {
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+        });
+        
+        // Hide site header if present
+        const siteHeader = document.querySelector('.site-header');
+        if (siteHeader) {
+            siteHeader.style.display = 'none';
+        }
+    });
 </script>
 
-<div class="container">
-    <div class="header">
-        <div class="header-content">
-            <h1>🐾 PROWLWAY Admin Panel</h1>
-            <p>Manage your ICDISG Archive Website</p>
-        </div>
-        <div class="header-actions" id="headerActions">
-            <a href="<?php echo PUBLIC_URL; ?>/home.php" class="btn-goto">Home</a>
-            <a href="<?php echo PUBLIC_URL; ?>/events.php" class="btn-goto">Events</a>
-            <a href="<?php echo PUBLIC_URL; ?>/documents.php" class="btn-goto" id="documentsHeaderBtn">Documents</a>
+<div class="admin-panel-wrapper min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <!-- Login Page -->
+    <div class="login-page <?php echo (!$isLoggedIn) ? 'flex' : 'hidden'; ?> min-h-screen items-center justify-center p-4" id="loginPage">
+        <div class="w-full max-w-md">
+            <!-- Logo & Branding -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl mb-6 transform hover:scale-105 transition-transform duration-300">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                    PROWLWAY
+                </h1>
+                <p class="text-gray-600 text-lg font-medium">Admin Control Panel</p>
+                <p class="text-gray-500 text-sm mt-1">Manage your ICDISG Archive Website</p>
+            </div>
+
+            <!-- Login Card -->
+            <div class="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+                    <p class="text-gray-600">Sign in to access the admin panel</p>
+                </div>
+                
+                <!-- Alert -->
+                <div id="loginAlert" class="mb-6">
+                    <?php if (isset($_SESSION['login_error'])): ?>
+                        <div class="flex items-center gap-3 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg animate-slide-in">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-600 flex-shrink-0">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <span class="font-medium text-red-800"><?php echo $_SESSION['login_error']; unset($_SESSION['login_error']); ?></span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
+                <!-- Login Form -->
+                <form id="loginForm" method="POST" action="<?php echo ADMIN_URL; ?>/login.php" class="space-y-5">
+                    <div>
+                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Email Address
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                            </div>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                value="admin@icdisg.ph" 
+                                required 
+                                class="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                                placeholder="admin@icdisg.ph"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Password
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </div>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password" 
+                                required 
+                                class="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                                placeholder="Enter your password"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-600">Remember me</span>
+                        </label>
+                        <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
+                            Forgot password?
+                        </a>
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold py-4 px-6 rounded-xl hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    >
+                        <span>Sign In</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- Footer -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <p class="text-center text-xs text-gray-500">
+                        © <?php echo date('Y'); ?> PROWLWAY. All rights reserved.
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="content">
-        <!-- Login Section -->
-        <div class="login-section <?php echo (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) ? 'active' : ''; ?>" id="loginSection">
-            <h2 style="margin-bottom: 20px;">Admin Login</h2>
-            <div id="loginAlert">
-                <?php if (isset($_SESSION['login_error'])): ?>
-                    <div class="alert alert-error"><?php echo $_SESSION['login_error']; unset($_SESSION['login_error']); ?></div>
-                <?php endif; ?>
-            </div>
-            <form id="loginForm" method="POST" action="<?php echo ADMIN_URL; ?>/login.php">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" value="admin@icdisg.ph" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Login</button>
-            </form>
-        </div>
-
-        <!-- Dashboard Section -->
-        <div class="dashboard-section <?php echo $isLoggedIn ? 'active' : ''; ?>" id="dashboardSection">
-            <div class="user-info">
-                <strong>Logged in as:</strong> <span id="userEmail"><?php echo isset($_SESSION['admin_email']) ? $_SESSION['admin_email'] : ''; ?></span>
-                <a href="<?php echo ADMIN_URL; ?>/logout.php" class="btn btn-logout">Logout</a>
-                <div style="clear: both;"></div>
-            </div>
-
-            <div id="dashboardAlert"></div>
-
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('announcements')">Announcements</button>
-                <button class="tab" onclick="switchTab('events')">Events</button>
-                <button class="tab" id="documentsTabBtn" onclick="switchTab('documents')">Documents</button>
-            </div>
-            
-            <div style="margin: 1rem 0; padding: 1rem; background: var(--color-card-dark); border-radius: 8px;">
-                <h3 style="margin-bottom: 0.5rem;">Additional Management</h3>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <a href="<?php echo ADMIN_URL; ?>/batches.php" class="btn btn-toggle btn-small">Manage Batches</a>
-                    <a href="<?php echo ADMIN_URL; ?>/institute.php" class="btn btn-toggle btn-small">Manage Institute</a>
-                    <a href="<?php echo ADMIN_URL; ?>/organizations.php" class="btn btn-toggle btn-small">Manage Organizations</a>
-                </div>
-            </div>
-
-            <!-- Announcements Tab -->
-            <div class="tab-content active" id="announcements-tab">
-                <div class="section-title">
-                    <h2>Announcements</h2>
-                    <button class="btn btn-toggle btn-small" onclick="toggleForm('announcement-form')">
-                        ➕ Create New
-                    </button>
-                </div>
-
-                <!-- Create/Edit Form -->
-                <div id="announcement-form" class="form-section hidden">
-                    <h3 id="announcement-form-title">Create Announcement</h3>
-                    <form id="announcementForm" method="POST" action="<?php echo ADMIN_URL; ?>/announcements.php" enctype="multipart/form-data">
-                        <input type="hidden" id="ann-id" name="id">
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label for="ann-title">Title *</label>
-                                <input type="text" id="ann-title" name="title" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="ann-category">Category *</label>
-                                <select id="ann-category" name="category" required>
-                                    <option value="general">General</option>
-                                    <option value="academic">Academic</option>
-                                    <option value="event">Event</option>
-                                    <option value="maintenance">Maintenance</option>
-                                    <option value="urgent">Urgent</option>
-                                </select>
-                            </div>
+    <!-- Dashboard Page -->
+    <div class="dashboard-page <?php echo $isLoggedIn ? 'block' : 'hidden'; ?>" id="dashboardPage">
+        <!-- Top Navigation Bar -->
+        <div class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
                         </div>
-                        <div class="form-group">
-                            <label for="ann-description">Short Description *</label>
-                            <textarea id="ann-description" name="description" required></textarea>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-900">PROWLWAY Admin</h1>
+                            <p class="text-xs text-gray-500">Control Panel</p>
                         </div>
-                        <div class="form-group">
-                            <label for="ann-content">Full Content *</label>
-                            <textarea id="ann-content" name="content" required></textarea>
-                        </div>
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label for="ann-image">Image (optional)</label>
-                                <div id="ann-image-preview" style="margin-bottom: 0.5rem; display: none;">
-                                    <img id="ann-image-preview-img" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
-                                    <input type="hidden" id="ann-old-image" name="old_image">
-                                </div>
-                                <input type="file" id="ann-image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
-                                <small style="color: var(--color-text-muted); display: block; margin-top: 0.5rem;">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</small>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <a 
+                            href="<?php echo PUBLIC_URL; ?>/home.php" 
+                            target="_blank" 
+                            class="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-indigo-600 font-medium transition-colors"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"></path>
+                            </svg>
+                            <span>View Site</span>
+                        </a>
+                        
+                        <div class="h-8 w-px bg-gray-300"></div>
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
                             </div>
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="ann-pinned" name="pinned"> Pin this announcement
-                                </label>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900"><?php echo isset($_SESSION['admin_name']) ? htmlspecialchars($_SESSION['admin_name']) : 'Admin'; ?></p>
+                                <p class="text-xs text-gray-500" id="userEmail"><?php echo isset($_SESSION['admin_email']) ? htmlspecialchars($_SESSION['admin_email']) : ''; ?></p>
                             </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary" id="ann-submit-btn">Create Announcement</button>
-                        <button type="button" class="btn btn-toggle btn-small" onclick="cancelAnnouncementEdit()">Cancel</button>
-                    </form>
-                </div>
-
-                <!-- Announcements List -->
-                <div id="announcements-list">
-                    <p>Loading announcements...</p>
-                </div>
-            </div>
-
-            <!-- Events Tab -->
-            <div class="tab-content" id="events-tab">
-                <div class="section-title">
-                    <h2>Events</h2>
-                    <button class="btn btn-toggle btn-small" onclick="toggleForm('event-form')">
-                        ➕ Create New
-                    </button>
-                </div>
-
-                <!-- Create/Edit Form -->
-                <div id="event-form" class="form-section hidden">
-                    <h3 id="event-form-title">Create Event</h3>
-                    <form id="eventForm" method="POST" action="<?php echo ADMIN_URL; ?>/events_handler.php" enctype="multipart/form-data">
-                        <input type="hidden" id="evt-id" name="id">
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label for="evt-title">Title *</label>
-                                <input type="text" id="evt-title" name="title" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="evt-category">Category *</label>
-                                <select id="evt-category" name="category" required>
-                                    <option value="workshop">Workshop</option>
-                                    <option value="seminar">Seminar</option>
-                                    <option value="service">Service</option>
-                                    <option value="celebration">Celebration</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="evt-caption">Caption *</label>
-                            <input type="text" id="evt-caption" name="caption" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="evt-description">Description *</label>
-                            <textarea id="evt-description" name="description" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="evt-summary">Event Summary</label>
-                            <textarea id="evt-summary" name="summary" placeholder="Short highlight that appears in the event details modal"></textarea>
-                            <small class="form-helper">Optional. Keep it to 1-2 concise sentences.</small>
-                        </div>
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label for="evt-image">Image *</label>
-                                <div id="evt-image-preview" style="margin-bottom: 0.5rem; display: none;">
-                                    <img id="evt-image-preview-img" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
-                                    <input type="hidden" id="evt-old-image" name="old_image">
-                                </div>
-                                <input type="file" id="evt-image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
-                                <small style="color: var(--color-text-muted); display: block; margin-top: 0.5rem;">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="evt-location">Location</label>
-                                <input type="text" id="evt-location" name="location">
-                            </div>
-                        </div>
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label for="evt-date">Event Date *</label>
-                                <input type="date" id="evt-date" name="date" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="evt-order">Display Order</label>
-                                <input type="number" id="evt-order" name="order" value="0">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="evt-gallery">Gallery Images</label>
-                            <input type="file" id="evt-gallery" name="gallery[]" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" multiple>
-                            <small class="form-helper" style="display: block; margin-top: 0.5rem;">You can select multiple images. Max size per image: 5MB.</small>
-                            <div id="evt-gallery-preview" style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem;"></div>
-                            <input type="hidden" id="evt-old-gallery" name="old_gallery">
-                        </div>
-                        <button type="submit" class="btn btn-primary" id="evt-submit-btn">Create Event</button>
-                        <button type="button" class="btn btn-toggle btn-small" onclick="cancelEventEdit()">Cancel</button>
-                    </form>
-                </div>
-
-                <!-- Events List -->
-                <div id="events-list">
-                    <p>Loading events...</p>
-                </div>
-            </div>
-
-            <!-- Documents Tab -->
-            <div class="tab-content" id="documents-tab">
-                <div class="section-title">
-                    <h2>Documents</h2>
-                    <button class="btn btn-toggle btn-small" id="createDocBtn" onclick="toggleForm('document-form')">
-                        ➕ Create New
-                    </button>
-                </div>
-
-                <!-- Create/Edit Form -->
-                <div id="document-form" class="form-section hidden">
-                    <h3 id="document-form-title">Create Document Entry</h3>
-                    <form id="documentForm" method="POST" action="<?php echo ADMIN_URL; ?>/documents.php" enctype="multipart/form-data">
-                        <input type="hidden" id="doc-id" name="id">
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label for="doc-title">Title *</label>
-                                <input type="text" id="doc-title" name="title" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="doc-category">Category *</label>
-                                <select id="doc-category" name="category" required>
-                                    <option value="01">01 - OFFICES REPORT</option>
-                                    <option value="02">02 - EXECUTIVE ORDER</option>
-                                    <option value="03">03 - ORDINANCE</option>
-                                    <option value="04">04 - RESOLUTION</option>
-                                    <option value="05">05 - OTHER</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="doc-description">Description</label>
-                            <textarea id="doc-description" name="description"></textarea>
                         </div>
                         
-                        <!-- File Upload Section -->
-                        <div class="form-group">
-                            <label for="doc-file">Upload PDF File (Max 50MB) *</label>
-                            <input type="file" id="doc-file" name="file" accept=".pdf" style="margin-bottom: 0.5rem;">
-                            <small style="color: #9aa1a6; display: block; margin-top: 0.5rem;">
-                                Choose a PDF file to upload (Maximum size: 50MB)
-                            </small>
-                            <div id="upload-progress" style="display: none; margin-top: 0.5rem;">
-                                <div style="background: #23272a; border-radius: 4px; overflow: hidden; height: 20px;">
-                                    <div id="progress-bar" style="background: #ffffff; height: 100%; width: 0%; transition: width 0.3s;"></div>
-                                </div>
-                                <small id="progress-text" style="color: #e6e9eb; margin-top: 0.3rem; display: block;"></small>
-                            </div>
+                        <a 
+                            href="<?php echo ADMIN_URL; ?>/logout.php" 
+                            class="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium transition-colors"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path>
+                            </svg>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Alert Container -->
+            <div id="dashboardAlert" class="mb-6"></div>
+
+            <!-- Quick Stats / Quick Links -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <a href="<?php echo ADMIN_URL; ?>/batches.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
                         </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Manage Batches</h3>
+                            <p class="text-sm text-gray-500">Student batches</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+                
+                <a href="<?php echo ADMIN_URL; ?>/institute.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Manage Institute</h3>
+                            <p class="text-sm text-gray-500">Institute info</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+                
+                <a href="<?php echo ADMIN_URL; ?>/organizations.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Manage Organizations</h3>
+                            <p class="text-sm text-gray-500">Student orgs</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+            </div>
 
-
-                        <button type="submit" class="btn btn-primary" id="doc-submit-btn">Create Document</button>
-                        <button type="button" class="btn btn-toggle btn-small" onclick="cancelDocumentEdit()">Cancel</button>
-                    </form>
+            <!-- Tabs Navigation -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                <div class="border-b border-gray-200">
+                    <nav class="flex" aria-label="Tabs">
+                        <button 
+                            onclick="switchTab('announcements')" 
+                            class="tab-button active px-8 py-4 text-sm font-bold text-indigo-600 border-b-3 border-indigo-600 hover:text-indigo-700 transition-colors relative"
+                        >
+                            <span class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                                Announcements
+                            </span>
+                        </button>
+                        <button 
+                            onclick="switchTab('events')" 
+                            class="tab-button px-8 py-4 text-sm font-bold text-gray-600 border-b-3 border-transparent hover:text-gray-900 hover:border-gray-300 transition-colors"
+                        >
+                            <span class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                Events
+                            </span>
+                        </button>
+                        <button 
+                            onclick="switchTab('documents')" 
+                            id="documentsTabBtn" 
+                            class="tab-button px-8 py-4 text-sm font-bold text-gray-600 border-b-3 border-transparent hover:text-gray-900 hover:border-gray-300 transition-colors"
+                        >
+                            <span class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                                Documents
+                            </span>
+                        </button>
+                    </nav>
                 </div>
 
-                <!-- Documents List -->
-                <div id="documents-list">
-                    <p>Loading documents...</p>
+                <!-- Tab Content Container -->
+                <div class="p-6">
+                    <!-- Announcements Tab -->
+                    <div class="tab-content block" id="announcements-tab">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">Announcements</h2>
+                                <p class="text-sm text-gray-500 mt-1">Manage site announcements and updates</p>
+                            </div>
+                            <button 
+                                onclick="toggleForm('announcement-form')" 
+                                class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>Create New</span>
+                            </button>
+                        </div>
+
+                        <!-- Announcement Form -->
+                        <div id="announcement-form" class="hidden bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl p-8 mb-6 shadow-lg">
+                            <h3 id="announcement-form-title" class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                                <span class="w-1.5 h-8 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full"></span>
+                                Create Announcement
+                            </h3>
+                            <form id="announcementForm" method="POST" action="<?php echo ADMIN_URL; ?>/announcements.php" enctype="multipart/form-data" class="space-y-6">
+                                <input type="hidden" id="ann-id" name="id">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="ann-title" class="block text-sm font-bold text-gray-700 mb-2">Title *</label>
+                                        <input type="text" id="ann-title" name="title" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                    <div>
+                                        <label for="ann-category" class="block text-sm font-bold text-gray-700 mb-2">Category *</label>
+                                        <select id="ann-category" name="category" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <option value="general">General</option>
+                                            <option value="academic">Academic</option>
+                                            <option value="event">Event</option>
+                                            <option value="maintenance">Maintenance</option>
+                                            <option value="urgent">Urgent</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="ann-description" class="block text-sm font-bold text-gray-700 mb-2">Short Description *</label>
+                                    <textarea id="ann-description" name="description" required rows="3" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white resize-y"></textarea>
+                                </div>
+                                <div>
+                                    <label for="ann-content" class="block text-sm font-bold text-gray-700 mb-2">Full Content *</label>
+                                    <textarea id="ann-content" name="content" required rows="6" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white resize-y"></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="ann-image" class="block text-sm font-bold text-gray-700 mb-2">Image (optional)</label>
+                                        <div id="ann-image-preview" class="hidden mb-3">
+                                            <img id="ann-image-preview-img" src="" alt="Preview" class="max-w-xs max-h-48 rounded-xl border-2 border-gray-200 shadow-md">
+                                            <input type="hidden" id="ann-old-image" name="old_image">
+                                        </div>
+                                        <input type="file" id="ann-image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
+                                        <p class="mt-2 text-xs text-gray-500">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" id="ann-pinned" name="pinned" class="w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded focus:ring-indigo-500">
+                                            <span class="text-sm font-semibold text-gray-700">Pin this announcement</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3 pt-4">
+                                    <button type="submit" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" id="ann-submit-btn">Create Announcement</button>
+                                    <button type="button" onclick="cancelAnnouncementEdit()" class="px-8 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Announcements List -->
+                        <div id="announcements-list" class="bg-white border-2 border-gray-200 rounded-xl p-6 min-h-[200px]">
+                            <p class="text-gray-500 text-center py-8">Loading announcements...</p>
+                        </div>
+                    </div>
+
+                    <!-- Events Tab -->
+                    <div class="tab-content hidden" id="events-tab">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">Events</h2>
+                                <p class="text-sm text-gray-500 mt-1">Manage events and galleries</p>
+                            </div>
+                            <button 
+                                onclick="toggleForm('event-form')" 
+                                class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>Create New</span>
+                            </button>
+                        </div>
+
+                        <!-- Event Form -->
+                        <div id="event-form" class="hidden bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl p-8 mb-6 shadow-lg">
+                            <h3 id="event-form-title" class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                                <span class="w-1.5 h-8 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full"></span>
+                                Create Event
+                            </h3>
+                            <form id="eventForm" method="POST" action="<?php echo ADMIN_URL; ?>/events_handler.php" enctype="multipart/form-data" class="space-y-6">
+                                <input type="hidden" id="evt-id" name="id">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="evt-title" class="block text-sm font-bold text-gray-700 mb-2">Title *</label>
+                                        <input type="text" id="evt-title" name="title" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                    <div>
+                                        <label for="evt-category" class="block text-sm font-bold text-gray-700 mb-2">Category *</label>
+                                        <select id="evt-category" name="category" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <option value="workshop">Workshop</option>
+                                            <option value="seminar">Seminar</option>
+                                            <option value="service">Service</option>
+                                            <option value="celebration">Celebration</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="evt-caption" class="block text-sm font-bold text-gray-700 mb-2">Caption *</label>
+                                    <input type="text" id="evt-caption" name="caption" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                </div>
+                                <div>
+                                    <label for="evt-description" class="block text-sm font-bold text-gray-700 mb-2">Description *</label>
+                                    <textarea id="evt-description" name="description" required rows="5" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white resize-y"></textarea>
+                                </div>
+                                <div>
+                                    <label for="evt-summary" class="block text-sm font-bold text-gray-700 mb-2">Event Summary</label>
+                                    <textarea id="evt-summary" name="summary" placeholder="Short highlight that appears in the event details modal" rows="3" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white resize-y"></textarea>
+                                    <p class="mt-2 text-xs text-gray-500">Optional. Keep it to 1-2 concise sentences.</p>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="evt-image" class="block text-sm font-bold text-gray-700 mb-2">Image *</label>
+                                        <div id="evt-image-preview" class="hidden mb-3">
+                                            <img id="evt-image-preview-img" src="" alt="Preview" class="max-w-xs max-h-48 rounded-xl border-2 border-gray-200 shadow-md">
+                                            <input type="hidden" id="evt-old-image" name="old_image">
+                                        </div>
+                                        <input type="file" id="evt-image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
+                                        <p class="mt-2 text-xs text-gray-500">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</p>
+                                    </div>
+                                    <div>
+                                        <label for="evt-location" class="block text-sm font-bold text-gray-700 mb-2">Location</label>
+                                        <input type="text" id="evt-location" name="location" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="evt-date" class="block text-sm font-bold text-gray-700 mb-2">Event Date *</label>
+                                        <input type="date" id="evt-date" name="date" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                    <div>
+                                        <label for="evt-order" class="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
+                                        <input type="number" id="evt-order" name="order" value="0" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="evt-gallery" class="block text-sm font-bold text-gray-700 mb-2">Gallery Images</label>
+                                    <input type="file" id="evt-gallery" name="gallery[]" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
+                                    <p class="mt-2 text-xs text-gray-500">You can select multiple images. Max size per image: 5MB.</p>
+                                    <div id="evt-gallery-preview" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+                                    <input type="hidden" id="evt-old-gallery" name="old_gallery">
+                                </div>
+                                <div class="flex gap-3 pt-4">
+                                    <button type="submit" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" id="evt-submit-btn">Create Event</button>
+                                    <button type="button" onclick="cancelEventEdit()" class="px-8 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Events List -->
+                        <div id="events-list" class="bg-white border-2 border-gray-200 rounded-xl p-6 min-h-[200px]">
+                            <p class="text-gray-500 text-center py-8">Loading events...</p>
+                        </div>
+                    </div>
+
+                    <!-- Documents Tab -->
+                    <div class="tab-content hidden" id="documents-tab">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">Documents</h2>
+                                <p class="text-sm text-gray-500 mt-1">Manage document archives</p>
+                            </div>
+                            <button 
+                                id="createDocBtn" 
+                                onclick="toggleForm('document-form')" 
+                                class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>Create New</span>
+                            </button>
+                        </div>
+
+                        <!-- Document Form -->
+                        <div id="document-form" class="hidden bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl p-8 mb-6 shadow-lg">
+                            <h3 id="document-form-title" class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                                <span class="w-1.5 h-8 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full"></span>
+                                Create Document Entry
+                            </h3>
+                            <form id="documentForm" method="POST" action="<?php echo ADMIN_URL; ?>/documents.php" enctype="multipart/form-data" class="space-y-6">
+                                <input type="hidden" id="doc-id" name="id">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="doc-title" class="block text-sm font-bold text-gray-700 mb-2">Title *</label>
+                                        <input type="text" id="doc-title" name="title" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                    <div>
+                                        <label for="doc-category" class="block text-sm font-bold text-gray-700 mb-2">Category *</label>
+                                        <select id="doc-category" name="category" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <option value="01">01 - OFFICES REPORT</option>
+                                            <option value="02">02 - EXECUTIVE ORDER</option>
+                                            <option value="03">03 - ORDINANCE</option>
+                                            <option value="04">04 - RESOLUTION</option>
+                                            <option value="05">05 - OTHER</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="doc-description" class="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                                    <textarea id="doc-description" name="description" rows="4" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white resize-y"></textarea>
+                                </div>
+                                
+                                <!-- File Upload Section -->
+                                <div>
+                                    <label for="doc-file" class="block text-sm font-bold text-gray-700 mb-2">Upload PDF File (Max 50MB) *</label>
+                                    <input type="file" id="doc-file" name="file" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
+                                    <p class="mt-2 text-xs text-gray-500">Choose a PDF file to upload (Maximum size: 50MB)</p>
+                                    <div id="upload-progress" class="hidden mt-4">
+                                        <div class="bg-gray-200 rounded-xl overflow-hidden h-6">
+                                            <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-600 h-full transition-all duration-300 rounded-xl" style="width: 0%;"></div>
+                                        </div>
+                                        <p id="progress-text" class="mt-2 text-xs text-gray-600 font-medium"></p>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-3 pt-4">
+                                    <button type="submit" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" id="doc-submit-btn">Create Document</button>
+                                    <button type="button" onclick="cancelDocumentEdit()" class="px-8 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Documents List -->
+                        <div id="documents-list" class="bg-white border-2 border-gray-200 rounded-xl p-6 min-h-[200px]">
+                            <p class="text-gray-500 text-center py-8">Loading documents...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<?php include '../includes/footer.php'; ?>
+<style>
+/* ============================================
+   CRITICAL ADMIN PANEL STYLES - FORCE LIGHT THEME
+   These styles MUST override all dark theme CSS
+   ============================================ */
 
+/* Force light background on body and html */
+html.admin-panel-page,
+body.admin-panel-page,
+html body.admin-panel-page {
+    background: linear-gradient(to bottom right, #f8fafc, #e0e7ff, #e9d5ff) !important;
+    background-attachment: fixed !important;
+    color: #1f2937 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 100vh !important;
+}
+
+/* Hide all old admin container styles */
+body.admin-panel-page .admin-container,
+body.admin-panel-page .admin-header:not(.dashboard-header),
+body.admin-panel-page .admin-content,
+body.admin-panel-page .container:not(.admin-panel-wrapper):not(.max-w-7xl):not(.max-w-md),
+body.admin-panel-page .header:not(.site-header),
+body.admin-panel-page .content {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Ensure admin wrapper is visible and light */
+.admin-panel-wrapper {
+    display: block !important;
+    width: 100% !important;
+    min-height: 100vh !important;
+    background: linear-gradient(to bottom right, #f8fafc, #e0e7ff, #e9d5ff) !important;
+    color: #1f2937 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Force light colors on all text */
+body.admin-panel-page,
+body.admin-panel-page * {
+    color: inherit !important;
+}
+
+body.admin-panel-page .text-gray-900,
+body.admin-panel-page .text-gray-800,
+body.admin-panel-page .text-gray-700 {
+    color: #111827 !important;
+}
+
+body.admin-panel-page .text-gray-600 {
+    color: #4b5563 !important;
+}
+
+body.admin-panel-page .text-gray-500 {
+    color: #6b7280 !important;
+}
+
+/* Force white backgrounds */
+body.admin-panel-page .bg-white {
+    background-color: #ffffff !important;
+}
+
+body.admin-panel-page .bg-gray-50 {
+    background-color: #f9fafb !important;
+}
+
+body.admin-panel-page .bg-gray-100 {
+    background-color: #f3f4f6 !important;
+}
+
+/* Override any dark borders */
+body.admin-panel-page .border-gray-200,
+body.admin-panel-page .border-gray-300 {
+    border-color: #e5e7eb !important;
+}
+
+/* Ensure site header is hidden */
+body.admin-panel-page .site-header {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+@keyframes slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+}
+.border-b-3 {
+    border-bottom-width: 3px;
+}
+</style>
+
+<?php include '../includes/footer.php'; ?>
