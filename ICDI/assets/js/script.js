@@ -155,6 +155,18 @@ if (typeof window.staticData === 'undefined') {
         
         navLinks.forEach(link => {
             link.addEventListener('click', function(e) {
+                // CRITICAL: Skip folder-item links, folder-card links, document-category-card links, and links with data-skip-js-handler
+                if (this.classList.contains('folder-item') || 
+                    this.classList.contains('folder-card') ||
+                    this.classList.contains('document-category-card') ||
+                    this.hasAttribute('data-skip-js-handler') ||
+                    this.closest('.folder-item') ||
+                    this.closest('.folder-card') ||
+                    this.closest('.document-category-card') ||
+                    document.body.classList.contains('documents-page')) {
+                    return; // Let the link work naturally
+                }
+                
                 const href = this.getAttribute('href');
                 if (href && !href.startsWith('#') && !href.startsWith('http') && (href.endsWith('.html') || href.endsWith('.php'))) {
                     e.preventDefault();
@@ -458,20 +470,41 @@ function displayFolders() {
         folderCounts[cat] = (folderCounts[cat] || 0) + 1;
     });
 
-    const html = folders.map(folder => `
-        <div class="folder-card" onclick="openFolder('${folder.categoryNumber}', '${folder.name}')">
-            <div class="folder-icon">${folder.icon}</div>
+    const iconByCategory = {
+        '01': 'OFFICE.png',
+        '02': 'EXECUTIVE.png',
+        '03': 'ORDINANCE.png',
+        '04': 'RESOLUTION.png',
+        '05': 'OTHER.png',
+    };
+
+    const html = folders.map(folder => {
+        const iconFile = iconByCategory[folder.categoryNumber] || 'OTHER.png';
+        const iconUrl = (window.ASSETS_URL || '/assets') + '/IMG/ICONS/' + iconFile;
+        const count = folderCounts[folder.categoryNumber] || 0;
+        const href = (window.PUBLIC_URL || '/public') + `/documents.php?category=${folder.categoryNumber}`;
+
+        return `
+        <a class="folder-card" href="${href}" data-skip-js-handler="true">
+            <div class="folder-icon"><img src="${iconUrl}" alt="${folder.name}"></div>
             <div class="folder-info">
                 <div class="folder-name">${folder.name}</div>
-                <div class="folder-count">${folderCounts[folder.categoryNumber] || 0} documents</div>
+                <div class="folder-count">${count} document${count === 1 ? '' : 's'}</div>
             </div>
-        </div>
-    `).join('');
+        </a>
+        `;
+    }).join('');
 
     container.innerHTML = html;
 }
 
 function openFolder(categoryNumber, folderName) {
+    // On documents.php page, navigate to the filtered PHP page
+    if (document.body.classList.contains('documents-page')) {
+        window.location.href = (window.PUBLIC_URL || '/public') + `/documents.php?category=${categoryNumber}`;
+        return;
+    }
+    
     currentFolder = { categoryNumber, name: folderName };
     const filtered = allDocuments.filter(doc => doc.categoryNumber === categoryNumber);
     
@@ -479,11 +512,11 @@ function openFolder(categoryNumber, folderName) {
     if (breadcrumb) {
         breadcrumb.innerHTML = `
             <div class="breadcrumb-item">
-                <a href="#" class="breadcrumb-link" onclick="goToRoot(event)">📁 Documents</a>
+                <a href="#" class="breadcrumb-link" onclick="goToRoot(event)">Documents</a>
             </div>
             <span class="breadcrumb-separator">›</span>
             <div class="breadcrumb-item">
-                <span style="color: var(--color-white)">${folderName}</span>
+                <span class="breadcrumb-current">${folderName}</span>
             </div>
         `;
     }
@@ -495,12 +528,19 @@ function openFolder(categoryNumber, folderName) {
 
 function goToRoot(e) {
     if (e) e.preventDefault();
+    
+    // Don't modify breadcrumb on documents.php page - it's handled by PHP
+    if (document.body.classList.contains('documents-page')) {
+        window.location.href = (window.PUBLIC_URL || '/public') + '/documents.php';
+        return;
+    }
+    
     currentFolder = null;
     const breadcrumb = document.getElementById('breadcrumb');
     if (breadcrumb) {
         breadcrumb.innerHTML = `
             <div class="breadcrumb-item">
-                <a href="#" class="breadcrumb-link" onclick="goToRoot(event)">📁 Documents</a>
+                <a href="#" class="breadcrumb-link" onclick="goToRoot(event)">Documents</a>
             </div>
         `;
     }
@@ -658,6 +698,8 @@ function formatFileSize(bytes) {
 // Initialize documents page
 if (document.getElementById('foldersGrid')) {
     document.addEventListener('DOMContentLoaded', function() {
+        // IMPORTANT: documents.php is rendered by PHP; don't overwrite its markup
+        if (document.body.classList.contains('documents-page')) return;
         loadDocuments();
     });
 }
@@ -1333,7 +1375,7 @@ function displayDocumentsList(documents) {
     
     const categoryNames = {
         '01': 'OFFICES REPORT',
-        '02': 'EXECUTIVE ORD',
+        '02': 'EXECUTIVE ORDER',
         '03': 'ORDINANCE',
         '04': 'RESOLUTION',
         '05': 'OTHER'
@@ -1565,22 +1607,51 @@ function showAlert(message, type = 'success') {
 
 // Document folder click handler
 (function initDocumentFolders() {
-    document.addEventListener('click', function(e) {
-        const folderItem = e.target.closest('.folder-item');
-        if (!folderItem) return;
-
-        const folderNumber = folderItem.querySelector('.folder-number')?.textContent;
-        if (!folderNumber) return;
-
-        const documents = staticDocuments.filter(doc => doc.categoryNumber === folderNumber);
-        const category = folderItem.querySelector('.folder-title')?.textContent || 'Documents';
-
-        if (documents.length === 0) {
-            alert(`${category}\n\nNo documents found in this category.`);
-        } else {
-            window.location.href = (window.PUBLIC_URL || '/public') + `/documents.php?category=${folderNumber}`;
+    function setupHandler() {
+        // Don't attach handler at all if we're on documents page
+        if (document.body && document.body.classList.contains('documents-page')) {
+            return;
         }
-    });
+        
+        document.addEventListener('click', function(e) {
+            // Always check - if body class is documents-page, skip
+            if (document.body.classList.contains('documents-page')) {
+                return;
+            }
+            
+            const folderItem = e.target.closest('.folder-item');
+            if (!folderItem) return;
+
+            // Skip if has skip attribute or is a link
+            if (folderItem.hasAttribute('data-skip-js-handler') || 
+                (folderItem.tagName === 'A' && folderItem.hasAttribute('href'))) {
+                return;
+            }
+
+            // Only prevent default if we're handling it ourselves
+            e.preventDefault();
+            e.stopPropagation();
+
+            const folderNumber = folderItem.querySelector('.folder-number')?.textContent;
+            if (!folderNumber) return;
+
+            const documents = staticDocuments.filter(doc => doc.categoryNumber === folderNumber);
+            const category = folderItem.querySelector('.folder-title')?.textContent || 'Documents';
+
+            if (documents.length === 0) {
+                alert(`${category}\n\nNo documents found in this category.`);
+            } else {
+                window.location.href = (window.PUBLIC_URL || '/public') + `/documents.php?category=${folderNumber}`;
+            }
+        });
+    }
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupHandler);
+    } else {
+        setupHandler();
+    }
 })();
 
 // Page load logging

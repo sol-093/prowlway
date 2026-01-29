@@ -247,7 +247,7 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                 <label for="doc-category">Category *</label>
                                 <select id="doc-category" name="category" required>
                                     <option value="01">01 - OFFICES REPORT</option>
-                                    <option value="02">02 - EXECUTIVE ORD</option>
+                                    <option value="02">02 - EXECUTIVE ORDER</option>
                                     <option value="03">03 - ORDINANCE</option>
                                     <option value="04">04 - RESOLUTION</option>
                                     <option value="05">05 - OTHER</option>
