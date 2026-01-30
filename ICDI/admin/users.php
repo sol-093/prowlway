@@ -57,7 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'email' => $email,
                     'password' => $hashedPassword,
                     'name' => $name,
-                    'role' => $role
+                    'role' => $role,
+                    'status' => 'active'
                 ]);
                 if ($id) {
                     auditLog('user_create', "Created {$role} user: {$name} ({$email})", 'admin', $id);
@@ -69,19 +70,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
         }
-    } elseif ($_POST['action'] === 'delete') {
+    } elseif ($_POST['action'] === 'archive') {
         $id = intval($_POST['id'] ?? 0);
         if ($id === (int)($_SESSION['admin_id'] ?? 0)) {
-            $message = 'Cannot delete your own account.';
+            $message = 'Cannot archive your own account.';
             $messageType = 'error';
         } elseif ($id > 0) {
-            $result = dbDelete('admins', 'id = :id', ['id' => $id]);
+            $result = dbUpdate('admins', ['status' => 'archived'], 'id = :id', ['id' => $id]);
             if ($result) {
-                auditLog('user_delete', "Deleted admin #{$id}", 'admin', $id);
-                $message = 'User deleted.';
+                auditLog('user_archive', "Archived admin #{$id}", 'admin', $id);
+                $message = 'User archived successfully.';
                 $messageType = 'success';
             } else {
-                $message = 'Delete failed.';
+                $message = 'Archive failed.';
                 $messageType = 'error';
             }
         } else {
@@ -120,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$admins = dbFetchAll("SELECT id, email, name, role, created_at FROM admins ORDER BY id ASC");
+$admins = dbFetchAll("SELECT id, email, name, role, created_at FROM admins WHERE status = 'active' OR status IS NULL ORDER BY id ASC");
 
 $pageTitle = 'User roles - PROWLWAY Admin';
 $hideHeader = true;
@@ -272,11 +273,18 @@ include __DIR__ . '/../includes/header.php';
                                         Change Password
                                     </button>
                                     <?php if ($a['id'] !== (int)($_SESSION['admin_id'] ?? 0)): ?>
-                                    <a href="<?php echo ADMIN_URL; ?>/archive_management.php" class="inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-sm shadow-sm hover:shadow-md min-w-[80px] h-[36px]">
-                                        Archive
-                                    </a>
+                                    <form method="post" class="inline" onsubmit="return confirm('Are you sure you want to archive this user? They will be moved to archive management.');">
+                                        <input type="hidden" name="action" value="archive">
+                                        <input type="hidden" name="id" value="<?php echo (int)$a['id']; ?>">
+                                        <?php if (function_exists('generateCSRFToken')): ?>
+                                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                        <?php endif; ?>
+                                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-gray-200 text-gray-800 border-2 border-gray-300 font-semibold rounded-lg hover:bg-gray-300 transition-colors text-sm shadow-sm hover:shadow-md min-w-[80px] h-[36px]">
+                                            Archive
+                                        </button>
+                                    </form>
                                     <?php else: ?>
-                                    <button type="button" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors text-sm shadow-sm hover:shadow-md min-w-[80px] h-[36px] flex items-center justify-center">
+                                    <button type="button" class="px-4 py-2 bg-gray-200 text-gray-800 border-2 border-gray-300 font-semibold rounded-lg hover:bg-gray-300 transition-colors text-sm shadow-sm hover:shadow-md min-w-[80px] h-[36px] flex items-center justify-center" disabled>
                                         User
                                     </button>
                                     <?php endif; ?>

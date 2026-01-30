@@ -33,6 +33,7 @@ $archiveStats = [
     'announcements' => dbFetchOne("SELECT COUNT(*) as count FROM announcements WHERE status = 'archived'")['count'] ?? 0,
     'events' => dbFetchOne("SELECT COUNT(*) as count FROM events WHERE status = 'archived'")['count'] ?? 0,
     'inquiries' => dbFetchOne("SELECT COUNT(*) as count FROM contact_inquiries WHERE status = 'archived'")['count'] ?? 0,
+    'users' => dbFetchOne("SELECT COUNT(*) as count FROM admins WHERE status = 'archived'")['count'] ?? 0,
 ];
 
 $selectedYear = $_GET['year'] ?? '';
@@ -60,7 +61,7 @@ $selectedType = $_GET['type'] ?? 'all';
             </div>
             
             <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div class="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm">
                     <div class="flex items-center justify-between">
                         <div>
@@ -114,6 +115,21 @@ $selectedType = $_GET['type'] ?? 'all';
                                 <line x1="16" y1="2" x2="16" y2="6"></line>
                                 <line x1="8" y1="2" x2="8" y2="6"></line>
                                 <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Users</p>
+                            <p class="text-3xl font-bold text-orange-600 mt-1"><?php echo $archiveStats['users']; ?></p>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-orange-600">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
                             </svg>
                         </div>
                     </div>
@@ -235,6 +251,11 @@ $selectedType = $_GET['type'] ?? 'all';
                     $archivedItems = array_merge($archivedItems, $inqs);
                 }
                 
+                if ($selectedType === 'all' || $selectedType === 'users') {
+                    $users = dbFetchAll("SELECT id, email, name, role, created_at, updated_at, 'user' as item_type FROM admins WHERE status = 'archived' ORDER BY created_at DESC LIMIT 50");
+                    $archivedItems = array_merge($archivedItems, $users);
+                }
+                
                 usort($archivedItems, function($a, $b) {
                     return strtotime($b['created_at']) - strtotime($a['created_at']);
                 });
@@ -256,8 +277,12 @@ $selectedType = $_GET['type'] ?? 'all';
                                     </span>
                                     <?php endif; ?>
                                 </div>
-                                <h3 class="text-lg font-bold text-gray-900 mb-2"><?php echo htmlspecialchars($item['title'] ?? $item['subject'] ?? $item['name'] ?? 'Untitled'); ?></h3>
+                                <h3 class="text-lg font-bold text-gray-900 mb-2"><?php echo htmlspecialchars($item['title'] ?? $item['subject'] ?? $item['name'] ?? $item['email'] ?? 'Untitled'); ?></h3>
+                                <?php if ($item['item_type'] === 'user'): ?>
+                                <p class="text-sm text-gray-600 mb-2">Email: <?php echo htmlspecialchars($item['email'] ?? ''); ?> | Role: <?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', $item['role'] ?? ''))); ?></p>
+                                <?php else: ?>
                                 <p class="text-sm text-gray-600 mb-2"><?php echo htmlspecialchars(substr($item['description'] ?? $item['caption'] ?? $item['message'] ?? '', 0, 150)); ?><?php echo strlen($item['description'] ?? $item['caption'] ?? $item['message'] ?? '') > 150 ? '...' : ''; ?></p>
+                                <?php endif; ?>
                                 <p class="text-xs text-gray-500">Archived: <?php echo date('M j, Y', strtotime($item['updated_at'] ?? $item['created_at'])); ?></p>
                             </div>
                             <div class="flex gap-2 ml-4">
@@ -325,47 +350,32 @@ function bulkArchive(event) {
 }
 
 function restoreItem(type, id) {
-    if (!confirm('Are you sure you want to restore this item? It will be set back to draft status.')) {
-        return;
-    }
+    const confirmMsg = type === 'user' 
+        ? 'Are you sure you want to restore this user? They will be set back to active status.'
+        : 'Are you sure you want to restore this item? It will be set back to published status.';
     
-    let endpoint;
-    if (type === 'document') {
-        endpoint = 'documents.php';
-    } else if (type === 'announcement') {
-        endpoint = 'announcements.php';
-    } else if (type === 'event') {
-        endpoint = 'events_handler.php';
-    } else if (type === 'inquiry') {
-        endpoint = 'inquiries_handler.php';
-    } else {
-        alert('Unknown item type');
+    if (!confirm(confirmMsg)) {
         return;
     }
     
     const formData = new FormData();
-    if (type === 'inquiry') {
-        formData.append('action', 'update_status');
-        formData.append('id', id);
-        formData.append('status', 'closed');
-    } else {
-        formData.append('action', 'restore');
-        formData.append('id', id);
-    }
+    formData.append('action', 'restore');
+    formData.append('type', type);
+    formData.append('id', id);
     
     // Add CSRF token
     if (window.CSRF_TOKEN) {
         formData.append('csrf_token', window.CSRF_TOKEN);
     }
     
-    fetch(`${window.ADMIN_URL}/${endpoint}`, {
+    fetch(`${window.ADMIN_URL}/archive_handler.php`, {
         method: 'POST',
         body: formData
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            alert('Item restored successfully!');
+            alert('Item restored successfully.');
             location.reload();
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
@@ -377,7 +387,11 @@ function restoreItem(type, id) {
 }
 
 function deleteItem(type, id) {
-    if (!confirm('WARNING: This will permanently delete this item. This action cannot be undone. Are you sure?')) {
+    const confirmMsg = type === 'user'
+        ? 'Are you sure you want to permanently delete this user? This action cannot be undone.'
+        : 'WARNING: This will permanently delete this item. This action cannot be undone. Are you sure?';
+    
+    if (!confirm(confirmMsg)) {
         return;
     }
     

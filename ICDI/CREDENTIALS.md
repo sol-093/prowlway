@@ -11,7 +11,7 @@ Admin Accounts
 Super Administrator
 
 Email: `superadmin@icdisg.ph`  
-Password: `admin123` (default - change after first login)  
+Password: `password123`  
 Role: Super Admin  
 Name: ICDI Super Admin  
 Permissions: Full access to all features including user management, settings, and audit logs
@@ -21,7 +21,7 @@ Permissions: Full access to all features including user management, settings, an
 Administrators
 
 Email: `icdi.admin@kld.edu.ph`  
-Password: `admin123` (default - change after first login)  
+Password: `password123`  
 Role: Admin  
 Name: ICDI Admin  
 Permissions: Can publish, approve, archive content. Cannot manage users or settings.
@@ -31,31 +31,31 @@ Permissions: Can publish, approve, archive content. Cannot manage users or setti
 Editors
 
 Email: `gitcub.editor@kld.edu.ph`  
-Password: `admin123` (default - change after first login)  
+Password: `password123`  
 Role: Editor  
 Name: GITCUB Editor  
 Permissions: Can create drafts and submit for review. Cannot publish or approve.
 
 Email: `css.editor@kld.edu.ph`  
-Password: `admin123` (default - change after first login)  
+Password: `password123`  
 Role: Editor  
 Name: CSS Editor  
 Permissions: Can create drafts and submit for review. Cannot publish or approve.
 
 Email: `iss.admin@kld.edu.ph`  
-Password: `admin123` (default - change after first login)  
+Password: `password123`  
 Role: Editor  
 Name: ISS Editor  
 Permissions: Can create drafts and submit for review. Cannot publish or approve.
 
 Email: `iss.editor@kld.edu.ph`  
-Password: `admin123` (default - change after first login)  
+Password: `password123`  
 Role: Editor  
 Name: ISS Editor  
 Permissions: Can create drafts and submit for review. Cannot publish or approve.
 
 Email: `jpcs.editor@kld.edu.ph`  
-Password: `admin123` (default - change after first login)  
+Password: `password123`  
 Role: Editor  
 Name: JPCS Editor  
 Permissions: Can create drafts and submit for review. Cannot publish or approve.

@@ -235,25 +235,8 @@ $isSuperAdmin = $isLoggedIn && isSuperAdmin();
                 $pendingCount += dbFetchOne("SELECT COUNT(*) as count FROM events WHERE status = 'pending_review'")['count'] ?? 0;
             }
             
-            // Calculate grid columns based on visible cards
-            // Editor: 2 cards (Batches, Organizations)
-            // Admin: 5 cards (Editor + Review Queue, Archive, Audit Log, Institute)
-            // Super Admin: 8 cards (Admin + Settings, User roles)
-            $cardCount = 2; // Base cards for editors (Batches, Organizations)
-            if ($canPublish) {
-                $cardCount += 4; // Review Queue, Archive, Audit Log, Institute Content
-            }
-            if ($isSuperAdmin) $cardCount += 2; // Settings, User roles
-            
-            // Determine grid columns based on card count
-            $gridCols = 'md:grid-cols-2';
-            if ($cardCount > 6) {
-                $gridCols = 'md:grid-cols-2 lg:grid-cols-4';
-            } elseif ($cardCount > 2) {
-                $gridCols = 'md:grid-cols-2 lg:grid-cols-3';
-            }
             ?>
-            <div class="grid grid-cols-1 <?php echo $gridCols; ?> gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <!-- Review Queue - Admin and Super Admin only -->
                 <?php if ($canPublish): ?>
                 <a href="<?php echo ADMIN_URL; ?>/review_queue.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200 relative">

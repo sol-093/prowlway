@@ -46,6 +46,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
+    } elseif ($action === 'restore') {
+        // Restore item from archive
+        $itemType = $_POST['type'] ?? '';
+        $id = intval($_POST['id'] ?? 0);
+        
+        if ($id <= 0 || empty($itemType)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid ID or type']);
+            exit;
+        }
+        
+        try {
+            $tableName = '';
+            $entityType = '';
+            $restoreStatus = '';
+            
+            switch ($itemType) {
+                case 'document':
+                    $tableName = 'documents';
+                    $entityType = 'document';
+                    $restoreStatus = 'published';
+                    break;
+                case 'announcement':
+                    $tableName = 'announcements';
+                    $entityType = 'announcement';
+                    $restoreStatus = 'published';
+                    break;
+                case 'event':
+                    $tableName = 'events';
+                    $entityType = 'event';
+                    $restoreStatus = 'published';
+                    break;
+                case 'inquiry':
+                    $tableName = 'contact_inquiries';
+                    $entityType = 'inquiry';
+                    $restoreStatus = 'open';
+                    break;
+                case 'user':
+                    $tableName = 'admins';
+                    $entityType = 'user';
+                    $restoreStatus = 'active';
+                    break;
+                default:
+                    echo json_encode(['success' => false, 'error' => 'Invalid item type']);
+                    exit;
+            }
+            
+            // Verify item is archived before restoring
+            $item = dbFetchOne("SELECT * FROM {$tableName} WHERE id = ?", [$id]);
+            if (!$item) {
+                echo json_encode(['success' => false, 'error' => 'Item not found']);
+                exit;
+            }
+            
+            if ($itemType !== 'inquiry' && $itemType !== 'user' && ($item['status'] ?? '') !== 'archived') {
+                echo json_encode(['success' => false, 'error' => 'Item is not archived.']);
+                exit;
+            }
+            
+            if ($itemType === 'inquiry' && ($item['status'] ?? '') !== 'archived') {
+                echo json_encode(['success' => false, 'error' => 'Inquiry is not archived.']);
+                exit;
+            }
+            
+            if ($itemType === 'user' && ($item['status'] ?? '') !== 'archived') {
+                echo json_encode(['success' => false, 'error' => 'User is not archived.']);
+                exit;
+            }
+            
+            // Restore the item
+            $result = dbUpdate($tableName, ['status' => $restoreStatus], 'id = :id', ['id' => $id]);
+            
+            if ($result) {
+                auditLog('restore', "Restored {$entityType} #{$id} from archive", $entityType, $id);
+                echo json_encode(['success' => true, 'message' => 'Item restored successfully']);
+            } else {
+                echo json_encode(['success' => false, 'error' => 'Restore failed']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
     } elseif ($action === 'delete') {
         // Permanent delete from archive
         $itemType = $_POST['type'] ?? '';
@@ -77,6 +157,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $tableName = 'contact_inquiries';
                     $entityType = 'inquiry';
                     break;
+                case 'user':
+                    $tableName = 'admins';
+                    $entityType = 'user';
+                    break;
                 default:
                     echo json_encode(['success' => false, 'error' => 'Invalid item type']);
                     exit;
@@ -96,6 +180,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($itemType === 'inquiry' && ($item['status'] ?? '') !== 'archived') {
                 echo json_encode(['success' => false, 'error' => 'Inquiry is not archived. Only archived inquiries can be permanently deleted.']);
+                exit;
+            }
+            
+            if ($itemType === 'user' && ($item['status'] ?? '') !== 'archived') {
+                echo json_encode(['success' => false, 'error' => 'User is not archived. Only archived users can be permanently deleted.']);
                 exit;
             }
             

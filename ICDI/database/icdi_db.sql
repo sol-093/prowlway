@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 30, 2026 at 05:53 AM
+-- Generation Time: Jan 30, 2026 at 06:23 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -33,6 +33,7 @@ CREATE TABLE `admins` (
   `password` varchar(255) NOT NULL,
   `name` varchar(255) DEFAULT NULL,
   `role` enum('super_admin','admin','editor') DEFAULT 'admin',
+  `status` enum('active','archived') DEFAULT 'active',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -41,14 +42,14 @@ CREATE TABLE `admins` (
 -- Dumping data for table `admins`
 --
 
-INSERT INTO `admins` (`id`, `email`, `password`, `name`, `role`, `created_at`, `updated_at`) VALUES
-(2, 'icdi.admin@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'ICDI Admin', 'admin', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
-(3, 'gitcub.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'GITCUB Editor', 'editor', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
-(4, 'css.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'CSS Editor', 'editor', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
-(5, 'iss.admin@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'ISS Editor', 'editor', '2026-01-30 01:35:57', '2026-01-30 01:36:46'),
-(6, 'jpcs.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'JPCS Editor', 'editor', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
-(7, 'superadmin@icdisg.ph', '$2y$10$tSBPpP1kWdBoUnAGpt4g7e0TLmEbmbHc7nL/caQEY.p4a0BFzlDjm', 'ICDI Super Admin', 'super_admin', '2026-01-30 01:37:26', '2026-01-30 01:37:26'),
-(8, 'iss.editor@kld.edu.ph', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ISS Editor', 'editor', '2026-01-30 01:37:48', '2026-01-30 01:37:48');
+INSERT INTO `admins` (`id`, `email`, `password`, `name`, `role`, `status`, `created_at`, `updated_at`) VALUES
+(2, 'icdi.admin@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'ICDI Admin', 'admin', 'active', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
+(3, 'gitcub.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'GITCUB Editor', 'editor', 'active', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
+(4, 'css.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'CSS Editor', 'editor', 'active', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
+(5, 'iss.admin@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'ISS Editor', 'editor', 'active', '2026-01-30 01:35:57', '2026-01-30 01:36:46'),
+(6, 'jpcs.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'JPCS Editor', 'editor', 'active', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
+(7, 'superadmin@icdisg.ph', '$2y$10$tSBPpP1kWdBoUnAGpt4g7e0TLmEbmbHc7nL/caQEY.p4a0BFzlDjm', 'ICDI Super Admin', 'super_admin', 'active', '2026-01-30 01:37:26', '2026-01-30 01:37:26'),
+(8, 'iss.editor@kld.edu.ph', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ISS Editor', 'editor', 'active', '2026-01-30 01:37:48', '2026-01-30 01:37:48');
 
 -- --------------------------------------------------------
 
@@ -139,7 +140,14 @@ INSERT INTO `audit_log` (`id`, `admin_id`, `action`, `entity_type`, `entity_id`,
 (28, 7, 'delete', 'announcement', 2, 'Announcement deleted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:20:51'),
 (29, 7, 'archive', 'announcement', 1, 'Announcement archived (bulk)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:35:38'),
 (30, 7, 'restore', 'announcement', 1, 'Announcement restored from archive', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:37:41'),
-(31, 7, 'publish', 'announcement', 1, 'Announcement published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:41:31');
+(31, 7, 'publish', 'announcement', 1, 'Announcement published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:41:31'),
+(34, 3, 'login', 'admin', 3, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 05:17:50'),
+(35, 3, 'logout', 'admin', 3, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 05:17:55'),
+(36, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 05:18:02'),
+(37, 7, 'logout', 'admin', 7, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 05:20:13'),
+(38, 2, 'login', 'admin', 2, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 05:20:26'),
+(39, 2, 'logout', 'admin', 2, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 05:20:39'),
+(40, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 05:20:42');
 
 -- --------------------------------------------------------
 
@@ -667,7 +675,7 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `batches`
