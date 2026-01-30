@@ -12,15 +12,15 @@ $events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY d
 ?>
 
 <!-- Main Container -->
-<div class="container">
+<div class="container px-4 md:px-6 lg:px-8">
     <div class="events-outer-panel">
-        <div class="events-inner-panel">
+        <div class="events-inner-panel px-4 md:px-8 lg:px-12 py-6 md:py-8 lg:py-10">
             
             <!-- Page Title -->
-            <h1 class="events-page-title">Events</h1>
+            <h1 class="events-page-title text-2xl md:text-3xl lg:text-4xl font-bold mb-6 md:mb-8">Events</h1>
             
             <!-- Events Rows -->
-            <div class="events-rows-container">
+            <div class="events-rows-container space-y-6 md:space-y-8">
                 <?php if (empty($events)): ?>
                     <div class="no-events">
                         <p>No events available yet.</p>
@@ -30,7 +30,7 @@ $events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY d
                     $eventRows = array_chunk($events, 3);
                     foreach ($eventRows as $rowIndex => $rowEvents):
                 ?>
-                    <div class="events-row">
+                    <div class="events-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         <?php foreach ($rowEvents as $event): 
                             $eventDate = new DateTime($event['date']);
                             $endDate = !empty($event['end_date']) ? new DateTime($event['end_date']) : null;

@@ -31,6 +31,9 @@ include '../includes/header.php';
 $advisers = $batch
     ? dbFetchAll("SELECT * FROM batch_members WHERE batch_id = ? AND group_type = 'adviser' ORDER BY display_order ASC, id ASC", [$batch['id']])
     : [];
+$coAdvisers = $batch
+    ? dbFetchAll("SELECT * FROM batch_members WHERE batch_id = ? AND group_type = 'co_adviser' ORDER BY display_order ASC, id ASC", [$batch['id']])
+    : [];
 $executiveOfficers = $batch
     ? dbFetchAll("SELECT * FROM batch_members WHERE batch_id = ? AND group_type = 'executive_officer' ORDER BY display_order ASC, id ASC", [$batch['id']])
     : [];
@@ -55,71 +58,89 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                 <?php else: ?>
                     <?php if ($batchOrg): ?>
                         <div class="mb-4">
-                            <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $batchOrg['id']; ?>" class="text-sm text-gray-400 hover:text-gray-300 inline-flex items-center gap-1">
+                            <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $batchOrg['id']; ?>" class="text-sm text-black inline-flex items-center gap-1">
                                 ← Back to <?php echo htmlspecialchars($batchOrg['name']); ?>
                             </a>
                         </div>
                     <?php endif; ?>
-                    <!-- Top: Batch hero / logo -->
-                    <div class="batch-detail-hero">
-                        <div class="batch-grid-card-inner">
-                            <div class="batch-grid-image-frame">
-                                <?php if (!empty($batch['image'])): ?>
-                                    <img src="<?php echo getImageUrl($batch['image']); ?>" alt="<?php echo htmlspecialchars($batch['academic_year']); ?>">
-                                <?php else: ?>
-                                    <div class="batch-placeholder">
-                                        <div class="batch-logo-placeholder">🐾</div>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                            <div class="batch-grid-year">
-                                <?php echo htmlspecialchars($batch['academic_year']); ?>
-                            </div>
-                        </div>
+                    
+                    <!-- Batch Title -->
+                    <div class="mb-6 md:mb-8">
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 px-2 md:px-0"><?php echo htmlspecialchars($batch['academic_year']); ?></h1>
                     </div>
 
-                    <!-- Advisers -->
-                    <?php if (($targetGroup === 'all' || $targetGroup === 'adviser') && !empty($advisers)): ?>
-                        <section class="batch-detail-section advisers-section">
-                            <div class="batch-members-row advisers-row">
-                                <?php foreach ($advisers as $member): ?>
-                                    <div class="batch-member-card advisers-card">
-                                        <div class="batch-member-avatar">
-                                            <?php if (!empty($member['image'])): ?>
-                                                <img src="<?php echo getImageUrl($member['image']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>">
-                                            <?php endif; ?>
+                    <!-- Advisers & Co-Advisers (2 Profile Cards) -->
+                    <?php if ($targetGroup === 'all' || $targetGroup === 'adviser' || $targetGroup === 'co_adviser'): ?>
+                        <?php if (!empty($advisers) || !empty($coAdvisers)): ?>
+                            <section class="batch-detail-section advisers-section">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-12 lg:gap-16 justify-items-center mb-6 md:mb-8 px-2 md:px-0">
+                                    <!-- Adviser Card -->
+                                    <?php if (!empty($advisers)): ?>
+                                        <?php foreach ($advisers as $adviser): ?>
+                                        <div class="text-center w-full max-w-[205px]">
+                                            <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
+                                                <?php if (!empty($adviser['image'])): ?>
+                                                    <img src="<?php echo getImageUrl($adviser['image']); ?>" alt="<?php echo htmlspecialchars($adviser['name']); ?>" class="w-full h-full rounded-[30px] object-cover bg-[#D9D9D9]">
+                                                <?php else: ?>
+                                                    <div class="w-full h-full rounded-[30px] bg-[#D9D9D9]"></div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="w-full max-w-[205px] mx-auto font-['Inter'] font-semibold text-[15px] leading-[18px] text-center capitalize text-[#0F181D] truncate px-2" title="<?php echo htmlspecialchars($adviser['name']); ?>">
+                                                <?php echo htmlspecialchars($adviser['name']); ?>
+                                            </div>
+                                            <div class="text-xs md:text-sm text-black italic truncate w-full max-w-[205px] mx-auto mt-0.5 px-2" title="<?php echo htmlspecialchars($adviser['position_title']); ?>">
+                                                <?php echo htmlspecialchars($adviser['position_title']); ?>
+                                            </div>
                                         </div>
-                                        <div class="batch-member-name">
-                                            <?php echo htmlspecialchars($member['name']); ?>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Co-Adviser Card -->
+                                    <?php if (!empty($coAdvisers)): ?>
+                                        <?php foreach ($coAdvisers as $coAdviser): ?>
+                                        <div class="text-center w-full max-w-[205px]">
+                                            <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
+                                                <?php if (!empty($coAdviser['image'])): ?>
+                                                    <img src="<?php echo getImageUrl($coAdviser['image']); ?>" alt="<?php echo htmlspecialchars($coAdviser['name']); ?>" class="w-full h-full rounded-[30px] object-cover bg-[#D9D9D9]">
+                                                <?php else: ?>
+                                                    <div class="w-full h-full rounded-[30px] bg-[#D9D9D9]"></div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="w-full max-w-[205px] mx-auto font-['Inter'] font-semibold text-[15px] leading-[18px] text-center capitalize text-[#0F181D] truncate px-2" title="<?php echo htmlspecialchars($coAdviser['name']); ?>">
+                                                <?php echo htmlspecialchars($coAdviser['name']); ?>
+                                            </div>
+                                            <div class="text-xs md:text-sm text-black italic truncate w-full max-w-[205px] mx-auto mt-0.5 px-2" title="<?php echo htmlspecialchars($coAdviser['position_title']); ?>">
+                                                <?php echo htmlspecialchars($coAdviser['position_title']); ?>
+                                            </div>
                                         </div>
-                                        <div class="batch-member-position">
-                                            <?php echo htmlspecialchars($member['position_title']); ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </section>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </section>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- Executive Officers -->
                     <?php if ($targetGroup === 'all' || $targetGroup === 'executive_officer'): ?>
-                        <section class="batch-detail-section">
-                            <h2 class="batch-section-heading">EXECUTIVE OFFICERS</h2>
+                        <section class="batch-detail-section mt-8 md:mt-12 lg:mt-16 px-2 md:px-0">
+                            <h2 class="batch-section-heading mb-4 md:mb-6 text-xl md:text-2xl lg:text-[32px]">EXECUTIVE OFFICERS</h2>
                             <?php if (empty($executiveOfficers)): ?>
-                                <p class="batch-section-empty">No executive officers added for this batch yet.</p>
+                                <p class="batch-section-empty text-sm md:text-base">No executive officers added for this batch yet.</p>
                             <?php else: ?>
-                                <div class="batch-members-row">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-items-center">
                                     <?php foreach ($executiveOfficers as $member): ?>
-                                        <div class="batch-member-card">
-                                            <div class="batch-member-avatar">
+                                        <div class="text-center w-full max-w-[205px]">
+                                            <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
                                                 <?php if (!empty($member['image'])): ?>
-                                                    <img src="<?php echo getImageUrl($member['image']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>">
+                                                    <img src="<?php echo getImageUrl($member['image']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>" class="w-full h-full rounded-[30px] object-cover bg-[#D9D9D9]">
+                                                <?php else: ?>
+                                                    <div class="w-full h-full rounded-[30px] bg-[#D9D9D9]"></div>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="batch-member-name">
+                                            <div class="w-full max-w-[205px] mx-auto font-['Inter'] font-semibold text-sm md:text-[15px] leading-[18px] text-center capitalize text-[#0F181D] truncate px-2" title="<?php echo htmlspecialchars($member['name']); ?>">
                                                 <?php echo htmlspecialchars($member['name']); ?>
                                             </div>
-                                            <div class="batch-member-position">
+                                            <div class="text-xs md:text-sm text-black italic truncate w-full max-w-[205px] mx-auto mt-0.5 px-2" title="<?php echo htmlspecialchars($member['position_title']); ?>">
                                                 <?php echo htmlspecialchars($member['position_title']); ?>
                                             </div>
                                         </div>
@@ -131,23 +152,25 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
 
                     <!-- Executive Associates -->
                     <?php if ($targetGroup === 'all' || $targetGroup === 'executive_associate'): ?>
-                        <section class="batch-detail-section">
-                            <h2 class="batch-section-heading">EXECUTIVE ASSOCIATES</h2>
+                        <section class="batch-detail-section mt-8 md:mt-12 lg:mt-16 px-2 md:px-0">
+                            <h2 class="batch-section-heading mb-4 md:mb-6 text-xl md:text-2xl lg:text-[32px]">EXECUTIVE ASSOCIATES</h2>
                             <?php if (empty($executiveAssociates)): ?>
-                                <p class="batch-section-empty">No executive associates added for this batch yet.</p>
+                                <p class="batch-section-empty text-sm md:text-base">No executive associates added for this batch yet.</p>
                             <?php else: ?>
-                                <div class="batch-members-row">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-items-center">
                                     <?php foreach ($executiveAssociates as $member): ?>
-                                        <div class="batch-member-card">
-                                            <div class="batch-member-avatar">
+                                        <div class="text-center w-full max-w-[205px]">
+                                            <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
                                                 <?php if (!empty($member['image'])): ?>
-                                                    <img src="<?php echo getImageUrl($member['image']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>">
+                                                    <img src="<?php echo getImageUrl($member['image']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>" class="w-full h-full rounded-[30px] object-cover bg-[#D9D9D9]">
+                                                <?php else: ?>
+                                                    <div class="w-full h-full rounded-[30px] bg-[#D9D9D9]"></div>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="batch-member-name">
+                                            <div class="w-full max-w-[205px] mx-auto font-['Inter'] font-semibold text-sm md:text-[15px] leading-[18px] text-center capitalize text-[#0F181D] truncate px-2" title="<?php echo htmlspecialchars($member['name']); ?>">
                                                 <?php echo htmlspecialchars($member['name']); ?>
                                             </div>
-                                            <div class="batch-member-position">
+                                            <div class="text-xs md:text-sm text-black italic truncate w-full max-w-[205px] mx-auto mt-0.5 px-2" title="<?php echo htmlspecialchars($member['position_title']); ?>">
                                                 <?php echo htmlspecialchars($member['position_title']); ?>
                                             </div>
                                         </div>
@@ -162,8 +185,8 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
     </div>
 
     <!-- Sidebar / Directory -->
-    <aside class="origin-sidebar">
-        <div class="sidebar-panel">
+    <aside class="origin-sidebar w-full lg:w-80 flex-shrink-0 bg-gray-900 lg:bg-transparent border-t lg:border-t-0 border-gray-800 lg:border-0">
+        <div class="sidebar-panel p-4 lg:p-6">
             <!-- INSTITUTE Section -->
             <div class="sidebar-section">
                 <h2 class="sidebar-title">INSTITUTE</h2>
@@ -188,7 +211,7 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                         </li>
                     <?php endforeach; ?>
                     <?php if ($batchOrg): ?>
-                        <li><a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $batchOrg['id']; ?>">← Back to <?php echo htmlspecialchars($batchOrg['name']); ?></a></li>
+                        <li><a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $batchOrg['id']; ?>" class="text-black">← Back to <?php echo htmlspecialchars($batchOrg['name']); ?></a></li>
                     <?php endif; ?>
                 </ul>
             </div>

@@ -176,6 +176,7 @@ $selectedType = $_GET['type'] ?? 'all';
                             <option value="announcements">Announcements Only</option>
                             <option value="events">Events Only</option>
                             <option value="inquiries">Inquiries Only</option>
+                            <option value="users">Users Only</option>
                         </select>
                     </div>
                     <button type="submit" class="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-colors">
@@ -207,6 +208,7 @@ $selectedType = $_GET['type'] ?? 'all';
                             <option value="documents" <?php echo $selectedType === 'documents' ? 'selected' : ''; ?>>Documents</option>
                             <option value="announcements" <?php echo $selectedType === 'announcements' ? 'selected' : ''; ?>>Announcements</option>
                             <option value="events" <?php echo $selectedType === 'events' ? 'selected' : ''; ?>>Events</option>
+                            <option value="users" <?php echo $selectedType === 'users' ? 'selected' : ''; ?>>Users</option>
                             <option value="inquiries" <?php echo $selectedType === 'inquiries' ? 'selected' : ''; ?>>Inquiries</option>
                         </select>
                     </div>

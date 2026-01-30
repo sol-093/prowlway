@@ -45,15 +45,15 @@ include '../includes/header.php';
 ?>
 
 <!-- Main Container -->
-<div class="container">
+<div class="container px-4 md:px-6 lg:px-8">
     <div class="event-detail-outer-panel">
-        <div class="event-detail-inner-panel">
+        <div class="event-detail-inner-panel px-4 md:px-8 lg:px-12 py-6 md:py-8 lg:py-10">
             
             <!-- Event Summary Section -->
-            <div class="event-summary-section">
-                <h1 class="event-summary-title">Event Summary</h1>
+            <div class="event-summary-section mb-6 md:mb-8">
+                <h1 class="event-summary-title text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6">Event Summary</h1>
                 
-                <div class="event-summary-content">
+                <div class="event-summary-content flex flex-col lg:flex-row gap-6 md:gap-8">
                     <!-- Event Image -->
                     <div class="event-summary-image">
                         <img src="<?php echo getImageUrl($event['image']); ?>" alt="<?php echo htmlspecialchars($event['title']); ?>" class="event-image-main">

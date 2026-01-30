@@ -47,9 +47,9 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                 <h1 class="origin-page-title">Student Organization</h1>
                 <p>No organization found for this ID.</p>
             <?php else: ?>
-                <div class="origin-inner-panel org-inner-panel">
+                <div class="origin-inner-panel org-inner-panel px-4 md:px-6 lg:px-8 py-6 md:py-8">
                     <!-- Top hero / banner (landscape only; different from logo; from admin) -->
-                    <div class="origin-hero origin-hero-banner">
+                    <div class="origin-hero origin-hero-banner mb-6 md:mb-8 rounded-lg overflow-hidden">
                         <?php
                         $batchPageUrl = PUBLIC_URL . '/batches.php?org_id=' . $organization['id'];
                         $heroSrc = !empty($organization['banner_image'])
@@ -62,8 +62,8 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                     </div>
 
                     <!-- ABOUT -->
-                    <section class="origin-section org-section-about">
-                        <h2 class="origin-section-title">About</h2>
+                    <section class="origin-section org-section-about mb-6 md:mb-8">
+                        <h2 class="origin-section-title text-xl md:text-2xl lg:text-3xl font-bold mb-3 md:mb-4">About</h2>
                         <div class="origin-text">
                             <?php if (!empty($organization['description'])): ?>
                                 <?php echo nl2br(htmlspecialchars($organization['description'])); ?>
@@ -76,9 +76,9 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                     <div class="origin-divider"></div>
 
                     <!-- MISSION & VISION -->
-                    <section class="origin-section origin-section-split org-section-mission-vision">
-                        <div class="origin-split-column">
-                            <h2 class="origin-section-title">Mission</h2>
+                    <section class="origin-section origin-section-split org-section-mission-vision flex flex-col md:flex-row gap-6 md:gap-8 mb-6 md:mb-8">
+                        <div class="origin-split-column flex-1">
+                            <h2 class="origin-section-title text-xl md:text-2xl lg:text-3xl font-bold mb-3 md:mb-4">Mission</h2>
                             <div class="origin-text">
                                 <?php if (!empty($organization['mission'])): ?>
                                     <?php echo nl2br(htmlspecialchars($organization['mission'])); ?>
@@ -87,8 +87,8 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <div class="origin-split-column">
-                            <h2 class="origin-section-title">Vision</h2>
+                        <div class="origin-split-column flex-1">
+                            <h2 class="origin-section-title text-xl md:text-2xl lg:text-3xl font-bold mb-3 md:mb-4">Vision</h2>
                             <div class="origin-text">
                                 <?php if (!empty($organization['vision'])): ?>
                                     <?php echo nl2br(htmlspecialchars($organization['vision'])); ?>
@@ -102,10 +102,10 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                     <div class="origin-divider"></div>
 
                     <!-- CORE VALUES: 1:1 icon + short title + description -->
-                    <section class="origin-section org-section-core-values">
-                        <h2 class="origin-section-title">Core Values</h2>
+                    <section class="origin-section org-section-core-values mb-6 md:mb-8">
+                        <h2 class="origin-section-title text-xl md:text-2xl lg:text-3xl font-bold mb-4 md:mb-6">Core Values</h2>
                         <?php if (empty($coreValues)): ?>
-                            <p class="origin-text">Core values for this organization have not been added yet.</p>
+                            <p class="origin-text text-sm md:text-base">Core values for this organization have not been added yet.</p>
                         <?php else: ?>
                             <div class="org-core-values-list">
                                 <?php foreach ($coreValues as $value):

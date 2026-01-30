@@ -45,16 +45,16 @@ $logoSrc = ($logo && !empty($logo['image'])) ? getImageUrl($logo['image']) : (AS
 include '../includes/header.php';
 ?>
 
-<div class="institute-page-container">
+<div class="institute-page-container px-4 md:px-6 lg:px-8">
     <div class="institute-main-content">
-        <div class="institute-content-panel">
+        <div class="institute-content-panel px-4 md:px-6 lg:px-8 py-6 md:py-8">
             <?php if ($section === 'about'): ?>
                 <!-- PAGE 1: ABOUT -->
-                <div class="institute-hero-banner">
-                    <img src="<?php echo htmlspecialchars($bannerSrc); ?>" alt="ICDI Banner">
+                <div class="institute-hero-banner mb-6 md:mb-8 rounded-lg overflow-hidden">
+                    <img src="<?php echo htmlspecialchars($bannerSrc); ?>" alt="ICDI Banner" class="w-full h-auto">
                 </div>
-                <section class="institute-section">
-                    <h2 class="section-title">About</h2>
+                <section class="institute-section mb-6 md:mb-8">
+                    <h2 class="section-title text-xl md:text-2xl lg:text-3xl font-bold mb-4 md:mb-6">About</h2>
                     <div class="section-content">
                         <?php echo $about ? nl2br(htmlspecialchars($about['content'])) : 'Content not available.'; ?>
                     </div>
@@ -87,9 +87,9 @@ include '../includes/header.php';
 
             <?php elseif ($section === 'faculty'): ?>
                 <!-- PAGE 2: FACULTY UNIT -->
-                <section class="institute-section">
-                    <h2 class="section-title">Faculty Unit</h2>
-                    <div class="institute-list">
+                <section class="institute-section mb-6 md:mb-8">
+                    <h2 class="section-title text-xl md:text-2xl lg:text-3xl font-bold mb-4 md:mb-6">Faculty Unit</h2>
+                    <div class="institute-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         <?php if (empty($facultyUnits)): ?>
                             <p>No faculty information available.</p>
                         <?php else: ?>

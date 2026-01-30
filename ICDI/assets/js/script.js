@@ -278,10 +278,10 @@ function validateEventForm(formData) {
     function startIntroAnimation() {
         console.log('[Intro Debug] Starting intro animation check...');
         
-        const introScreen = document.getElementById('introScreen');
-        const introTextEl = document.getElementById('introText');
-        const mainContent = document.getElementById('mainContent');
-        const body = document.body;
+    const introScreen = document.getElementById('introScreen');
+    const introTextEl = document.getElementById('introText');
+    const mainContent = document.getElementById('mainContent');
+    const body = document.body;
 
         console.log('[Intro Debug] introScreen:', introScreen);
         console.log('[Intro Debug] introTextEl:', introTextEl);
@@ -344,53 +344,53 @@ function validateEventForm(formData) {
             console.log('[Intro Debug] Intro screen computed display:', window.getComputedStyle(introScreen).display);
         }
 
-        const INTRO_CONFIG = {
-            text: "ICDISG PROWLWAY",
-            letterDelay: 50,
-            holdDuration: 500,
-            fadeOutDuration: 500
-        };
+    const INTRO_CONFIG = {
+        text: "ICDISG PROWLWAY",
+        letterDelay: 50,
+        holdDuration: 500,
+        fadeOutDuration: 500
+    };
 
-        const text = INTRO_CONFIG.text;
-        const letters = text.split('');
-        let revealedCount = 0;
+    const text = INTRO_CONFIG.text;
+    const letters = text.split('');
+    let revealedCount = 0;
 
         // Clear any existing content
         introTextEl.innerHTML = '';
 
-        letters.forEach(letter => {
-            const span = document.createElement('span');
-            span.textContent = letter === ' ' ? '\u00A0' : letter;
-            introTextEl.appendChild(span);
-        });
+    letters.forEach(letter => {
+        const span = document.createElement('span');
+        span.textContent = letter === ' ' ? '\u00A0' : letter;
+        introTextEl.appendChild(span);
+    });
 
-        const spans = introTextEl.querySelectorAll('span');
+    const spans = introTextEl.querySelectorAll('span');
         console.log('[Intro Debug] Created', spans.length, 'letter spans');
 
-        function revealNextLetter() {
-            if (revealedCount < spans.length) {
-                spans[revealedCount].classList.add('revealed');
-                revealedCount++;
-                setTimeout(revealNextLetter, INTRO_CONFIG.letterDelay);
-            } else {
+    function revealNextLetter() {
+        if (revealedCount < spans.length) {
+            spans[revealedCount].classList.add('revealed');
+            revealedCount++;
+            setTimeout(revealNextLetter, INTRO_CONFIG.letterDelay);
+        } else {
                 console.log('[Intro Debug] All letters revealed - waiting before fade out');
-                setTimeout(fadeOutIntro, INTRO_CONFIG.holdDuration);
-            }
+            setTimeout(fadeOutIntro, INTRO_CONFIG.holdDuration);
         }
+    }
 
-        function fadeOutIntro() {
+    function fadeOutIntro() {
             console.log('[Intro Debug] Fading out intro');
             if (!introScreen) {
                 console.error('[Intro Debug] introScreen is null in fadeOutIntro');
                 return;
             }
             
-            introScreen.classList.add('fade-out');
-            
-            setTimeout(() => {
+        introScreen.classList.add('fade-out');
+        
+        setTimeout(() => {
                 console.log('[Intro Debug] Hiding intro screen and showing content');
                 if (introScreen) {
-                    introScreen.classList.add('hidden');
+            introScreen.classList.add('hidden');
                     introScreen.style.display = 'none';
                 }
                 if (body) {
@@ -403,8 +403,8 @@ function validateEventForm(formData) {
                     mainContent.style.visibility = 'visible';
                     mainContent.style.pointerEvents = 'auto';
                 }
-            }, INTRO_CONFIG.fadeOutDuration);
-        }
+        }, INTRO_CONFIG.fadeOutDuration);
+    }
         
         console.log('[Intro Debug] Starting letter reveal animation in 200ms');
 
@@ -455,7 +455,7 @@ function validateEventForm(formData) {
             }
         }, 5000);
 
-        setTimeout(revealNextLetter, 200);
+    setTimeout(revealNextLetter, 200);
     }
 
     // Run when DOM is ready
@@ -640,35 +640,14 @@ function loadDocumentStats() {
 })();
 
 // ============================================
-// 6. MOBILE MENU TOGGLE
+// 6. MOBILE MENU TOGGLE (Disabled - Using new sidebar)
 // ============================================
+// Old mobile menu toggle disabled - sidebar is now handled in header.php
+// This prevents duplicate navigation menus
 (function initMobileMenu() {
-    const mobileToggle = document.querySelector('.mobile-menu-toggle');
-    const mainNav = document.querySelector('.main-nav');
-    
-    if (!mobileToggle || !mainNav) return;
-    
-    mobileToggle.addEventListener('click', function() {
-        mainNav.classList.toggle('active');
-        this.classList.toggle('active');
-    });
-    
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            mainNav.classList.remove('active');
-            mobileToggle.classList.remove('active');
-        });
-    });
-    
-    document.addEventListener('click', function(event) {
-        if (!event.target.closest('.main-nav') && 
-            !event.target.closest('.mobile-menu-toggle') &&
-            mainNav.classList.contains('active')) {
-            mainNav.classList.remove('active');
-            mobileToggle.classList.remove('active');
-        }
-    });
+    // Disabled - sidebar functionality is now in header.php
+    // Keeping function structure for compatibility but not executing
+    return;
 })();
 
 // ============================================
@@ -2791,8 +2770,8 @@ function showAnnouncementModal(announcement) {
             try {
                 const meetingDate = new Date(announcement.meeting_date);
                 const dateStr = meetingDate.toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
+                year: 'numeric',
+                month: 'long',
                     day: 'numeric' 
                 });
                 const timeStr = meetingDate.toLocaleTimeString('en-US', { 

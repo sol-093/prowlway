@@ -196,7 +196,7 @@ $subcategoryNames = [
 ];
 ?>
 
-<div class="search-page-container" style="padding-top: 80px; min-height: 100vh;">
+<div class="search-page-container px-4 md:px-6 lg:px-8 py-6 md:py-8" style="padding-top: 80px; min-height: 100vh;">
 <div class="container mx-auto px-4 py-8 max-w-6xl" style="background: #ffffff; color: #000000;">
     <!-- Search Header -->
     <div class="mb-8">

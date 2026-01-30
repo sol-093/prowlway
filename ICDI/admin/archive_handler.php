@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 
 requireAdmin(['admin', 'super_admin'], true);
-requireCSRFToken(false); // Validate CSRF token for POST requests
+requireCSRFToken(true); // Validate CSRF token for POST requests (JSON response)
 
 header('Content-Type: application/json');
 
@@ -173,19 +173,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
             
-            if ($itemType !== 'inquiry' && ($item['status'] ?? '') !== 'archived') {
-                echo json_encode(['success' => false, 'error' => 'Item is not archived. Only archived items can be permanently deleted.']);
-                exit;
-            }
-            
-            if ($itemType === 'inquiry' && ($item['status'] ?? '') !== 'archived') {
-                echo json_encode(['success' => false, 'error' => 'Inquiry is not archived. Only archived inquiries can be permanently deleted.']);
-                exit;
-            }
-            
-            if ($itemType === 'user' && ($item['status'] ?? '') !== 'archived') {
-                echo json_encode(['success' => false, 'error' => 'User is not archived. Only archived users can be permanently deleted.']);
-                exit;
+            // Check if item is archived based on type
+            if ($itemType === 'user') {
+                if (($item['status'] ?? '') !== 'archived') {
+                    echo json_encode(['success' => false, 'error' => 'User is not archived. Only archived users can be permanently deleted.']);
+                    exit;
+                }
+            } elseif ($itemType === 'inquiry') {
+                if (($item['status'] ?? '') !== 'archived') {
+                    echo json_encode(['success' => false, 'error' => 'Inquiry is not archived. Only archived inquiries can be permanently deleted.']);
+                    exit;
+                }
+            } else {
+                // For documents, announcements, events
+                if (($item['status'] ?? '') !== 'archived') {
+                    echo json_encode(['success' => false, 'error' => 'Item is not archived. Only archived items can be permanently deleted.']);
+                    exit;
+                }
             }
             
             // Delete the item

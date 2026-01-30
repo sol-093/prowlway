@@ -38,13 +38,13 @@ $categoryNames = [
 ?>
 
 <!-- Main Container -->
-<div class="container">
+<div class="container px-4 md:px-6 lg:px-8">
     <div class="documents-outer-panel">
-        <div class="documents-inner-panel">
+        <div class="documents-inner-panel px-4 md:px-8 lg:px-12 py-6 md:py-8 lg:py-10">
     
         <!-- Page Header -->
-        <div class="page-header">
-            <h1 class="page-title">DOCUMENTS</h1>
+        <div class="page-header mb-6 md:mb-8">
+            <h1 class="page-title text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">DOCUMENTS</h1>
             <div class="documents-divider"></div>
         </div>
 
@@ -60,8 +60,8 @@ $categoryNames = [
     </div>
 
         <!-- Folders Section -->
-        <div id="foldersSection">
-            <div class="documents-grid" id="foldersGrid">
+        <div id="foldersSection" class="mb-6 md:mb-8">
+            <div class="documents-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6" id="foldersGrid">
                 <?php 
                 // Map category codes to icon filenames from ICONS directory
                 $categoryIcons = [
@@ -127,19 +127,21 @@ $categoryNames = [
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                                <div class="doc-size-display"><?php echo $fileSize; ?></div>
-                                <div class="doc-actions">
-                                    <?php if ($doc['file_path']): ?>
-                                        <?php $docUrl = getDocumentUrl($doc['file_path']); ?>
-                                        <button 
-                                            type="button" 
-                                            class="doc-preview-btn" 
-                                            data-preview-url="<?php echo htmlspecialchars($docUrl); ?>"
-                                        >
-                                            Preview
-                                        </button>
-                                        <a href="<?php echo $docUrl; ?>" target="_blank" class="doc-download-btn">Download</a>
-                                    <?php endif; ?>
+                                <div class="doc-meta-row">
+                                    <div class="doc-size-display"><?php echo $fileSize; ?></div>
+                                    <div class="doc-actions">
+                                        <?php if ($doc['file_path']): ?>
+                                            <?php $docUrl = getDocumentUrl($doc['file_path']); ?>
+                                            <button 
+                                                type="button" 
+                                                class="doc-preview-btn" 
+                                                data-preview-url="<?php echo htmlspecialchars($docUrl); ?>"
+                                            >
+                                                Preview
+                                            </button>
+                                            <a href="<?php echo $docUrl; ?>" target="_blank" class="doc-download-btn">Download</a>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>

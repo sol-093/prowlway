@@ -81,7 +81,7 @@ include '../includes/header.php';
                     <p class="contact-note"><?php echo htmlspecialchars($siteName); ?> – ICDISG Archive Website</p>
                 </div>
 
-                <div class="contact-form-wrap">
+                <div class="contact-form-wrap flex-1">
                     <?php if ($success): ?>
                         <div class="contact-success" role="alert">
                             <p>Thank you for your message. We’ll get back to you soon.</p>
