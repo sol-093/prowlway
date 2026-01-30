@@ -141,7 +141,9 @@ ICDI/
 │   ├── js/
 │   │   └── script.js        # Main JavaScript file
 │   └── IMG/
-│       └── ICONS/           # Document category icons
+│       ├── ICONS/           # Document category icons
+│       ├── banner.png       # Desktop homepage banner
+│       └── mobile.png       # Mobile homepage banner
 │
 ├── uploads/                   # User-uploaded files
 │   ├── images/              # Uploaded images
@@ -342,6 +344,7 @@ Columns:
 - description (TEXT, NULL)
 - content (TEXT, NULL)
 - image (VARCHAR 500, NULL)
+- position_title (VARCHAR 255, NULL) - Position/title for faculty and admin representatives
 - display_order (INT, DEFAULT 0)
 - status (ENUM: 'draft', 'published', DEFAULT 'published')
 - created_by (INT UNSIGNED, NULL, FK to admins.id)
@@ -443,19 +446,21 @@ Public Features
 
 Homepage (public/home.php)
 - Intro animation (skippable with ?skip_intro=1)
+- Responsive banner images (banner.png for desktop, mobile.png for mobile)
 - Featured announcements display (pinned first, then recent)
-- Upcoming events carousel
+- Upcoming events carousel with auto-sliding/looping
 - Quick access to documents
 - Search functionality in header
-- Responsive design
+- Responsive design with mobile-optimized layouts
 
 Institute Page (public/institute.php)
-- About section with mission and vision
-- Faculty Unit information
-- Admin Representative details
-- Program information
+- About section with mission and vision (inner border panel matching organization page)
+- Faculty Unit information (batch-detail style grid layout with profile cards)
+- Admin Representative details (batch-detail style grid layout with profile cards)
+- Program information (inner border panel matching organization page)
 - Student organization directory sidebar
 - Dynamic section switching via URL parameter (?section=about|faculty|admin|program)
+- Consistent inner panel styling across all sections
 
 Calendar (public/calendar.php)
 - Monthly calendar view with navigation
@@ -468,18 +473,23 @@ Calendar (public/calendar.php)
 
 Events (public/events.php)
 - Event listing with filters
+- Page header with title and horizontal divider (matching documents page)
+- Title styling matching documents page (Sora font, uppercase, same sizes)
 - Event detail pages (public/event-detail.php)
 - Image galleries for events
 - Date range filtering
 - Category filtering
 - Search integration
+- Responsive spacing matching documents page
 
 Documents (public/documents.php)
 - Categorized document listing
+- Page header with title and horizontal divider
 - Download functionality (public/download.php)
 - Category filtering (5 categories)
 - Search integration
 - Document icons by category
+- Individual folder item zoom effects on hover
 
 Batches (public/batches.php)
 - Academic batch listing
@@ -493,6 +503,8 @@ Organizations (public/organization.php)
 - Logo and banner display
 - Member listings
 - Batch history
+- Inner border panel styling with rounded corners
+- Mobile-responsive layout (full-width on mobile, sidebar hidden)
 
 Search (public/search.php)
 - Full-text search across:
@@ -1280,4 +1292,13 @@ Solutions:
 ---
 
 Document Version: 1.0.0  
-Last Updated: January 30, 2026  
+Last Updated: January 30, 2026
+
+Recent Updates (January 30, 2026):
+- Added responsive homepage banners (banner.png for desktop, mobile.png for mobile)
+- Updated institute sections to use inner border panels matching organization page
+- Faculty and Admin sections now use batch-detail style grid layout with profile cards
+- Events page styling updated to match documents page (header, title, divider)
+- Mobile header improvements (logo, search, menu alignment)
+- Mobile banner aspect ratio set to 4:3
+- Various UI/UX improvements and responsive design enhancements  

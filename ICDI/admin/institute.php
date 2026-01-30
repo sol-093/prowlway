@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
                 'type' => $_POST['type'] ?? '',
                 'title' => $_POST['title'] ?? '',
+                'position_title' => $_POST['position_title'] ?? null,
                 'description' => $_POST['description'] ?? null,
                 'content' => $_POST['content'] ?? null,
                 'display_order' => intval($_POST['display_order'] ?? 0),
@@ -395,8 +396,15 @@ include '../includes/header.php';
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Title *</label>
-                        <input type="text" name="title" value="<?php echo htmlspecialchars($editSection['title'] ?? ''); ?>" required placeholder="Section title" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Name/Title *</label>
+                        <input type="text" name="title" value="<?php echo htmlspecialchars($editSection['title'] ?? ''); ?>" required placeholder="Faculty member name" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500">Full name of the faculty member</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Position Title</label>
+                        <input type="text" name="position_title" value="<?php echo htmlspecialchars($editSection['position_title'] ?? ''); ?>" placeholder="e.g., Program Head, Faculty Member" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500">Position or role title (displayed below name)</p>
                     </div>
                     
                     <div>
@@ -463,6 +471,9 @@ include '../includes/header.php';
                                             <?php echo htmlspecialchars(str_replace('_', ' ', $section['type'])); ?>
                                         </span>
                                         <h3 class="font-semibold text-gray-900"><?php echo htmlspecialchars($section['title']); ?></h3>
+                                        <?php if (!empty($section['position_title'])): ?>
+                                            <span class="text-sm text-gray-500 ml-2">- <?php echo htmlspecialchars($section['position_title']); ?></span>
+                                        <?php endif; ?>
                                     </div>
                                     <?php if ($section['description']): ?>
                                         <p class="text-sm text-gray-600 mt-1 line-clamp-2"><?php echo htmlspecialchars(substr($section['description'], 0, 100)); ?>...</p>

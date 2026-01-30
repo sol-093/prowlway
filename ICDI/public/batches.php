@@ -3,16 +3,16 @@ require_once '../includes/config.php';
 require_once '../includes/database.php';
 require_once '../includes/upload.php';
 
-$pageTitle = $activeOrg ? ('ORIGIN: ' . ($activeOrg['acronym'] ?: $activeOrg['name']) . ' - BATCH - PROWLWAY') : 'ORIGIN: ICDISG - BATCH - PROWLWAY';
-$bodyClass = 'origin-page';
-include '../includes/header.php';
-
-// Optional filter by organization
+// Optional filter by organization (MOVED UP)
 $orgId = isset($_GET['org_id']) ? (int) $_GET['org_id'] : 0;
 $activeOrg = null;
 if ($orgId > 0) {
     $activeOrg = dbFetchOne("SELECT id, name, acronym FROM student_organizations WHERE id = ? AND status != 'archived'", [$orgId]);
 }
+
+$pageTitle = $activeOrg ? ('ORIGIN: ' . ($activeOrg['acronym'] ?: $activeOrg['name']) . ' - BATCH - PROWLWAY') : 'ORIGIN: ICDISG - BATCH - PROWLWAY';
+$bodyClass = 'origin-page';
+include '../includes/header.php';
 
 // Fetch active batches for grid
 $batches = dbFetchAll(

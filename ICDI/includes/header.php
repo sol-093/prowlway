@@ -49,7 +49,7 @@ if (function_exists('dbFetchAll')) {
         <div class="header-container">
             <!-- Logo Section -->
             <a href="<?php echo BASE_URL ? BASE_URL : '/'; ?>" class="brand" aria-label="PROWLWAY home">
-                <div class="logo-icon">🐾</div>
+                <img src="<?php echo ASSETS_URL; ?>/IMG/ICONS/logo.png" alt="PROWLWAY Logo" class="logo-icon">
                 <div class="logo-text">PROWLWAY</div>
             </a>
             
@@ -75,6 +75,7 @@ if (function_exists('dbFetchAll')) {
             <!-- Navigation Menu - Hidden on mobile -->
             <nav class="main-nav">
                 <a href="<?php echo PUBLIC_URL; ?>/home.php" class="nav-link">Home</a>
+                <a href="<?php echo PUBLIC_URL; ?>/institute.php" class="nav-link">Institute</a>
                 <a href="<?php echo PUBLIC_URL; ?>/calendar.php" class="nav-link">Calendar</a>
                 <a href="<?php echo PUBLIC_URL; ?>/events.php" class="nav-link">Events</a>
                 <a href="<?php echo PUBLIC_URL; ?>/documents.php" class="nav-link">Documents</a>
@@ -106,7 +107,7 @@ if (function_exists('dbFetchAll')) {
             <!-- Sidebar Header -->
             <div class="mobile-sidebar-header">
                 <a href="<?php echo BASE_URL ? BASE_URL : '/'; ?>" class="flex items-center gap-3">
-                    <div class="text-2xl">🐾</div>
+                    <img src="<?php echo ASSETS_URL; ?>/IMG/ICONS/logo.png" alt="PROWLWAY Logo" class="w-8 h-8">
                     <div class="text-xl font-bold text-white">PROWLWAY</div>
                 </a>
                 <button class="mobile-sidebar-close" id="sidebarClose" aria-label="Close sidebar">
@@ -611,8 +612,8 @@ if (function_exists('dbFetchAll')) {
                 sidebarOverlay.addEventListener('click', closeSidebar);
             }
 
-            // Close sidebar when clicking navigation links
-            const sidebarLinks = document.querySelectorAll('.mobile-sidebar-nav .mobile-nav-link');
+            // Close sidebar when clicking navigation links (but not dropdown toggles)
+            const sidebarLinks = document.querySelectorAll('.mobile-sidebar-nav .mobile-nav-link:not(.mobile-dropdown-toggle)');
             sidebarLinks.forEach(link => {
                 link.addEventListener('click', function() {
                     setTimeout(closeSidebar, 300);

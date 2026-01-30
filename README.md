@@ -5,6 +5,14 @@ A comprehensive content management and archive system for the Institute of Compu
 Version: 1.0.0  
 Last Updated: January 30, 2026
 
+Recent Updates:
+- Responsive homepage banners (desktop and mobile)
+- Institute sections with inner border panels
+- Faculty and Admin sections using batch-detail style layout
+- Events page styling matching documents page
+- Mobile header improvements
+- Various UI/UX enhancements
+
 ---
 
 Table of Contents
@@ -154,21 +162,21 @@ See `ICDI/CREDENTIALS.md` for complete admin login credentials.
 Super Administrator
 
 - Email: `superadmin@icdisg.ph`
-- Password: `admin123`
+- Password: `password123`
 - Role: Super Admin
 - Access: Full system access
 
 Administrator
 
 - Email: `icdi.admin@kld.edu.ph`
-- Password: `admin123`
+- Password: `password123`
 - Role: Admin
 - Access: Content management, publishing, archiving
 
 Editor
 
 - Email: `gitcub.editor@kld.edu.ph`
-- Password: `admin123`
+- Password: `password123`
 - Role: Editor
 - Access: Create drafts, submit for review
 

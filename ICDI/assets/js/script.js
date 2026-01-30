@@ -658,14 +658,18 @@ function initializeCarouselFunctionality() {
     const dots = document.querySelectorAll('.dot');
     
     if (slides.length === 0) return;
+    if (slides[0].dataset.initialized === 'true') return; // Prevent duplicate init
+    slides[0].dataset.initialized = 'true';
     
     let currentSlide = 0;
     let autoplayInterval;
+    const autoplayDelay = 4000; // 4 seconds for smoother loop
     
     function showSlide(index) {
         slides.forEach(slide => slide.classList.remove('active'));
         dots.forEach(dot => dot.classList.remove('active'));
         
+        // Continuous loop - wrap around seamlessly
         if (index >= slides.length) {
             currentSlide = 0;
         } else if (index < 0) {
@@ -681,15 +685,23 @@ function initializeCarouselFunctionality() {
     }
     
     function nextSlide() {
-        showSlide(currentSlide + 1);
+        if (slides.length > 1) {
+            showSlide(currentSlide + 1);
+        }
     }
     
     function startAutoplay() {
-        autoplayInterval = setInterval(nextSlide, 5000);
+        stopAutoplay();
+        if (slides.length > 1) {
+            autoplayInterval = setInterval(nextSlide, autoplayDelay);
+        }
     }
     
     function stopAutoplay() {
-        clearInterval(autoplayInterval);
+        if (autoplayInterval) {
+            clearInterval(autoplayInterval);
+            autoplayInterval = null;
+        }
     }
     
     function resetAutoplay() {
@@ -716,12 +728,27 @@ function initializeCarouselFunctionality() {
     
     const carouselContainer = document.querySelector('.events-carousel');
     if (carouselContainer) {
-        carouselContainer.addEventListener('mouseenter', stopAutoplay);
-        carouselContainer.addEventListener('mouseleave', startAutoplay);
+        carouselContainer.addEventListener('mouseenter', function() {
+            if (window.innerWidth >= 768) { // Desktop only
+                stopAutoplay();
+            }
+        });
+        carouselContainer.addEventListener('mouseleave', function() {
+            if (window.innerWidth >= 768) { // Desktop only
+                startAutoplay();
+            }
+        });
     }
     
     showSlide(0);
     startAutoplay();
+    
+    // Restart autoplay on window focus
+    window.addEventListener('focus', function() {
+        if (!autoplayInterval) {
+            startAutoplay();
+        }
+    });
 }
 
 // Carousel is now initialized from PHP-rendered HTML, but keep this for compatibility

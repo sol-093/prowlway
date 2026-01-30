@@ -47,129 +47,134 @@ include '../includes/header.php';
 
 <div class="institute-page-container px-4 md:px-6 lg:px-8">
     <div class="institute-main-content">
-        <div class="institute-content-panel px-4 md:px-6 lg:px-8 py-6 md:py-8">
+        <?php if ($section === 'faculty'): ?>
+            <div class="institute-content-panel">
+        <?php else: ?>
+            <div class="institute-content-panel">
+        <?php endif; ?>
             <?php if ($section === 'about'): ?>
                 <!-- PAGE 1: ABOUT -->
-                <div class="institute-hero-banner mb-6 md:mb-8 rounded-lg overflow-hidden">
-                    <img src="<?php echo htmlspecialchars($bannerSrc); ?>" alt="ICDI Banner" class="w-full h-auto">
-                </div>
-                <section class="institute-section mb-6 md:mb-8">
-                    <h2 class="section-title text-xl md:text-2xl lg:text-3xl font-bold mb-4 md:mb-6">About</h2>
-                    <div class="section-content">
-                        <?php echo $about ? nl2br(htmlspecialchars($about['content'])) : 'Content not available.'; ?>
+                <div class="institute-inner-panel px-4 md:px-6 lg:px-8 py-6 md:py-8">
+                    <div class="institute-hero-banner mb-6 md:mb-8 rounded-lg overflow-hidden">
+                        <img src="<?php echo htmlspecialchars($bannerSrc); ?>" alt="ICDI Banner" class="w-full h-auto">
                     </div>
-                    <?php if ($mission): ?>
-                    <div class="institute-subsection">
-                        <h3 class="subsection-title">Mission</h3>
-                        <div class="section-content"><?php echo nl2br(htmlspecialchars($mission['content'])); ?></div>
-                    </div>
-                    <?php endif; ?>
-                    <?php if ($vision): ?>
-                    <div class="institute-subsection">
-                        <h3 class="subsection-title">Vision</h3>
-                        <div class="section-content"><?php echo nl2br(htmlspecialchars($vision['content'])); ?></div>
-                    </div>
-                    <?php endif; ?>
-                    <?php if ($logo): ?>
-                    <div class="institute-subsection logo-subsection">
-                        <h3 class="subsection-title">Logo</h3>
-                        <div class="logo-section-content">
-                            <div class="logo-badge-display">
-                                <img src="<?php echo htmlspecialchars($logoSrc); ?>" alt="ICDI Logo" class="logo-display-image">
-                            </div>
-                            <div class="logo-description">
-                                <p><?php echo nl2br(htmlspecialchars($logo['content'])); ?></p>
-                            </div>
+                    <section class="institute-section mb-6 md:mb-8">
+                        <h2 class="section-title text-xl md:text-2xl lg:text-3xl font-bold mb-4 md:mb-6">About</h2>
+                        <div class="section-content">
+                            <?php echo $about ? nl2br(htmlspecialchars($about['content'])) : 'Content not available.'; ?>
                         </div>
-                    </div>
-                    <?php endif; ?>
-                </section>
+                        <?php if ($mission): ?>
+                        <div class="institute-subsection">
+                            <h3 class="subsection-title">Mission</h3>
+                            <div class="section-content"><?php echo nl2br(htmlspecialchars($mission['content'])); ?></div>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($vision): ?>
+                        <div class="institute-subsection">
+                            <h3 class="subsection-title">Vision</h3>
+                            <div class="section-content"><?php echo nl2br(htmlspecialchars($vision['content'])); ?></div>
+                        </div>
+                        <?php endif; ?>
+                    </section>
+                </div>
 
             <?php elseif ($section === 'faculty'): ?>
                 <!-- PAGE 2: FACULTY UNIT -->
-                <section class="institute-section mb-6 md:mb-8">
-                    <h2 class="section-title text-xl md:text-2xl lg:text-3xl font-bold mb-4 md:mb-6">Faculty Unit</h2>
-                    <div class="institute-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                <div class="batches-inner-panel batch-detail-inner-panel">
+                    <section class="batch-detail-section px-2 md:px-0">
+                        <h2 class="batch-section-heading mb-4 md:mb-6 text-xl md:text-2xl lg:text-[32px]">FACULTY UNIT</h2>
                         <?php if (empty($facultyUnits)): ?>
-                            <p>No faculty information available.</p>
+                            <p class="batch-section-empty text-sm md:text-base">No faculty information available.</p>
                         <?php else: ?>
-                            <?php foreach ($facultyUnits as $faculty): ?>
-                                <div class="institute-item">
-                                    <?php if (!empty($faculty['image'])): ?>
-                                        <img src="<?php echo getImageUrl($faculty['image']); ?>" alt="<?php echo htmlspecialchars($faculty['title']); ?>" class="institute-item-image">
-                                    <?php endif; ?>
-                                    <div class="institute-item-content">
-                                        <h3><?php echo htmlspecialchars($faculty['title']); ?></h3>
-                                        <?php if (!empty($faculty['description'])): ?>
-                                            <p><?php echo nl2br(htmlspecialchars($faculty['description'])); ?></p>
-                                        <?php endif; ?>
-                                        <?php if (!empty($faculty['content'])): ?>
-                                            <div class="institute-item-details"><?php echo nl2br(htmlspecialchars($faculty['content'])); ?></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-items-center">
+                                <?php foreach ($facultyUnits as $faculty): ?>
+                                    <div class="text-center w-full max-w-[205px]">
+                                        <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
+                                            <?php if (!empty($faculty['image'])): ?>
+                                                <img src="<?php echo getImageUrl($faculty['image']); ?>" alt="<?php echo htmlspecialchars($faculty['title']); ?>" class="w-full h-full rounded-[30px] object-cover bg-[#D9D9D9]">
+                                            <?php else: ?>
+                                                <div class="w-full h-full rounded-[30px] bg-[#D9D9D9]"></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="w-full max-w-[205px] mx-auto font-['Inter'] font-semibold text-sm md:text-[15px] leading-[18px] text-center capitalize text-[#0F181D] truncate px-2" title="<?php echo htmlspecialchars($faculty['title']); ?>">
+                                            <?php echo htmlspecialchars($faculty['title']); ?>
+                                        </div>
+                                        <?php if (!empty($faculty['position_title'])): ?>
+                                            <div class="text-xs md:text-sm text-black italic truncate w-full max-w-[205px] mx-auto mt-0.5 px-2" title="<?php echo htmlspecialchars($faculty['position_title']); ?>">
+                                                <?php echo htmlspecialchars($faculty['position_title']); ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </div>
                         <?php endif; ?>
-                    </div>
-                </section>
+                    </section>
+                </div>
 
             <?php elseif ($section === 'admin'): ?>
                 <!-- PAGE 3: ADMIN REPRESENTATIVE -->
-                <section class="institute-section">
-                    <h2 class="section-title">Admin Representative</h2>
-                    <div class="institute-list">
+                <div class="batches-inner-panel batch-detail-inner-panel">
+                    <section class="batch-detail-section px-2 md:px-0">
+                        <h2 class="batch-section-heading mb-4 md:mb-6 text-xl md:text-2xl lg:text-[32px]">ADMIN REPRESENTATIVE</h2>
                         <?php if (empty($adminReps)): ?>
-                            <p>No admin representative information available.</p>
+                            <p class="batch-section-empty text-sm md:text-base">No admin representative information available.</p>
                         <?php else: ?>
-                            <?php foreach ($adminReps as $rep): ?>
-                                <div class="institute-item">
-                                    <?php if (!empty($rep['image'])): ?>
-                                        <img src="<?php echo getImageUrl($rep['image']); ?>" alt="<?php echo htmlspecialchars($rep['title']); ?>" class="institute-item-image">
-                                    <?php endif; ?>
-                                    <div class="institute-item-content">
-                                        <h3><?php echo htmlspecialchars($rep['title']); ?></h3>
-                                        <?php if (!empty($rep['description'])): ?>
-                                            <p><?php echo nl2br(htmlspecialchars($rep['description'])); ?></p>
-                                        <?php endif; ?>
-                                        <?php if (!empty($rep['content'])): ?>
-                                            <div class="institute-item-details"><?php echo nl2br(htmlspecialchars($rep['content'])); ?></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-items-center">
+                                <?php foreach ($adminReps as $rep): ?>
+                                    <div class="text-center w-full max-w-[205px]">
+                                        <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
+                                            <?php if (!empty($rep['image'])): ?>
+                                                <img src="<?php echo getImageUrl($rep['image']); ?>" alt="<?php echo htmlspecialchars($rep['title']); ?>" class="w-full h-full rounded-[30px] object-cover bg-[#D9D9D9]">
+                                            <?php else: ?>
+                                                <div class="w-full h-full rounded-[30px] bg-[#D9D9D9]"></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="w-full max-w-[205px] mx-auto font-['Inter'] font-semibold text-sm md:text-[15px] leading-[18px] text-center capitalize text-[#0F181D] truncate px-2" title="<?php echo htmlspecialchars($rep['title']); ?>">
+                                            <?php echo htmlspecialchars($rep['title']); ?>
+                                        </div>
+                                        <?php if (!empty($rep['position_title'])): ?>
+                                            <div class="text-xs md:text-sm text-black italic truncate w-full max-w-[205px] mx-auto mt-0.5 px-2" title="<?php echo htmlspecialchars($rep['position_title']); ?>">
+                                                <?php echo htmlspecialchars($rep['position_title']); ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </div>
                         <?php endif; ?>
-                    </div>
-                </section>
+                    </section>
+                </div>
 
             <?php elseif ($section === 'program'): ?>
                 <!-- PAGE 4: PROGRAM -->
-                <section class="institute-section institute-animate institute-animate-delay-1">
-                    <h2 class="section-title institute-animate-title">Program</h2>
-                    <div class="institute-list institute-list-animate">
-                        <?php if (empty($programs)): ?>
-                            <p class="institute-empty">No program information available.</p>
-                        <?php else: ?>
-                            <?php foreach ($programs as $i => $program): ?>
-                                <div class="institute-item institute-animate-item" style="--item-index: <?php echo $i; ?>">
-                                    <?php if (!empty($program['image'])): ?>
-                                        <img src="<?php echo getImageUrl($program['image']); ?>" alt="<?php echo htmlspecialchars($program['title']); ?>" class="institute-item-image">
-                                    <?php else: ?>
-                                        <div class="institute-item-image-placeholder" aria-hidden="true"><span>PR</span></div>
-                                    <?php endif; ?>
-                                    <div class="institute-item-content">
-                                        <h3><?php echo htmlspecialchars($program['title']); ?></h3>
-                                        <?php if (!empty($program['description'])): ?>
-                                            <p><?php echo nl2br(htmlspecialchars($program['description'])); ?></p>
+                <div class="institute-inner-panel px-4 md:px-6 lg:px-8 py-6 md:py-8">
+                    <section class="institute-section institute-animate institute-animate-delay-1">
+                        <h2 class="section-title institute-animate-title">Program</h2>
+                        <div class="institute-list institute-list-animate">
+                            <?php if (empty($programs)): ?>
+                                <p class="institute-empty">No program information available.</p>
+                            <?php else: ?>
+                                <?php foreach ($programs as $i => $program): ?>
+                                    <div class="institute-item institute-animate-item" style="--item-index: <?php echo $i; ?>">
+                                        <?php if (!empty($program['image'])): ?>
+                                            <img src="<?php echo getImageUrl($program['image']); ?>" alt="<?php echo htmlspecialchars($program['title']); ?>" class="institute-item-image">
+                                        <?php else: ?>
+                                            <div class="institute-item-image-placeholder" aria-hidden="true"><span>PR</span></div>
                                         <?php endif; ?>
-                                        <?php if (!empty($program['content'])): ?>
-                                            <div class="institute-item-details"><?php echo nl2br(htmlspecialchars($program['content'])); ?></div>
-                                        <?php endif; ?>
+                                        <div class="institute-item-content">
+                                            <h3><?php echo htmlspecialchars($program['title']); ?></h3>
+                                            <?php if (!empty($program['description'])): ?>
+                                                <p><?php echo nl2br(htmlspecialchars($program['description'])); ?></p>
+                                            <?php endif; ?>
+                                            <?php if (!empty($program['content'])): ?>
+                                                <div class="institute-item-details"><?php echo nl2br(htmlspecialchars($program['content'])); ?></div>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </section>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                    </section>
+                </div>
             <?php endif; ?>
 
         </div>

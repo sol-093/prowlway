@@ -138,7 +138,6 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
 
                     <!-- LOGO + EXTRA DESCRIPTION -->
                     <section class="origin-section origin-section-logo org-section-logo">
-                        <h2 class="origin-section-title">Logo.</h2>
                         <div class="origin-logo-layout">
                             <div class="origin-logo-frame">
                                 <a href="<?php echo PUBLIC_URL; ?>/batches.php?org_id=<?php echo $organization['id']; ?>" class="org-logo-link">
