@@ -42,8 +42,8 @@
             <!-- Navigation Menu -->
             <nav class="main-nav">
                 <a href="<?php echo PUBLIC_URL; ?>/home.php" class="nav-link">Home</a>
-                <!-- Institute button points to Origin page layout -->
-                <a href="<?php echo PUBLIC_URL; ?>/origin.php" class="nav-link">Institute</a>
+                <a href="<?php echo PUBLIC_URL; ?>/institute.php" class="nav-link">Institute</a>
+                <a href="<?php echo PUBLIC_URL; ?>/calendar.php" class="nav-link">Calendar</a>
                 <a href="<?php echo PUBLIC_URL; ?>/events.php" class="nav-link">Events</a>
                 <a href="<?php echo PUBLIC_URL; ?>/documents.php" class="nav-link">Documents</a>
                 <a href="<?php echo PUBLIC_URL; ?>/home.php#contact" class="nav-link nav-icon">✉</a>

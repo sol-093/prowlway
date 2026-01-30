@@ -30,13 +30,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'name' => $_POST['name'] ?? '',
                 'acronym' => $_POST['acronym'] ?? '',
                 'description' => $_POST['description'] ?? '',
-                'content' => $_POST['content'] ?? null,
+                'mission' => $_POST['mission'] ?? null,
+                'vision' => $_POST['vision'] ?? null,
                 'website' => $_POST['website'] ?? '',
                 'social_media' => $socialMedia,
                 'display_order' => intval($_POST['display_order'] ?? 0),
                 'status' => $_POST['status'] ?? 'active',
                 'created_by' => $_SESSION['admin_id'] ?? null
             ];
+            
+            // Handle banner image upload (landscape hero above About)
+            if (isset($_FILES['banner_image']) && $_FILES['banner_image']['error'] === UPLOAD_ERR_OK) {
+                $uploadResult = uploadImage($_FILES['banner_image'], 'images');
+                if ($uploadResult['success']) {
+                    if ($_POST['action'] === 'update' && !empty($_POST['old_banner_image'])) {
+                        deleteUploadedFile($_POST['old_banner_image']);
+                    }
+                    $data['banner_image'] = $uploadResult['path'];
+                } else {
+                    $message = 'Banner image upload failed: ' . $uploadResult['error'];
+                    $messageType = 'error';
+                }
+            } elseif ($_POST['action'] === 'update' && !empty($_POST['old_banner_image'])) {
+                $data['banner_image'] = $_POST['old_banner_image'];
+            }
             
             // Handle logo upload
             if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
@@ -56,9 +73,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data['logo'] = $_POST['old_logo'];
             }
             
+            $orgIdForCoreValues = null;
             if ($_POST['action'] === 'create') {
-                $result = dbInsert('student_organizations', $data);
-                if ($result) {
+                $newId = dbInsert('student_organizations', $data);
+                if ($newId) {
+                    $orgIdForCoreValues = (int) $newId;
                     $message = 'Organization created successfully!';
                     $messageType = 'success';
                 } else {
@@ -67,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 $id = intval($_POST['id']);
+                $orgIdForCoreValues = $id;
                 $result = dbUpdate('student_organizations', $data, 'id = :id', ['id' => $id]);
                 if ($result) {
                     $message = 'Organization updated successfully!';
@@ -76,12 +96,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $messageType = 'error';
                 }
             }
+
+            // Save dynamic core values (after create or update so we have organization_id)
+            $orgId = $orgIdForCoreValues;
+            if ($orgId && $messageType === 'success') {
+                $titles = isset($_POST['core_value_title']) && is_array($_POST['core_value_title']) ? $_POST['core_value_title'] : [];
+                if ($_POST['action'] === 'update') {
+                    dbDelete('organization_core_values', 'organization_id = :oid', ['oid' => $orgId]);
+                }
+                foreach ($titles as $i => $title) {
+                    $title = trim($title ?? '');
+                    if ($title === '') continue;
+                    $description = isset($_POST['core_value_description'][$i]) ? trim($_POST['core_value_description'][$i]) : '';
+                    $iconPath = null;
+                    if (!empty($_FILES['core_value_icon']['name'][$i]) && $_FILES['core_value_icon']['error'][$i] === UPLOAD_ERR_OK) {
+                        $uploadResult = uploadImage([
+                            'name' => $_FILES['core_value_icon']['name'][$i],
+                            'type' => $_FILES['core_value_icon']['type'][$i],
+                            'tmp_name' => $_FILES['core_value_icon']['tmp_name'][$i],
+                            'error' => $_FILES['core_value_icon']['error'][$i],
+                            'size' => $_FILES['core_value_icon']['size'][$i]
+                        ], 'images');
+                        if ($uploadResult['success']) $iconPath = $uploadResult['path'];
+                    } elseif (!empty($_POST['core_value_existing_icon'][$i])) {
+                        $iconPath = $_POST['core_value_existing_icon'][$i];
+                    }
+                    dbInsert('organization_core_values', [
+                        'organization_id' => $orgId,
+                        'icon' => $iconPath,
+                        'title' => $title,
+                        'description' => $description,
+                        'display_order' => (int) $i
+                    ]);
+                }
+            }
         } elseif ($_POST['action'] === 'delete') {
             $id = intval($_POST['id']);
-            // Get organization to delete logo
-            $org = dbFetchOne("SELECT logo FROM student_organizations WHERE id = ?", [$id]);
-            if ($org && !empty($org['logo'])) {
-                deleteUploadedFile($org['logo']);
+            $org = dbFetchOne("SELECT logo, banner_image FROM student_organizations WHERE id = ?", [$id]);
+            if ($org) {
+                if (!empty($org['logo'])) deleteUploadedFile($org['logo']);
+                if (!empty($org['banner_image'])) deleteUploadedFile($org['banner_image']);
+            }
+            $coreValues = dbFetchAll("SELECT icon FROM organization_core_values WHERE organization_id = ?", [$id]);
+            foreach ($coreValues as $cv) {
+                if (!empty($cv['icon'])) deleteUploadedFile($cv['icon']);
             }
             $result = dbDelete('student_organizations', 'id = :id', ['id' => $id]);
             if ($result) {
@@ -98,12 +156,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch organizations
 $organizations = dbFetchAll("SELECT * FROM student_organizations ORDER BY display_order ASC, name ASC");
 
-// Fetch single organization for editing
+// Fetch single organization for editing (and its core values)
 $editOrg = null;
+$editCoreValues = [];
 if (isset($_GET['edit'])) {
     $editOrg = dbFetchOne("SELECT * FROM student_organizations WHERE id = ?", [intval($_GET['edit'])]);
-    if ($editOrg && $editOrg['social_media']) {
-        $editOrg['social_media'] = json_decode($editOrg['social_media'], true);
+    if ($editOrg) {
+        if ($editOrg['social_media']) {
+            $editOrg['social_media'] = json_decode($editOrg['social_media'], true);
+        }
+        $editCoreValues = dbFetchAll("SELECT * FROM organization_core_values WHERE organization_id = ? ORDER BY display_order ASC, id ASC", [$editOrg['id']]);
     }
 }
 
@@ -164,9 +226,70 @@ include '../includes/header.php';
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Core Values (one per line)</label>
-                    <textarea name="content" rows="6" placeholder="Enter core values, one per line:&#10;Value 1&#10;Value 2&#10;Value 3" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editOrg['content'] ?? ''); ?></textarea>
-                    <p class="mt-2 text-xs text-gray-500">Enter each core value on a separate line</p>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Mission</label>
+                    <textarea name="mission" rows="4" placeholder="Organization mission statement" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editOrg['mission'] ?? ''); ?></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Vision</label>
+                    <textarea name="vision" rows="4" placeholder="Organization vision statement" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editOrg['vision'] ?? ''); ?></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Core Values</label>
+                    <p class="text-xs text-gray-500 mb-3">Add core values with an icon/logo, title, and description. Each appears on the public organization page.</p>
+                    <div id="core-values-list" class="space-y-4">
+                        <?php
+                        $coreRows = $editOrg && !empty($editCoreValues) ? $editCoreValues : [['icon' => null, 'title' => '', 'description' => '']];
+                        foreach ($coreRows as $idx => $cv):
+                            $cvIcon = $cv['icon'] ?? null;
+                            $cvTitle = $cv['title'] ?? '';
+                            $cvDesc = $cv['description'] ?? '';
+                        ?>
+                        <div class="core-value-row flex flex-wrap items-start gap-4 p-4 border-2 border-gray-200 rounded-xl bg-gray-50/50">
+                            <div class="flex-shrink-0">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Icon / Logo</label>
+                                <input type="hidden" name="core_value_existing_icon[]" value="<?php echo $cvIcon ? htmlspecialchars($cvIcon) : ''; ?>">
+                                <?php if ($cvIcon): ?>
+                                    <div class="mb-2">
+                                        <img src="<?php echo getImageUrl($cvIcon); ?>" alt="" class="w-24 h-24 object-contain rounded-lg">
+                                        <p class="text-xs text-gray-500 mb-1">Replace:</p>
+                                    </div>
+                                <?php endif; ?>
+                                <input type="file" name="core_value_icon[]" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+                            </div>
+                            <div class="flex-1 min-w-0 space-y-2">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Title</label>
+                                    <input type="text" name="core_value_title[]" value="<?php echo htmlspecialchars($cvTitle); ?>" placeholder="e.g. Connect, Innovate, Empower" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Description / Definition</label>
+                                    <textarea name="core_value_description[]" rows="2" placeholder="Short description of this core value" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y text-sm"><?php echo htmlspecialchars($cvDesc); ?></textarea>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <button type="button" class="remove-core-value mt-6 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 border-2 border-red-700 shadow-sm">Remove</button>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button" id="add-core-value" class="mt-3 px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-xl border-2 border-indigo-700 hover:bg-indigo-700 shadow-sm transition-colors">
+                        + Add Core Value
+                    </button>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Banner / Hero image (landscape only)</label>
+                    <p class="text-xs text-gray-500 mb-2">Shown above the About section on the organization page. Use a wide (landscape) image.</p>
+                    <?php if ($editOrg && !empty($editOrg['banner_image'])): ?>
+                        <div class="mb-3">
+                            <img src="<?php echo getImageUrl($editOrg['banner_image']); ?>" alt="Current banner" class="max-w-full h-32 object-cover rounded-xl border border-gray-200">
+                            <input type="hidden" name="old_banner_image" value="<?php echo htmlspecialchars($editOrg['banner_image']); ?>">
+                        </div>
+                        <p class="text-xs text-gray-500 mb-2">Upload a new image to replace the current one.</p>
+                    <?php endif; ?>
+                    <input type="file" name="banner_image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                 </div>
                 
                 <div>
@@ -267,6 +390,39 @@ include '../includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    var list = document.getElementById('core-values-list');
+    var addBtn = document.getElementById('add-core-value');
+    if (!list || !addBtn) return;
+
+    addBtn.addEventListener('click', function() {
+        var row = document.createElement('div');
+        row.className = 'core-value-row flex flex-wrap items-start gap-4 p-4 border-2 border-gray-200 rounded-xl bg-gray-50/50';
+        row.innerHTML = '<div class="flex-shrink-0">' +
+            '<label class="block text-xs font-medium text-gray-600 mb-1">Icon / Logo</label>' +
+            '<input type="file" name="core_value_icon[]" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">' +
+            '<input type="hidden" name="core_value_existing_icon[]" value="">' +
+            '</div>' +
+            '<div class="flex-1 min-w-0 space-y-2">' +
+            '<div><label class="block text-xs font-medium text-gray-600 mb-1">Title</label>' +
+            '<input type="text" name="core_value_title[]" value="" placeholder="e.g. Connect, Innovate, Empower" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"></div>' +
+            '<div><label class="block text-xs font-medium text-gray-600 mb-1">Description / Definition</label>' +
+            '<textarea name="core_value_description[]" rows="2" placeholder="Short description of this core value" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y text-sm"></textarea></div>' +
+            '</div>' +
+            '<div class="flex-shrink-0"><button type="button" class="remove-core-value mt-6 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 border-2 border-red-700 shadow-sm">Remove</button></div>';
+        list.appendChild(row);
+    });
+
+    list.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-core-value')) {
+            var row = e.target.closest('.core-value-row');
+            if (row && list.querySelectorAll('.core-value-row').length > 1) row.remove();
+        }
+    });
+})();
+</script>
 
 <?php include '../includes/footer.php'; ?>
 

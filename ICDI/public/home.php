@@ -51,6 +51,10 @@ $contactEmail = $settings['contact_email'] ?? 'imacsac@kidduph';
 $primaryOrg = dbFetchOne("SELECT name, acronym FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC LIMIT 1");
 $heroOrgLabel = $primaryOrg ? trim(($primaryOrg['acronym'] ?? '') . ' ' . ($primaryOrg['name'] ?? '')) : 'KLD-ICDI Student Government';
 
+// Hero logo: use ICDI.png if it exists, else fallback icon (avoids broken image on mobile)
+$heroLogoPath = dirname(__DIR__) . '/assets/images/ICDI.png';
+$heroLogoSrc = (file_exists($heroLogoPath)) ? ASSETS_URL . '/images/ICDI.png' : ASSETS_URL . '/IMG/ICONS/OFFICE.png';
+
 // Dynamic Origin section organizations (limited to 4)
 $originOrganizations = dbFetchAll("SELECT id, name, acronym, logo FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC LIMIT 4");
 
@@ -121,7 +125,7 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                     <!-- Right Side: ICDISG Logo -->
                     <div class="banner-right">
                         <div class="icdisg-logo-circle">
-                            <img src="<?php echo ASSETS_URL; ?>/images/ICDI.png" alt="ICDISG Logo" class="icdisg-logo-img">
+                            <img src="<?php echo htmlspecialchars($heroLogoSrc); ?>" alt="ICDISG Logo" class="icdisg-logo-img">
                         </div>
                         <div class="icdisg-full-name">INSTITUTE OF COMPUTING AND DIGITAL OPERATION STUDENT GOVERNMENT</div>
                     </div>
@@ -187,8 +191,10 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                             ? trim(($org['acronym'] ?? '') . ' ' . ($org['name'] ?? 'Organization logo'))
                             : 'Organization logo';
                         $orgUrl = $org ? PUBLIC_URL . '/organization.php?id=' . $org['id'] : null;
+                        // Transparent-friendly: no bg/border when image is PNG or uploaded (often transparent)
+                        $isTransparentImg = preg_match('/\.png$/i', $logoSrc) || ($org && !empty($org['logo']));
                     ?>
-                    <div class="logo-item">
+                    <div class="logo-item<?php echo $isTransparentImg ? ' logo-transparent' : ''; ?>">
                         <?php if ($orgUrl): ?>
                             <a href="<?php echo htmlspecialchars($orgUrl); ?>" class="logo-badge-link">
                                 <div class="logo-badge">
@@ -227,16 +233,16 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                         '05' => 'OTHER'
                     ];
                     ?>
-                    <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=01" class="folder-item">
+                    <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=01" class="folder-item folder-item-01">
                         <img src="<?php echo ASSETS_URL; ?>/IMG/ICONS/<?php echo $categoryIcons['01']; ?>" alt="<?php echo $categoryNames['01']; ?>">
                     </a>
-                    <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=02" class="folder-item">
+                    <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=02" class="folder-item folder-item-02">
                         <img src="<?php echo ASSETS_URL; ?>/IMG/ICONS/<?php echo $categoryIcons['02']; ?>" alt="<?php echo $categoryNames['02']; ?>">
                     </a>
-                    <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=03" class="folder-item">
+                    <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=03" class="folder-item folder-item-03">
                         <img src="<?php echo ASSETS_URL; ?>/IMG/ICONS/<?php echo $categoryIcons['03']; ?>" alt="<?php echo $categoryNames['03']; ?>">
                     </a>
-                    <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=04" class="folder-item">
+                    <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=04" class="folder-item folder-item-04">
                         <img src="<?php echo ASSETS_URL; ?>/IMG/ICONS/<?php echo $categoryIcons['04']; ?>" alt="<?php echo $categoryNames['04']; ?>">
                     </a>
                 </div>

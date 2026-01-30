@@ -912,6 +912,7 @@ if (document.getElementById('eventsContainer')) {
 const ADMIN_API = {
     announcements: window.ADMIN_URL + '/announcements.php',
     events: window.ADMIN_URL + '/events_handler.php',
+    holidays: window.ADMIN_URL + '/holidays_handler.php',
     documents: window.ADMIN_URL + '/documents.php'
 };
 
@@ -947,6 +948,8 @@ function switchTab(tabName) {
         loadAnnouncementsList();
     } else if (tabName === 'events') {
         loadEventsList();
+    } else if (tabName === 'calendar') {
+        loadHolidaysList();
     } else if (tabName === 'documents') {
         loadDocumentsList();
     }
@@ -1261,6 +1264,7 @@ function editEvent(id) {
                     document.getElementById('evt-description').value = event.description || '';
                     document.getElementById('evt-summary').value = event.summary || '';
                     document.getElementById('evt-category').value = event.category;
+                    document.getElementById('evt-schedule-type').value = event.schedule_type || 'event';
                     document.getElementById('evt-date').value = event.date;
                     document.getElementById('evt-location').value = event.location || '';
                     document.getElementById('evt-order').value = event.display_order || 0;
@@ -1303,20 +1307,53 @@ function editEvent(id) {
 
 function displayGalleryPreview(gallery) {
     const preview = document.getElementById('evt-gallery-preview');
-    if (!preview || !Array.isArray(gallery)) return;
-    
+    if (!preview) return;
+    if (!Array.isArray(gallery) || gallery.length === 0) {
+        preview.innerHTML = '';
+        preview.style.display = 'none';
+        return;
+    }
+    let baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : null);
+    if (!baseUrl) {
+        const pathParts = window.location.pathname.split('/');
+        const icdiIndex = pathParts.indexOf('ICDI');
+        baseUrl = icdiIndex >= 0 ? pathParts.slice(0, icdiIndex + 1).join('/') + '/public' : '/ICDI/public';
+    }
     preview.innerHTML = gallery.map((img, index) => {
-        let baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : null);
-        if (!baseUrl) {
-            const pathParts = window.location.pathname.split('/');
-            const icdiIndex = pathParts.indexOf('ICDI');
-            baseUrl = icdiIndex >= 0 ? pathParts.slice(0, icdiIndex + 1).join('/') + '/public' : '/ICDI/public';
-        }
         const imgUrl = baseUrl + '/image.php?path=' + encodeURIComponent(img);
-        return `<img src="${imgUrl}" alt="Gallery ${index + 1}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;">`;
+        return `<div class="relative rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50"><img src="${imgUrl}" alt="Gallery ${index + 1}" class="w-full h-24 object-cover"></div>`;
     }).join('');
     preview.style.display = 'grid';
 }
+
+// Live preview when user selects multiple gallery files (admin event form)
+(function initGalleryFilePreview() {
+    document.addEventListener('DOMContentLoaded', function() {
+        const galleryInput = document.getElementById('evt-gallery');
+        const preview = document.getElementById('evt-gallery-preview');
+        if (!galleryInput || !preview) return;
+        galleryInput.addEventListener('change', function() {
+            const files = this.files;
+            if (!files || files.length === 0) return;
+            preview.innerHTML = '';
+            preview.style.display = 'grid';
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith('image/')) continue;
+                const div = document.createElement('div');
+                div.className = 'relative rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50';
+                const img = document.createElement('img');
+                img.alt = 'Gallery ' + (i + 1);
+                img.className = 'w-full h-24 object-cover';
+                div.appendChild(img);
+                const reader = new FileReader();
+                reader.onload = (function(el) { return function(e) { el.src = e.target.result; }; })(img);
+                reader.readAsDataURL(file);
+                preview.appendChild(div);
+            }
+        });
+    });
+})();
 
 function cancelEventEdit() {
     // Reset form
@@ -1372,6 +1409,15 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('action', id ? 'update' : 'create');
             formData.append('status', 'published');
             
+            // Explicitly append multiple gallery files (FormData from form can miss multiple in some browsers)
+            const galleryInput = document.getElementById('evt-gallery');
+            if (galleryInput && galleryInput.files && galleryInput.files.length > 0) {
+                formData.delete('gallery[]');
+                for (let i = 0; i < galleryInput.files.length; i++) {
+                    formData.append('gallery[]', galleryInput.files[i]);
+                }
+            }
+            
             // If updating and no new image, make image not required
             if (id && !formData.get('image').name) {
                 // Image is optional on update if old_image exists
@@ -1399,7 +1445,285 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Holiday form submission
+    const holidayForm = document.getElementById('holidayForm');
+    if (holidayForm) {
+        holidayForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const typeEl = document.getElementById('hol-type');
+            const typeLabelEl = document.getElementById('hol-type-label');
+            if (typeEl && typeEl.value === 'school' && (!typeLabelEl || !typeLabelEl.value.trim())) {
+                showAlert('Event type is required when Type is "School (enter type below)".', 'error');
+                return;
+            }
+            const formData = new FormData(this);
+            const action = document.getElementById('hol-action').value || 'create';
+            formData.set('action', action);
+            try {
+                const response = await fetch(ADMIN_API.holidays, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    cancelHolidayEdit();
+                    loadHolidaysList();
+                } else {
+                    showAlert(result.error || 'Error saving calendar entry', 'error');
+                }
+            } catch (error) {
+                showAlert('Failed to save calendar entry', 'error');
+            }
+        });
+    }
+    // When type is school calendar, show "What event is it?" for the description field
+    const holType = document.getElementById('hol-type');
+    if (holType) {
+        holType.addEventListener('change', function() {
+            updateHolidayDescriptionLabel();
+            updateHolidayTypeLabelVisibility();
+        });
+        updateHolidayDescriptionLabel();
+        updateHolidayTypeLabelVisibility();
+    }
 });
+
+// ============================================
+// CALENDAR (HOLIDAYS) CRUD
+// ============================================
+
+async function loadHolidaysList() {
+    const container = document.getElementById('holidays-list');
+    if (!container) return;
+    
+    container.innerHTML = '<p class="text-gray-500 text-center py-8">Loading calendar...</p>';
+    
+    try {
+        const response = await fetch(ADMIN_API.holidays);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            displayHolidaysList(result.data);
+        } else {
+            container.innerHTML = '<p class="text-gray-500 text-center py-8">Calendar table not set up yet. Run migration_create_holidays.sql and seed_holidays_ph_dasma.sql.</p>';
+        }
+    } catch (error) {
+        container.innerHTML = '<p class="error">Failed to load calendar.</p>';
+        console.error('Error loading holidays:', error);
+    }
+}
+
+const HOLIDAY_TYPE_LABELS = {
+    regular: 'Regular', special_non_working: 'Special Non-Working', special_working: 'Special Working', dasma: 'Dasma',
+    enrollment: 'Enrollment', start_of_school: 'Start of School', wellness_break: 'Wellness Break', christmas_break: 'Christmas Break', year_end: 'Year End', school_end: 'School End', school: 'School'
+};
+
+const HOLIDAY_SCHOOL_TYPES = ['enrollment', 'start_of_school', 'wellness_break', 'christmas_break', 'year_end', 'school_end', 'school'];
+
+function updateHolidayDescriptionLabel() {
+    const typeEl = document.getElementById('hol-type');
+    const labelEl = document.getElementById('hol-description-label');
+    const textareaEl = document.getElementById('hol-description');
+    const hintEl = document.getElementById('hol-description-hint');
+    if (!typeEl || !labelEl || !textareaEl) return;
+    const isSchool = HOLIDAY_SCHOOL_TYPES.includes((typeEl.value || '').trim());
+    if (isSchool) {
+        labelEl.textContent = 'What event is it? (optional)';
+        textareaEl.placeholder = 'e.g. Enrollment for Grade 11, Wellness break for all students, Christmas break (campus closed)';
+        if (hintEl) hintEl.classList.remove('hidden');
+    } else {
+        labelEl.textContent = 'Description (optional)';
+        textareaEl.placeholder = 'e.g. Details or notes';
+        if (hintEl) hintEl.classList.add('hidden');
+    }
+}
+
+function updateHolidayTypeLabelVisibility() {
+    const typeEl = document.getElementById('hol-type');
+    const wrap = document.getElementById('hol-type-label-wrap');
+    const input = document.getElementById('hol-type-label');
+    const labelEl = document.getElementById('hol-type-label-label');
+    if (!typeEl || !wrap) return;
+    const val = (typeEl.value || '').trim();
+    const isSchoolType = HOLIDAY_SCHOOL_TYPES.includes(val);
+    if (isSchoolType) {
+        wrap.classList.remove('hidden');
+        if (val === 'school') {
+            labelEl.textContent = 'Event type *';
+            if (input) input.required = true;
+        } else {
+            labelEl.textContent = 'Event type (optional – override label)';
+            if (input) input.required = false;
+        }
+    } else {
+        wrap.classList.add('hidden');
+        if (input) input.required = false;
+    }
+}
+
+const HOLIDAY_ONLY_TYPES = ['regular', 'special_non_working', 'special_working', 'dasma'];
+
+function getMonthKey(dateStr) {
+    if (!dateStr || dateStr.length < 7) return '';
+    return dateStr.substring(0, 7);
+}
+function getMonthLabel(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function renderHolidayCard(h) {
+    const startDate = new Date(h.date + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    let dateRange = startDate;
+    if (h.end_date && h.end_date !== h.date) {
+        const endDate = new Date(h.end_date + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        dateRange = startDate + ' – ' + endDate;
+    }
+    const typeLabel = (h.type_label && h.type_label.trim()) ? h.type_label.trim() : (HOLIDAY_TYPE_LABELS[h.type] || h.type);
+    const descSnippet = h.description ? (h.description.substring(0, 80) + (h.description.length > 80 ? '…' : '')) : '';
+    return `
+        <div class="bg-white border border-gray-200 rounded-xl p-4 mb-3 flex gap-4 items-start hover:shadow-md transition-shadow">
+            <div class="flex-1 min-w-0">
+                <h4 class="text-lg font-semibold text-gray-900 mb-1">${(h.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h4>
+                <p class="text-sm text-gray-500">${dateRange} • ${h.region} • ${(typeLabel || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+                ${descSnippet ? '<p class="text-sm text-gray-600 mt-2">' + descSnippet.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>' : ''}
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+                <button onclick="editHoliday(${h.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Edit</button>
+                <button onclick="deleteHoliday(${h.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Delete</button>
+            </div>
+        </div>
+    `;
+}
+
+function displayHolidaysList(holidays) {
+    const container = document.getElementById('holidays-list');
+    if (!container) return;
+    
+    if (!holidays || holidays.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No entries yet. Add calendar entries (school calendar or PH/Dasma holidays).</p>';
+        return;
+    }
+    const sorted = [...holidays].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    const holidayOnly = sorted.filter(h => HOLIDAY_ONLY_TYPES.includes((h.type || '').trim()));
+    const schoolPurpose = sorted.filter(h => HOLIDAY_SCHOOL_TYPES.includes((h.type || '').trim()));
+    function groupByMonth(arr) {
+        const byMonth = {};
+        arr.forEach(h => {
+            const key = getMonthKey(h.date) || 'unknown';
+            if (!byMonth[key]) byMonth[key] = [];
+            byMonth[key].push(h);
+        });
+        return Object.keys(byMonth).sort().map(key => ({ key, label: key === 'unknown' ? 'Other' : getMonthLabel(byMonth[key][0].date), items: byMonth[key] }));
+    }
+    const holidayByMonth = groupByMonth(holidayOnly);
+    const schoolByMonth = groupByMonth(schoolPurpose);
+    const menuEl = document.getElementById('holidays-list-menu');
+    if (menuEl) {
+        if (holidayOnly.length > 0 || schoolPurpose.length > 0) {
+            menuEl.classList.remove('hidden');
+            const linkHolidays = menuEl.querySelector('a[href="#calendar-section-holidays"]');
+            const linkSchool = menuEl.querySelector('a[href="#calendar-section-school"]');
+            if (linkHolidays) linkHolidays.style.display = holidayOnly.length > 0 ? '' : 'none';
+            if (linkSchool) linkSchool.style.display = schoolPurpose.length > 0 ? '' : 'none';
+        } else {
+            menuEl.classList.add('hidden');
+        }
+    }
+    let html = '';
+    if (holidayOnly.length > 0) {
+        html += '<section id="calendar-section-holidays" class="mb-8 scroll-mt-4"><h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b-2 border-amber-200">Holidays (PH / Dasma)</h3>';
+        holidayByMonth.forEach(({ key, label, items }) => {
+            html += '<div class="mb-5"><h4 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">' + (label || key).replace(/</g, '&lt;') + '</h4>';
+            items.forEach(h => { html += renderHolidayCard(h); });
+            html += '</div>';
+        });
+        html += '</section>';
+    }
+    if (schoolPurpose.length > 0) {
+        html += '<section id="calendar-section-school" class="mb-4 scroll-mt-4"><h3 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-200">School calendar</h3>';
+        schoolByMonth.forEach(({ key, label, items }) => {
+            html += '<div class="mb-5"><h4 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">' + (label || key).replace(/</g, '&lt;') + '</h4>';
+            items.forEach(h => { html += renderHolidayCard(h); });
+            html += '</div>';
+        });
+        html += '</section>';
+    }
+    if (holidayOnly.length === 0 && schoolPurpose.length === 0) {
+        html = '<p class="text-gray-500 text-center py-8">No entries yet.</p>';
+    }
+    container.innerHTML = html;
+    document.querySelectorAll('.calendar-list-jump').forEach(a => {
+        a.addEventListener('click', function(e) {
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+}
+
+function editHoliday(id) {
+    fetch(ADMIN_API.holidays)
+        .then(res => res.json())
+        .then(result => {
+            if (result.success && result.data) {
+                const h = result.data.find(x => x.id == id);
+                if (h) {
+                    document.getElementById('hol-id').value = h.id;
+                    document.getElementById('hol-action').value = 'update';
+                    document.getElementById('hol-date').value = h.date || '';
+                    document.getElementById('hol-end-date').value = h.end_date || '';
+                    document.getElementById('hol-name').value = h.name || '';
+                    document.getElementById('hol-type').value = h.type || 'regular';
+                    document.getElementById('hol-type-label').value = h.type_label || '';
+                    document.getElementById('hol-region').value = h.region || 'PH';
+                    document.getElementById('hol-description').value = h.description || '';
+                    updateHolidayDescriptionLabel();
+                    updateHolidayTypeLabelVisibility();
+                    document.getElementById('holiday-form-title').textContent = 'Edit Calendar Entry';
+                    document.getElementById('hol-submit-btn').textContent = 'Update';
+                    toggleForm('holiday-form');
+                }
+            }
+        });
+}
+
+function cancelHolidayEdit() {
+    document.getElementById('holidayForm').reset();
+    document.getElementById('hol-id').value = '';
+    document.getElementById('hol-action').value = 'create';
+    document.getElementById('hol-end-date').value = '';
+    const typeLabelInput = document.getElementById('hol-type-label');
+    if (typeLabelInput) typeLabelInput.required = false;
+    updateHolidayTypeLabelVisibility();
+    document.getElementById('holiday-form-title').textContent = 'Add Calendar Entry';
+    document.getElementById('hol-submit-btn').textContent = 'Add Calendar Entry';
+    toggleForm('holiday-form');
+}
+
+async function deleteHoliday(id) {
+    if (!confirm('Delete this entry from the calendar?')) return;
+    try {
+        const formData = new FormData();
+        formData.append('action', 'delete');
+        formData.append('id', id);
+        const response = await fetch(ADMIN_API.holidays, {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        if (result.success) {
+            showAlert(result.message || 'Calendar entry deleted', 'success');
+            loadHolidaysList();
+        } else {
+            showAlert(result.error || 'Error deleting calendar entry', 'error');
+        }
+    } catch (error) {
+        showAlert('Failed to delete calendar entry', 'error');
+    }
+}
 
 // ============================================
 // DOCUMENTS CRUD
@@ -1645,7 +1969,18 @@ function showAlert(message, type = 'success') {
     });
 })();
 
-// Read More button handler
+// Global: used by PHP-rendered announcement "Read more" buttons
+function showAnnouncementModal(announcement) {
+    if (!announcement) return;
+    const date = announcement.created_at
+        ? new Date(announcement.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' })
+        : '';
+    const content = announcement.content || announcement.description || '';
+    const text = [announcement.title, date, content].filter(Boolean).join('\n\n');
+    if (text) alert(text);
+}
+
+// Read More button handler (for static/JS-rendered cards)
 (function initReadMoreButtons() {
     document.addEventListener('click', function(e) {
         if (!e.target.classList.contains('btn-read-more')) return;

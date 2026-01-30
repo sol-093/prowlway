@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'description' => $_POST['description'] ?? '',
             'summary' => $_POST['summary'] ?? '',
             'category' => $_POST['category'] ?? 'other',
+            'schedule_type' => $_POST['schedule_type'] ?? 'event',
             'date' => $_POST['date'] ?? date('Y-m-d'),
             'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
             'location' => $_POST['location'] ?? '',
@@ -89,17 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $id = intval($_POST['id'] ?? 0);
-            // Delete old gallery images if updating
-            if ($action === 'update' && !empty($_POST['old_gallery'])) {
-                $oldGallery = json_decode($_POST['old_gallery'], true);
-                if (is_array($oldGallery)) {
-                    foreach ($oldGallery as $oldPath) {
-                        if (!filter_var($oldPath, FILTER_VALIDATE_URL)) {
-                            deleteUploadedFile($oldPath);
-                        }
-                    }
-                }
-            }
+            // Do not delete old gallery images on update – we keep existing + add new
             $result = dbUpdate('events', $data, 'id = :id', ['id' => $id]);
             if ($result) {
                 echo json_encode(['success' => true, 'message' => 'Event updated successfully']);

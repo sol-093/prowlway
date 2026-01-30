@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 30, 2026 at 02:02 AM
+-- Generation Time: Jan 29, 2026 at 03:11 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -69,8 +69,7 @@ CREATE TABLE `announcements` (
 --
 
 INSERT INTO `announcements` (`id`, `title`, `description`, `content`, `category`, `image`, `pinned`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, '123', '123', '123', 'academic', 'images/img_697b5a022cfad0.14140578_1769691650.png', 0, 'published', 1, '2026-01-29 13:00:50', '2026-01-29 13:00:50'),
-(2, '123', '123', '123', 'academic', 'images/img_697b6bb72f51a0.03883991_1769696183.png', 0, 'published', 1, '2026-01-29 14:16:23', '2026-01-29 14:16:23');
+(1, '123', '123', '123', 'academic', 'images/img_697b5a022cfad0.14140578_1769691650.png', 0, 'published', 1, '2026-01-29 13:00:50', '2026-01-29 13:00:50');
 
 -- --------------------------------------------------------
 
@@ -177,14 +176,13 @@ CREATE TABLE `events` (
 --
 
 INSERT INTO `events` (`id`, `title`, `caption`, `description`, `summary`, `category`, `schedule_type`, `image`, `gallery`, `date`, `end_date`, `location`, `display_order`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(2, '123', '123', '123', '123', 'service', 'event', 'images/img_697bed9f7a1b01.33693340_1769729439.png', '[\"images\\/img_697bed9f7a66c4.42230535_1769729439.png\",\"images\\/img_697bed9f7abdc3.58164822_1769729439.png\",\"images\\/img_697bed9f7aeb16.47373279_1769729439.png\",\"images\\/img_697bed9f7b1253.26797268_1769729439.png\",\"images\\/img_697bed9f7fac94.99555281_1769729439.png\",\"images\\/img_697bed9f7fd8e1.20610900_1769729439.png\"]', '2026-01-06', NULL, '', 0, 'published', 1, '2026-01-29 23:30:39', '2026-01-29 23:30:39');
+(1, '123', '123', '123', '123', 'seminar', 'event', 'images/img_697b64bd06d429.91982403_1769694397.png', '[\"images\\/img_697b64bd07e6d4.95441931_1769694397.png\"]', '2026-01-29', NULL, '123', 0, 'published', 1, '2026-01-29 13:46:37', '2026-01-29 13:46:37');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `holidays`
+-- Table structure for table `holidays` (PH & Dasma + school calendar: enrollment, breaks, year end, school end)
 --
-
 CREATE TABLE `holidays` (
   `id` int(11) UNSIGNED NOT NULL,
   `date` date NOT NULL,
@@ -192,57 +190,15 @@ CREATE TABLE `holidays` (
   `name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL COMMENT 'Description (e.g. Enrollment day details)',
   `type` enum('regular','special_non_working','special_working','dasma','enrollment','wellness_break','christmas_break','year_end','school_end','start_of_school','school') NOT NULL DEFAULT 'regular',
-  `type_label` varchar(255) DEFAULT NULL COMMENT 'Custom type label (e.g. when type=school, or override for school types)',
+  `type_label` varchar(255) DEFAULT NULL COMMENT 'Custom type label (e.g. when type=school enter manually)',
   `region` varchar(20) NOT NULL DEFAULT 'PH' COMMENT 'PH = Philippines, Dasma = Dasmariñas City',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_holidays_date` (`date`),
+  KEY `idx_holidays_region` (`region`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `holidays`
---
-
-INSERT INTO `holidays` (`id`, `date`, `end_date`, `name`, `description`, `type`, `type_label`, `region`, `created_at`) VALUES
-(1, '2024-01-01', NULL, 'New Year\'s Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(2, '2024-02-25', NULL, 'EDSA Revolution Anniversary', NULL, 'special_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(3, '2024-04-09', NULL, 'Araw ng Kagitingan', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(4, '2024-05-01', NULL, 'Labor Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(5, '2024-06-12', NULL, 'Independence Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(6, '2024-08-21', NULL, 'Ninoy Aquino Day', NULL, 'special_non_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(7, '2024-08-26', NULL, 'National Heroes Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(8, '2024-11-26', NULL, 'Foundation Day of Dasmariñas City', NULL, 'special_non_working', NULL, 'Dasma', '2026-01-30 00:23:56'),
-(9, '2024-11-30', NULL, 'Bonifacio Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(10, '2024-12-25', NULL, 'Christmas Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(11, '2024-12-30', NULL, 'Rizal Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(12, '2024-12-31', NULL, 'Last Day of the Year', NULL, 'special_non_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(13, '2025-01-01', NULL, 'New Year\'s Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(14, '2025-02-25', NULL, 'EDSA Revolution Anniversary', NULL, 'special_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(15, '2025-04-18', NULL, 'Good Friday', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(16, '2025-04-09', NULL, 'Araw ng Kagitingan', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(17, '2025-05-01', NULL, 'Labor Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(18, '2025-06-12', NULL, 'Independence Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(19, '2025-08-21', NULL, 'Ninoy Aquino Day', NULL, 'special_non_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(20, '2025-08-25', NULL, 'National Heroes Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(21, '2025-11-26', NULL, 'Foundation Day of Dasmariñas City', NULL, 'special_non_working', NULL, 'Dasma', '2026-01-30 00:23:56'),
-(22, '2025-11-30', NULL, 'Bonifacio Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(23, '2025-12-25', NULL, 'Christmas Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(24, '2025-12-30', NULL, 'Rizal Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(25, '2025-12-31', NULL, 'Last Day of the Year', NULL, 'special_non_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(26, '2026-01-01', NULL, 'New Year\'s Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(27, '2026-02-25', NULL, 'EDSA Revolution Anniversary', NULL, 'special_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(28, '2026-04-02', NULL, 'Maundy Thursday', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(29, '2026-04-03', NULL, 'Good Friday', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(30, '2026-04-04', NULL, 'Black Saturday', NULL, 'special_non_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(31, '2026-04-09', NULL, 'Araw ng Kagitingan', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(32, '2026-05-01', NULL, 'Labor Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(33, '2026-06-12', NULL, 'Independence Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(34, '2026-08-21', NULL, 'Ninoy Aquino Day', NULL, 'special_non_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(35, '2026-08-31', NULL, 'National Heroes Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(36, '2026-11-26', NULL, 'Foundation Day of Dasmariñas City', NULL, 'special_non_working', NULL, 'Dasma', '2026-01-30 00:23:56'),
-(37, '2026-11-30', NULL, 'Bonifacio Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(38, '2026-12-25', NULL, 'Christmas Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(39, '2026-12-30', NULL, 'Rizal Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
-(40, '2026-12-31', NULL, 'Last Day of the Year', NULL, 'special_non_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(42, '2026-01-14', '2026-01-21', '1st year enrollment', NULL, 'school', '1st year enrollment', 'PH', '2026-01-30 00:41:35');
+-- Seed PH + Dasma holidays: run seed_holidays_ph_dasma.sql after install
 
 -- --------------------------------------------------------
 
@@ -271,8 +227,7 @@ INSERT INTO `institute_info` (`id`, `section`, `title`, `content`, `image`, `dis
 (1, 'about', 'About', 'The Institute Of Computing And Digital Innovation (ICDI) was established in 2020, with roots in Kolehiyo Ng Lungsod Ng Dasmariñas (KLD). It has evolved through various iterations including the Institute Of Information And Computing Sciences (IICS) and the Institute Of Mathematical Application And Computing Sciences (IMACS), culminating in its current role as a Dynamic Academic Hub.', NULL, 1, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
 (2, 'mission', 'Mission', 'Empower Student Leadership Through Forward-Thinking Initiatives That Inspire Creativity And Progress. Solidify The Institute\'s Reputation As A Leader In Both Academic And Extracurricular Excellence.', NULL, 2, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
 (3, 'vision', 'Vision', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.', NULL, 3, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
-(4, 'logo', 'Logo', 'Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod Tempor Incididunt Ut Labore Et Dolore Magna Aliqua.', 'images/img_697bf389255db0.47581274_1769730953.jpg', 4, 'published', 1, '2026-01-29 12:02:14', '2026-01-29 23:55:53'),
-(5, 'banner', 'Banner', '', 'images/img_697bf3969f3ff5.33128309_1769730966.png', 0, 'published', 1, '2026-01-29 23:56:06', '2026-01-29 23:56:06');
+(4, 'logo', 'Logo', 'Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod Tempor Incididunt Ut Labore Et Dolore Magna Aliqua.', NULL, 4, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14');
 
 -- --------------------------------------------------------
 
@@ -293,33 +248,6 @@ CREATE TABLE `institute_sections` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `organization_core_values`
---
-
-CREATE TABLE `organization_core_values` (
-  `id` int(11) UNSIGNED NOT NULL,
-  `organization_id` int(11) UNSIGNED NOT NULL,
-  `icon` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded icon image',
-  `title` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `display_order` int(11) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `organization_core_values`
---
-
-INSERT INTO `organization_core_values` (`id`, `organization_id`, `icon`, `title`, `description`, `display_order`, `created_at`, `updated_at`) VALUES
-(2, 2, 'images/img_697bf1f21320c7.57036209_1769730546.jpg', 'IYO ANG TITLE', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.', 0, '2026-01-29 23:49:06', '2026-01-29 23:49:06'),
-(3, 2, 'images/img_697bf1f2140fa3.18138641_1769730546.jpg', 'IYO ANG TITLE', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.', 1, '2026-01-29 23:49:06', '2026-01-29 23:49:06'),
-(4, 2, 'images/img_697bf1f214c706.03656923_1769730546.jpg', 'IYO ANG TITLE', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.', 2, '2026-01-29 23:49:06', '2026-01-29 23:49:06'),
-(5, 2, 'images/img_697bf1f2156a72.51226571_1769730546.png', 'MAMA MO TITLE', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.', 3, '2026-01-29 23:49:06', '2026-01-29 23:49:06');
 
 -- --------------------------------------------------------
 
@@ -360,7 +288,7 @@ CREATE TABLE `student_organizations` (
   `description` text DEFAULT NULL,
   `mission` text DEFAULT NULL,
   `vision` text DEFAULT NULL,
-  `content` text DEFAULT NULL COMMENT 'Core values (one per line)',
+  `content` text DEFAULT NULL COMMENT 'Core values: one per line, use "Title|Description" for title + definition',
   `logo` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded logo image',
   `banner_image` varchar(500) DEFAULT NULL COMMENT 'Landscape hero image (shown above About on org page)',
   `website` varchar(500) DEFAULT NULL,
@@ -377,11 +305,28 @@ CREATE TABLE `student_organizations` (
 --
 
 INSERT INTO `student_organizations` (`id`, `name`, `acronym`, `description`, `mission`, `vision`, `content`, `logo`, `banner_image`, `website`, `social_media`, `display_order`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 'ICDI Student Government', 'ICDISG', 'The official student government of the Institute of Computing and Digital Innovation', NULL, NULL, '', 'images/img_697be78e6255c8.35536392_1769727886.png', 'images/img_697bee6a997750.76772622_1769729642.png', '', NULL, 1, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:34:02'),
-(2, 'CS Society', 'CSS', 'Computer Science Society', 'Empower Student Leadership Through Forward-Thinking Initiatives That Inspire Creativity And Progress. Solidify The Institute\'s Reputation As A Leader In Both Academic And Extracurricular Excellence.', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.\r\n', '', 'images/img_697be785d35d70.38210289_1769727877.png', 'images/img_697bf028ca1272.91783756_1769730088.png', '', NULL, 2, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:41:57'),
-(3, 'IS Society', 'ISS', 'Information Systems Society', NULL, NULL, '', 'images/img_697be79bc9bfb5.10416983_1769727899.png', NULL, '', NULL, 3, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:04:59'),
-(4, 'GITCUB', 'GITCUB', 'Google IT Community University Branch', NULL, NULL, '', 'images/img_697be7a638b0c1.09519661_1769727910.png', NULL, '', NULL, 4, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:05:10'),
-(5, 'JPCS', 'JPCS', 'Junior Philippine Computer Society', NULL, NULL, '', 'images/img_697be7acf324b0.58611005_1769727916.png', NULL, '', NULL, 5, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:05:17');
+(1, 'ICDI Student Government', 'ICDISG', 'The official student government of the Institute of Computing and Digital Innovation', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 12:02:15'),
+(2, 'CS Society', 'CSS', 'Computer Science Society', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 12:02:15'),
+(3, 'IS Society', 'ISS', 'Information Systems Society', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 3, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 12:02:15'),
+(4, 'GITCUB', 'GITCUB', 'Google IT Community University Branch', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 4, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 12:02:15'),
+(5, 'JPCS', 'JPCS', 'Junior Philippine Computer Society', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 5, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 12:02:15');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `organization_core_values`
+--
+
+CREATE TABLE `organization_core_values` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `organization_id` int(11) UNSIGNED NOT NULL,
+  `icon` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded icon image',
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `display_order` int(11) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Indexes for dumped tables
@@ -446,14 +391,6 @@ ALTER TABLE `events`
   ADD KEY `idx_events_published_date` (`status`,`date`,`display_order`);
 
 --
--- Indexes for table `holidays`
---
-ALTER TABLE `holidays`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_holidays_date` (`date`),
-  ADD KEY `idx_holidays_region` (`region`);
-
---
 -- Indexes for table `institute_info`
 --
 ALTER TABLE `institute_info`
@@ -470,13 +407,6 @@ ALTER TABLE `institute_sections`
   ADD KEY `idx_type` (`type`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `fk_institute_sections_admin` (`created_by`);
-
---
--- Indexes for table `organization_core_values`
---
-ALTER TABLE `organization_core_values`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_org_core_values_org` (`organization_id`);
 
 --
 -- Indexes for table `site_settings`
@@ -496,6 +426,13 @@ ALTER TABLE `student_organizations`
   ADD KEY `fk_organizations_admin` (`created_by`);
 
 --
+-- Indexes for table `organization_core_values`
+--
+ALTER TABLE `organization_core_values`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_org_core_values_org` (`organization_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -509,7 +446,7 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `announcements`
 --
 ALTER TABLE `announcements`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `batches`
@@ -533,31 +470,25 @@ ALTER TABLE `documents`
 -- AUTO_INCREMENT for table `events`
 --
 ALTER TABLE `events`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `institute_info`
 --
 ALTER TABLE `institute_info`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `institute_sections`
 --
 ALTER TABLE `institute_sections`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `organization_core_values`
---
-ALTER TABLE `organization_core_values`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `site_settings`
@@ -570,6 +501,12 @@ ALTER TABLE `site_settings`
 --
 ALTER TABLE `student_organizations`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `organization_core_values`
+--
+ALTER TABLE `organization_core_values`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
@@ -619,12 +556,6 @@ ALTER TABLE `institute_sections`
   ADD CONSTRAINT `fk_institute_sections_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
 
 --
--- Constraints for table `organization_core_values`
---
-ALTER TABLE `organization_core_values`
-  ADD CONSTRAINT `fk_org_core_values_org` FOREIGN KEY (`organization_id`) REFERENCES `student_organizations` (`id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `site_settings`
 --
 ALTER TABLE `site_settings`
@@ -635,6 +566,12 @@ ALTER TABLE `site_settings`
 --
 ALTER TABLE `student_organizations`
   ADD CONSTRAINT `fk_organizations_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `organization_core_values`
+--
+ALTER TABLE `organization_core_values`
+  ADD CONSTRAINT `fk_org_core_values_org` FOREIGN KEY (`organization_id`) REFERENCES `student_organizations` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

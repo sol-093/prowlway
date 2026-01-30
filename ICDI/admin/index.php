@@ -244,24 +244,6 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                     </div>
                 </a>
                 
-                <a href="<?php echo ADMIN_URL; ?>/institute.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Manage Institute</h3>
-                            <p class="text-sm text-gray-500">Institute info</p>
-                        </div>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
-                            <path d="M5 12h14M12 5l7 7-7 7"></path>
-                        </svg>
-                    </div>
-                </a>
-                
                 <a href="<?php echo ADMIN_URL; ?>/organizations.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
                     <div class="flex items-center gap-4">
                         <div class="w-14 h-14 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
@@ -312,6 +294,20 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                     <line x1="3" y1="10" x2="21" y2="10"></line>
                                 </svg>
                                 Events
+                            </span>
+                        </button>
+                        <button 
+                            onclick="switchTab('calendar')" 
+                            class="tab-button px-8 py-4 text-sm font-bold text-gray-600 border-b-3 border-transparent hover:text-gray-900 hover:border-gray-300 transition-colors"
+                        >
+                            <span class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                Calendar
                             </span>
                         </button>
                         <button 
@@ -455,6 +451,18 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                             <option value="other">Other</option>
                                         </select>
                                     </div>
+                                    <div>
+                                        <label for="evt-schedule-type" class="block text-sm font-bold text-gray-700 mb-2">What happens this day</label>
+                                        <select id="evt-schedule-type" name="schedule_type" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <option value="event">Event / Activity</option>
+                                            <option value="enrollment">Enrollment</option>
+                                            <option value="school_break">School Break</option>
+                                            <option value="school_end">School End</option>
+                                            <option value="start_of_classes">Start of Classes</option>
+                                            <option value="exam_period">Exam Period</option>
+                                        </select>
+                                        <p class="mt-1 text-xs text-gray-500">Shows on Institute Calendar (e.g. &quot;Enrollment&quot;, &quot;School Break&quot;)</p>
+                                    </div>
                                 </div>
                                 <div>
                                     <label for="evt-caption" class="block text-sm font-bold text-gray-700 mb-2">Caption *</label>
@@ -495,9 +503,9 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                     </div>
                                 </div>
                                 <div>
-                                    <label for="evt-gallery" class="block text-sm font-bold text-gray-700 mb-2">Gallery Images</label>
+                                    <label for="evt-gallery" class="block text-sm font-bold text-gray-700 mb-2">Gallery Images (multiple)</label>
                                     <input type="file" id="evt-gallery" name="gallery[]" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
-                                    <p class="mt-2 text-xs text-gray-500">You can select multiple images. Max size per image: 5MB.</p>
+                                    <p class="mt-2 text-xs text-gray-500">Select multiple images. Existing gallery images are kept when you add more. Max 5MB per image.</p>
                                     <div id="evt-gallery-preview" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
                                     <input type="hidden" id="evt-old-gallery" name="old_gallery">
                                 </div>
@@ -511,6 +519,106 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                         <!-- Events List -->
                         <div id="events-list" class="bg-white border-2 border-gray-200 rounded-xl p-6 min-h-[200px]">
                             <p class="text-gray-500 text-center py-8">Loading events...</p>
+                        </div>
+                    </div>
+
+                    <!-- Calendar (Holidays) Tab -->
+                    <div class="tab-content hidden" id="calendar-tab">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">Calendar</h2>
+                                <p class="text-sm text-gray-500 mt-1">Add enrollment day, wellness break, Christmas break (from–to), year end, school end, or PH/Dasma holidays</p>
+                            </div>
+                            <button 
+                                onclick="toggleForm('holiday-form')" 
+                                class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>Add Calendar Entry</span>
+                            </button>
+                        </div>
+
+                        <!-- Calendar Entry Form -->
+                        <div id="holiday-form" class="hidden bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl p-8 mb-6 shadow-lg">
+                            <h3 id="holiday-form-title" class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                                <span class="w-1.5 h-8 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full"></span>
+                                Add Calendar Entry
+                            </h3>
+                            <form id="holidayForm" method="POST" action="<?php echo ADMIN_URL; ?>/holidays_handler.php" class="space-y-6">
+                                <input type="hidden" id="hol-id" name="id">
+                                <input type="hidden" id="hol-action" name="action" value="create">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="hol-date" class="block text-sm font-bold text-gray-700 mb-2">Start date *</label>
+                                        <input type="date" id="hol-date" name="date" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                    <div>
+                                        <label for="hol-end-date" class="block text-sm font-bold text-gray-700 mb-2">End date (optional)</label>
+                                        <input type="date" id="hol-end-date" name="end_date" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <p class="mt-1 text-xs text-gray-500">For multi-day (e.g. Christmas break from–to, wellness break for a week)</p>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label for="hol-name" class="block text-sm font-bold text-gray-700 mb-2">Name *</label>
+                                        <input type="text" id="hol-name" name="name" required placeholder="e.g. Enrollment Day, Christmas Break, Wellness Break" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                    <div>
+                                        <label for="hol-type" class="block text-sm font-bold text-gray-700 mb-2">Type</label>
+                                        <select id="hol-type" name="type" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <optgroup label="School calendar">
+                                                <option value="school">School (enter type below)</option>
+                                                <option value="enrollment">Enrollment day</option>
+                                                <option value="start_of_school">Start of school</option>
+                                                <option value="wellness_break">Wellness break</option>
+                                                <option value="christmas_break">Christmas break</option>
+                                                <option value="year_end">Year end</option>
+                                                <option value="school_end">School end</option>
+                                            </optgroup>
+                                            <optgroup label="PH / Dasma">
+                                                <option value="regular">Regular Holiday</option>
+                                                <option value="special_non_working">Special Non-Working Day</option>
+                                                <option value="special_working">Special Working Day</option>
+                                                <option value="dasma">Dasma (Dasmariñas)</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2 hidden" id="hol-type-label-wrap">
+                                        <label for="hol-type-label" id="hol-type-label-label" class="block text-sm font-bold text-gray-700 mb-2">Event type</label>
+                                        <input type="text" id="hol-type-label" name="type_label" maxlength="255" placeholder="e.g. Enrollment, Wellness break, Finals week, Start of school" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <p class="mt-1 text-xs text-gray-500">When &quot;School (enter type below)&quot; is selected, enter the type here. For other school types this overrides the default label.</p>
+                                    </div>
+                                    <div>
+                                        <label for="hol-region" class="block text-sm font-bold text-gray-700 mb-2">Region</label>
+                                        <select id="hol-region" name="region" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <option value="PH">Philippines (PH)</option>
+                                            <option value="Dasma">Dasmariñas (Dasma)</option>
+                                        </select>
+                                    </div>
+                                    <div class="md:col-span-2" id="hol-description-wrap">
+                                        <label for="hol-description" id="hol-description-label" class="block text-sm font-bold text-gray-700 mb-2">Description (optional)</label>
+                                        <textarea id="hol-description" name="description" rows="3" placeholder="e.g. Enrollment day details, wellness break info" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white resize-y"></textarea>
+                                        <p id="hol-description-hint" class="mt-1 text-xs text-gray-500 hidden">For school calendar: describe what the event is (e.g. Enrollment for Grade 11, Wellness break for all students).</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3 pt-4">
+                                    <button type="submit" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" id="hol-submit-btn">Add Calendar Entry</button>
+                                    <button type="button" onclick="cancelHolidayEdit()" class="px-8 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Holidays List: menu bar + content -->
+                        <div class="bg-white border-2 border-gray-200 rounded-xl overflow-hidden">
+                            <nav id="holidays-list-menu" class="hidden px-4 py-3 bg-gray-100 border-b border-gray-200 flex flex-wrap items-center gap-2" aria-label="Jump to calendar section">
+                                <span class="text-sm font-semibold text-gray-600 mr-2">Jump to:</span>
+                                <a href="#calendar-section-holidays" class="calendar-list-jump px-3 py-1.5 text-sm font-medium text-amber-800 bg-amber-100 rounded-lg hover:bg-amber-200 transition-colors">Holidays (PH / Dasma)</a>
+                                <a href="#calendar-section-school" class="calendar-list-jump px-3 py-1.5 text-sm font-medium text-indigo-800 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition-colors">School calendar</a>
+                            </nav>
+                            <div id="holidays-list" class="p-6 min-h-[200px]">
+                                <p class="text-gray-500 text-center py-8">Loading calendar...</p>
+                            </div>
                         </div>
                     </div>
 
