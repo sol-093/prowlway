@@ -51,7 +51,7 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                     <!-- Top hero / banner (landscape only; different from logo; from admin) -->
                     <div class="origin-hero origin-hero-banner">
                         <?php
-                        $batchPageUrl = PUBLIC_URL . '/batches.php';
+                        $batchPageUrl = PUBLIC_URL . '/batches.php?org_id=' . $organization['id'];
                         $heroSrc = !empty($organization['banner_image'])
                             ? getImageUrl($organization['banner_image'])
                             : (!empty($organization['logo']) ? getImageUrl($organization['logo']) : (ASSETS_URL . '/IMG/ICONS/OFFICE.png'));
@@ -141,7 +141,7 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                         <h2 class="origin-section-title">Logo.</h2>
                         <div class="origin-logo-layout">
                             <div class="origin-logo-frame">
-                                <a href="<?php echo htmlspecialchars($batchPageUrl); ?>" class="org-logo-link">
+                                <a href="<?php echo PUBLIC_URL; ?>/batches.php?org_id=<?php echo $organization['id']; ?>" class="org-logo-link">
                                     <?php if (!empty($organization['logo'])): ?>
                                         <img src="<?php echo getImageUrl($organization['logo']); ?>" alt="<?php echo htmlspecialchars($organization['name']); ?>" class="origin-logo-image">
                                     <?php else: ?>

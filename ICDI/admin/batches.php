@@ -2,13 +2,10 @@
 session_start();
 require_once '../includes/config.php';
 require_once '../includes/database.php';
+require_once '../includes/auth.php';
 require_once '../includes/upload.php';
 
-// Check authentication
-if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
-    header('Location: ' . ADMIN_URL . '/index.php');
-    exit;
-}
+requireAdmin(null, false);
 
 $message = '';
 $messageType = '';
@@ -20,6 +17,7 @@ $orgOptions = dbFetchAll("SELECT id, name, acronym FROM student_organizations WH
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action'])) {
         if ($_POST['action'] === 'create' || $_POST['action'] === 'update') {
+            $requestedStatus = $_POST['status'] ?? 'active';
             $data = [
                 'organization_id' => !empty($_POST['organization_id']) ? intval($_POST['organization_id']) : null,
                 'academic_year' => $_POST['academic_year'] ?? '',
@@ -27,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'end_year' => $_POST['end_year'] ?? date('Y') + 1,
                 'description' => $_POST['description'] ?? '',
                 'target_group' => $_POST['target_group'] ?? 'all',
-                'status' => $_POST['status'] ?? 'active',
+                'status' => normalizeStatusByRole($requestedStatus, ['active', 'archived']),
                 'display_order' => intval($_POST['display_order'] ?? 0),
                 'created_by' => $_SESSION['admin_id'] ?? null
             ];
@@ -54,6 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($_POST['action'] === 'create') {
                     $result = dbInsert('batches', $data);
                     if ($result) {
+                        if ($data['status'] === 'active') {
+                            auditLog('publish', 'Batch created and published', 'batch', $result);
+                        }
                         $message = 'Batch created successfully!';
                         $messageType = 'success';
                     } else {
@@ -62,8 +63,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 } else {
                     $id = intval($_POST['id']);
+                    $existing = dbFetchOne("SELECT status FROM batches WHERE id = ?", [$id]);
                     $result = dbUpdate('batches', $data, 'id = :id', ['id' => $id]);
                     if ($result) {
+                        if ($existing && $data['status'] === 'active' && $existing['status'] !== 'active') {
+                            auditLog('publish', 'Batch published', 'batch', $id);
+                        } elseif ($existing && $data['status'] === 'archived') {
+                            auditLog('archive', 'Batch archived', 'batch', $id);
+                        }
                         $message = 'Batch updated successfully!';
                         $messageType = 'success';
                     } else {
@@ -72,20 +79,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             }
-        } elseif ($_POST['action'] === 'delete') {
+        } elseif ($_POST['action'] === 'archive') {
             $id = intval($_POST['id']);
-            // Get batch to delete image
-            $batch = dbFetchOne("SELECT image FROM batches WHERE id = ?", [$id]);
-            if ($batch && !empty($batch['image'])) {
-                deleteUploadedFile($batch['image']);
-            }
-            $result = dbDelete('batches', 'id = :id', ['id' => $id]);
-            if ($result) {
-                $message = 'Batch deleted successfully!';
-                $messageType = 'success';
-            } else {
-                $message = 'Error deleting batch.';
+            $batch = dbFetchOne("SELECT status, created_by FROM batches WHERE id = ?", [$id]);
+            if (!$batch) {
+                $message = 'Batch not found.';
                 $messageType = 'error';
+            } elseif (!canPublish() && ($batch['status'] !== 'draft' || (int)$batch['created_by'] !== (int)($_SESSION['admin_id'] ?? 0))) {
+                $message = 'Only draft batches you created can be archived, or you need publish rights.';
+                $messageType = 'error';
+            } else {
+                $result = dbUpdate('batches', ['status' => 'archived'], 'id = :id', ['id' => $id]);
+                if ($result) {
+                    auditLog('archive', 'Batch archived', 'batch', $id);
+                    $message = 'Batch archived successfully!';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Error archiving batch.';
+                    $messageType = 'error';
+                }
             }
         }
     }
@@ -289,11 +301,12 @@ include '../includes/header.php';
                                             <a href="<?php echo ADMIN_URL; ?>/batches.php?edit=<?php echo $batch['id']; ?>" class="px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100">
                                                 Edit
                                             </a>
-                                            <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this batch?');">
-                                                <input type="hidden" name="action" value="delete">
+                                            <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to archive this batch?');">
+                                                <input type="hidden" name="action" value="archive">
                                                 <input type="hidden" name="id" value="<?php echo $batch['id']; ?>">
-                                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600">
-                                                    Delete
+                                                <?php if (function_exists('generateCSRFToken')): ?><input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>"><?php endif; ?>
+                                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 border-2 border-gray-300">
+                                                    Archive
                                                 </button>
                                             </form>
                                         </div>

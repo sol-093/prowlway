@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 30, 2026 at 02:02 AM
+-- Generation Time: Jan 30, 2026 at 05:53 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -42,7 +42,13 @@ CREATE TABLE `admins` (
 --
 
 INSERT INTO `admins` (`id`, `email`, `password`, `name`, `role`, `created_at`, `updated_at`) VALUES
-(1, 'admin@icdisg.ph', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin User', 'super_admin', '2026-01-29 12:02:14', '2026-01-29 12:02:14');
+(2, 'icdi.admin@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'ICDI Admin', 'admin', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
+(3, 'gitcub.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'GITCUB Editor', 'editor', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
+(4, 'css.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'CSS Editor', 'editor', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
+(5, 'iss.admin@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'ISS Editor', 'editor', '2026-01-30 01:35:57', '2026-01-30 01:36:46'),
+(6, 'jpcs.editor@kld.edu.ph', '$2y$10$vbqHIgyptACyeBHXz/ohb.BE8dvGeZ78SUiG14zllOT7cQlYonIP.', 'JPCS Editor', 'editor', '2026-01-30 01:35:57', '2026-01-30 01:35:57'),
+(7, 'superadmin@icdisg.ph', '$2y$10$tSBPpP1kWdBoUnAGpt4g7e0TLmEbmbHc7nL/caQEY.p4a0BFzlDjm', 'ICDI Super Admin', 'super_admin', '2026-01-30 01:37:26', '2026-01-30 01:37:26'),
+(8, 'iss.editor@kld.edu.ph', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ISS Editor', 'editor', '2026-01-30 01:37:48', '2026-01-30 01:37:48');
 
 -- --------------------------------------------------------
 
@@ -58,8 +64,19 @@ CREATE TABLE `announcements` (
   `category` enum('general','academic','event','maintenance','urgent') DEFAULT 'general',
   `image` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded image file',
   `pinned` tinyint(1) DEFAULT 0,
-  `status` enum('draft','published','archived') DEFAULT 'published',
+  `is_meeting` tinyint(1) DEFAULT 0,
+  `meeting_date` datetime DEFAULT NULL,
+  `meeting_end_date` datetime DEFAULT NULL,
+  `meeting_location` varchar(255) DEFAULT NULL,
+  `status` enum('draft','pending_review','approved','published','archived') DEFAULT 'draft',
+  `academic_year` varchar(20) DEFAULT NULL COMMENT 'e.g., 2024-2025',
   `created_by` int(11) UNSIGNED DEFAULT NULL,
+  `reviewed_by` int(11) UNSIGNED DEFAULT NULL,
+  `reviewed_at` timestamp NULL DEFAULT NULL,
+  `review_notes` text DEFAULT NULL,
+  `approved_by` int(11) UNSIGNED DEFAULT NULL,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `approval_notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -68,9 +85,61 @@ CREATE TABLE `announcements` (
 -- Dumping data for table `announcements`
 --
 
-INSERT INTO `announcements` (`id`, `title`, `description`, `content`, `category`, `image`, `pinned`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, '123', '123', '123', 'academic', 'images/img_697b5a022cfad0.14140578_1769691650.png', 0, 'published', 1, '2026-01-29 13:00:50', '2026-01-29 13:00:50'),
-(2, '123', '123', '123', 'academic', 'images/img_697b6bb72f51a0.03883991_1769696183.png', 0, 'published', 1, '2026-01-29 14:16:23', '2026-01-29 14:16:23');
+INSERT INTO `announcements` (`id`, `title`, `description`, `content`, `category`, `image`, `pinned`, `is_meeting`, `meeting_date`, `meeting_end_date`, `meeting_location`, `status`, `academic_year`, `created_by`, `reviewed_by`, `reviewed_at`, `review_notes`, `approved_by`, `approved_at`, `approval_notes`, `created_at`, `updated_at`) VALUES
+(1, 'Meeting', '123', '123', 'academic', 'images/img_697b5a022cfad0.14140578_1769691650.png', 0, 1, '2026-01-30 17:41:00', NULL, 'cb1 309', 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-29 13:00:50', '2026-01-30 04:48:02');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `audit_log`
+--
+
+CREATE TABLE `audit_log` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `admin_id` int(11) UNSIGNED DEFAULT NULL,
+  `action` varchar(100) NOT NULL COMMENT 'login, logout, publish, archive, delete, settings_update, role_assign, etc.',
+  `entity_type` varchar(50) DEFAULT NULL COMMENT 'announcement, document, event, organization, batch, inquiry, admin, settings',
+  `entity_id` int(11) UNSIGNED DEFAULT NULL,
+  `details` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `audit_log`
+--
+
+INSERT INTO `audit_log` (`id`, `admin_id`, `action`, `entity_type`, `entity_id`, `details`, `ip_address`, `user_agent`, `created_at`) VALUES
+(1, NULL, 'logout', 'admin', NULL, 'Logout (admin deleted)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:37:54'),
+(2, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:38:14'),
+(3, 7, 'user_delete', 'admin', 1, 'Deleted admin #1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:39:27'),
+(4, 7, 'logout', 'admin', 7, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:39:30'),
+(5, 2, 'login', 'admin', 2, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:40:09'),
+(6, 2, 'logout', 'admin', 2, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:40:47'),
+(7, 3, 'login', 'admin', 3, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:41:12'),
+(8, 3, 'logout', 'admin', 3, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:42:13'),
+(9, 2, 'login', 'admin', 2, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:42:17'),
+(10, 2, 'publish', 'batch', 2, 'Batch published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 01:42:32'),
+(11, 2, 'logout', 'admin', 2, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 03:23:06'),
+(12, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 03:23:11'),
+(13, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 03:58:22'),
+(14, 7, 'logout', 'admin', 7, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:14:55'),
+(17, 2, 'login', 'admin', 2, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:15:12'),
+(18, 2, 'logout', 'admin', 2, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:15:18'),
+(19, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:15:23'),
+(20, 7, 'logout', 'admin', 7, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:15:41'),
+(21, 2, 'login', 'admin', 2, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:15:46'),
+(22, 2, 'logout', 'admin', 2, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:16:03'),
+(23, 3, 'login', 'admin', 3, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:16:10'),
+(24, 3, 'logout', 'admin', 3, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:17:55'),
+(25, 2, 'login', 'admin', 2, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:18:01'),
+(26, 2, 'logout', 'admin', 2, 'Logout', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:18:59'),
+(27, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:19:04'),
+(28, 7, 'delete', 'announcement', 2, 'Announcement deleted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:20:51'),
+(29, 7, 'archive', 'announcement', 1, 'Announcement archived (bulk)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:35:38'),
+(30, 7, 'restore', 'announcement', 1, 'Announcement restored from archive', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:37:41'),
+(31, 7, 'publish', 'announcement', 1, 'Announcement published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 04:41:31');
 
 -- --------------------------------------------------------
 
@@ -99,7 +168,8 @@ CREATE TABLE `batches` (
 --
 
 INSERT INTO `batches` (`id`, `organization_id`, `academic_year`, `start_year`, `end_year`, `image`, `description`, `target_group`, `status`, `display_order`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, NULL, '2', '2026', '2027', 'images/img_697b5b3bbe5e17.79450240_1769691963.png', '123', 'all', 'active', 0, 1, '2026-01-29 13:06:03', '2026-01-29 13:06:03');
+(1, NULL, '2', '2026', '2027', 'images/img_697b5b3bbe5e17.79450240_1769691963.png', '123', 'all', 'active', 0, NULL, '2026-01-29 13:06:03', '2026-01-29 13:06:03'),
+(2, 4, 'A.Y 2025-2026', '2026', '2027', 'images/img_697c0c55aa70f3.35873857_1769737301.png', '1312231', 'adviser', 'active', 0, 2, '2026-01-30 01:41:41', '2026-01-30 01:42:32');
 
 -- --------------------------------------------------------
 
@@ -122,6 +192,33 @@ CREATE TABLE `batch_members` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `contact_inquiries`
+--
+
+CREATE TABLE `contact_inquiries` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `subject` varchar(255) DEFAULT NULL,
+  `message` text NOT NULL,
+  `status` enum('open','closed','archived') DEFAULT 'open',
+  `response_text` text DEFAULT NULL,
+  `responded_at` timestamp NULL DEFAULT NULL,
+  `responded_by` int(11) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `contact_inquiries`
+--
+
+INSERT INTO `contact_inquiries` (`id`, `name`, `email`, `subject`, `message`, `status`, `response_text`, `responded_at`, `responded_by`, `created_at`, `updated_at`) VALUES
+(1, 'CS Society', 'zendrick03gango@kld.edu.ph', '124', '123', 'open', NULL, NULL, NULL, '2026-01-30 01:32:47', '2026-01-30 01:32:47');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `documents`
 --
 
@@ -130,11 +227,21 @@ CREATE TABLE `documents` (
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `category` enum('01','02','03','04','05') NOT NULL COMMENT '01=OFFICES REPORT, 02=EXECUTIVE ORDER, 03=ORDINANCE, 04=RESOLUTION, 05=OTHER',
+  `subcategory` varchar(100) DEFAULT NULL COMMENT 'OTP, OVIA, OVPEA, OS, OTA, OBPR, Media Publication, Arts Craft, Documentation, Business, etc.',
+  `series_year` varchar(20) DEFAULT NULL COMMENT 'e.g., 2025',
+  `document_type` enum('executive_order','administrative_order','memorandum') DEFAULT NULL COMMENT 'For Orders category (02)',
+  `academic_year` varchar(20) DEFAULT NULL COMMENT 'e.g., 2024-2025',
   `file_path` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded PDF file',
   `file_size` bigint(20) DEFAULT NULL COMMENT 'File size in bytes',
   `file_type` varchar(50) DEFAULT NULL,
-  `status` enum('draft','published','archived') DEFAULT 'published',
+  `status` enum('draft','pending_review','approved','published','archived') DEFAULT 'draft',
   `created_by` int(11) UNSIGNED DEFAULT NULL,
+  `reviewed_by` int(11) UNSIGNED DEFAULT NULL COMMENT 'Admin ID who reviewed the document',
+  `reviewed_at` timestamp NULL DEFAULT NULL COMMENT 'When document was reviewed',
+  `review_notes` text DEFAULT NULL COMMENT 'Review comments/notes',
+  `approved_by` int(11) UNSIGNED DEFAULT NULL COMMENT 'Admin ID who approved the document',
+  `approved_at` timestamp NULL DEFAULT NULL COMMENT 'When document was approved',
+  `approval_notes` text DEFAULT NULL COMMENT 'Approval comments/notes',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -143,8 +250,8 @@ CREATE TABLE `documents` (
 -- Dumping data for table `documents`
 --
 
-INSERT INTO `documents` (`id`, `title`, `description`, `category`, `file_path`, `file_size`, `file_type`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, '123123123', '345', '01', 'documents/doc_697b5cf47aca74.10396727_1769692404.pdf', 809982, 'application/pdf', 'published', 1, '2026-01-29 13:13:24', '2026-01-29 13:47:17');
+INSERT INTO `documents` (`id`, `title`, `description`, `category`, `subcategory`, `series_year`, `document_type`, `academic_year`, `file_path`, `file_size`, `file_type`, `status`, `created_by`, `reviewed_by`, `reviewed_at`, `review_notes`, `approved_by`, `approved_at`, `approval_notes`, `created_at`, `updated_at`) VALUES
+(1, '123123123', '345', '01', NULL, NULL, NULL, NULL, 'documents/doc_697b5cf47aca74.10396727_1769692404.pdf', 809982, 'application/pdf', 'published', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-29 13:13:24', '2026-01-29 13:47:17');
 
 -- --------------------------------------------------------
 
@@ -166,8 +273,15 @@ CREATE TABLE `events` (
   `end_date` date DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
   `display_order` int(11) DEFAULT 0,
-  `status` enum('draft','published','archived') DEFAULT 'published',
+  `status` enum('draft','pending_review','approved','published','archived') DEFAULT 'draft',
+  `academic_year` varchar(20) DEFAULT NULL COMMENT 'e.g., 2024-2025',
   `created_by` int(11) UNSIGNED DEFAULT NULL,
+  `reviewed_by` int(11) UNSIGNED DEFAULT NULL COMMENT 'Admin ID who reviewed the event',
+  `reviewed_at` timestamp NULL DEFAULT NULL COMMENT 'When event was reviewed',
+  `review_notes` text DEFAULT NULL COMMENT 'Review comments/notes',
+  `approved_by` int(11) UNSIGNED DEFAULT NULL COMMENT 'Admin ID who approved the event',
+  `approved_at` timestamp NULL DEFAULT NULL COMMENT 'When event was approved',
+  `approval_notes` text DEFAULT NULL COMMENT 'Approval comments/notes',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -176,8 +290,8 @@ CREATE TABLE `events` (
 -- Dumping data for table `events`
 --
 
-INSERT INTO `events` (`id`, `title`, `caption`, `description`, `summary`, `category`, `schedule_type`, `image`, `gallery`, `date`, `end_date`, `location`, `display_order`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(2, '123', '123', '123', '123', 'service', 'event', 'images/img_697bed9f7a1b01.33693340_1769729439.png', '[\"images\\/img_697bed9f7a66c4.42230535_1769729439.png\",\"images\\/img_697bed9f7abdc3.58164822_1769729439.png\",\"images\\/img_697bed9f7aeb16.47373279_1769729439.png\",\"images\\/img_697bed9f7b1253.26797268_1769729439.png\",\"images\\/img_697bed9f7fac94.99555281_1769729439.png\",\"images\\/img_697bed9f7fd8e1.20610900_1769729439.png\"]', '2026-01-06', NULL, '', 0, 'published', 1, '2026-01-29 23:30:39', '2026-01-29 23:30:39');
+INSERT INTO `events` (`id`, `title`, `caption`, `description`, `summary`, `category`, `schedule_type`, `image`, `gallery`, `date`, `end_date`, `location`, `display_order`, `status`, `academic_year`, `created_by`, `reviewed_by`, `reviewed_at`, `review_notes`, `approved_by`, `approved_at`, `approval_notes`, `created_at`, `updated_at`) VALUES
+(2, '123', '123', '123', '123', 'service', 'event', 'images/img_697bed9f7a1b01.33693340_1769729439.png', '[\"images\\/img_697bed9f7a66c4.42230535_1769729439.png\",\"images\\/img_697bed9f7abdc3.58164822_1769729439.png\",\"images\\/img_697bed9f7aeb16.47373279_1769729439.png\",\"images\\/img_697bed9f7b1253.26797268_1769729439.png\",\"images\\/img_697bed9f7f7529.36375870_1769729439.png\",\"images\\/img_697bed9f7fac94.99555281_1769729439.png\",\"images\\/img_697bed9f7fd8e1.20610900_1769729439.png\"]', '2026-01-06', NULL, '', 0, 'published', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-29 23:30:39', '2026-01-29 23:30:39');
 
 -- --------------------------------------------------------
 
@@ -242,7 +356,7 @@ INSERT INTO `holidays` (`id`, `date`, `end_date`, `name`, `description`, `type`,
 (38, '2026-12-25', NULL, 'Christmas Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
 (39, '2026-12-30', NULL, 'Rizal Day', NULL, 'regular', NULL, 'PH', '2026-01-30 00:23:56'),
 (40, '2026-12-31', NULL, 'Last Day of the Year', NULL, 'special_non_working', NULL, 'PH', '2026-01-30 00:23:56'),
-(42, '2026-01-14', '2026-01-21', '1st year enrollment', NULL, 'school', '1st year enrollment', 'PH', '2026-01-30 00:41:35');
+(42, '2026-01-14', '2026-01-21', '1st year enrollment', '1231231231231231When \"School (enter type below)\" is selected, enter the type here. For other school types this overrides the default label.', 'school', '1st year enrollment', 'PH', '2026-01-30 00:41:35');
 
 -- --------------------------------------------------------
 
@@ -271,8 +385,8 @@ INSERT INTO `institute_info` (`id`, `section`, `title`, `content`, `image`, `dis
 (1, 'about', 'About', 'The Institute Of Computing And Digital Innovation (ICDI) was established in 2020, with roots in Kolehiyo Ng Lungsod Ng Dasmariñas (KLD). It has evolved through various iterations including the Institute Of Information And Computing Sciences (IICS) and the Institute Of Mathematical Application And Computing Sciences (IMACS), culminating in its current role as a Dynamic Academic Hub.', NULL, 1, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
 (2, 'mission', 'Mission', 'Empower Student Leadership Through Forward-Thinking Initiatives That Inspire Creativity And Progress. Solidify The Institute\'s Reputation As A Leader In Both Academic And Extracurricular Excellence.', NULL, 2, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
 (3, 'vision', 'Vision', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.', NULL, 3, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
-(4, 'logo', 'Logo', 'Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod Tempor Incididunt Ut Labore Et Dolore Magna Aliqua.', 'images/img_697bf389255db0.47581274_1769730953.jpg', 4, 'published', 1, '2026-01-29 12:02:14', '2026-01-29 23:55:53'),
-(5, 'banner', 'Banner', '', 'images/img_697bf3969f3ff5.33128309_1769730966.png', 0, 'published', 1, '2026-01-29 23:56:06', '2026-01-29 23:56:06');
+(4, 'logo', 'Logo', 'Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod Tempor Incididunt Ut Labore Et Dolore Magna Aliqua.', 'images/img_697bf389255db0.47581274_1769730953.jpg', 4, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 23:55:53'),
+(5, 'banner', 'Banner', '', 'images/img_697bf3969f3ff5.33128309_1769730966.png', 0, 'published', NULL, '2026-01-29 23:56:06', '2026-01-29 23:56:06');
 
 -- --------------------------------------------------------
 
@@ -377,11 +491,11 @@ CREATE TABLE `student_organizations` (
 --
 
 INSERT INTO `student_organizations` (`id`, `name`, `acronym`, `description`, `mission`, `vision`, `content`, `logo`, `banner_image`, `website`, `social_media`, `display_order`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 'ICDI Student Government', 'ICDISG', 'The official student government of the Institute of Computing and Digital Innovation', NULL, NULL, '', 'images/img_697be78e6255c8.35536392_1769727886.png', 'images/img_697bee6a997750.76772622_1769729642.png', '', NULL, 1, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:34:02'),
-(2, 'CS Society', 'CSS', 'Computer Science Society', 'Empower Student Leadership Through Forward-Thinking Initiatives That Inspire Creativity And Progress. Solidify The Institute\'s Reputation As A Leader In Both Academic And Extracurricular Excellence.', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.\r\n', '', 'images/img_697be785d35d70.38210289_1769727877.png', 'images/img_697bf028ca1272.91783756_1769730088.png', '', NULL, 2, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:41:57'),
-(3, 'IS Society', 'ISS', 'Information Systems Society', NULL, NULL, '', 'images/img_697be79bc9bfb5.10416983_1769727899.png', NULL, '', NULL, 3, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:04:59'),
-(4, 'GITCUB', 'GITCUB', 'Google IT Community University Branch', NULL, NULL, '', 'images/img_697be7a638b0c1.09519661_1769727910.png', NULL, '', NULL, 4, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:05:10'),
-(5, 'JPCS', 'JPCS', 'Junior Philippine Computer Society', NULL, NULL, '', 'images/img_697be7acf324b0.58611005_1769727916.png', NULL, '', NULL, 5, 'active', 1, '2026-01-29 12:02:15', '2026-01-29 23:05:17');
+(1, 'ICDI Student Government', 'ICDISG', 'The official student government of the Institute of Computing and Digital Innovation', NULL, NULL, '', 'images/img_697be78e6255c8.35536392_1769727886.png', 'images/img_697bee6a997750.76772622_1769729642.png', '', NULL, 1, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:34:02'),
+(2, 'CS Society', 'CSS', 'Computer Science Society', 'Empower Student Leadership Through Forward-Thinking Initiatives That Inspire Creativity And Progress. Solidify The Institute\'s Reputation As A Leader In Both Academic And Extracurricular Excellence.', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.\r\n', '', 'images/img_697be785d35d70.38210289_1769727877.png', 'images/img_697bf028ca1272.91783756_1769730088.png', '', NULL, 2, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:41:57'),
+(3, 'IS Society', 'ISS', 'Information Systems Society', NULL, NULL, '', 'images/img_697be79bc9bfb5.10416983_1769727899.png', NULL, '', NULL, 3, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:04:59'),
+(4, 'GITCUB', 'GITCUB', 'Google IT Community University Branch', NULL, NULL, '', 'images/img_697be7a638b0c1.09519661_1769727910.png', NULL, '', NULL, 4, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:05:10'),
+(5, 'JPCS', 'JPCS', 'Junior Philippine Computer Society', NULL, NULL, '', 'images/img_697be7acf324b0.58611005_1769727916.png', NULL, '', NULL, 5, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:05:17');
 
 --
 -- Indexes for dumped tables
@@ -403,7 +517,22 @@ ALTER TABLE `announcements`
   ADD KEY `idx_pinned` (`pinned`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `fk_announcements_admin` (`created_by`),
-  ADD KEY `idx_announcements_published_pinned` (`status`,`pinned`,`created_at`);
+  ADD KEY `idx_announcements_published_pinned` (`status`,`pinned`,`created_at`),
+  ADD KEY `idx_announcements_status_created` (`status`,`created_at`),
+  ADD KEY `idx_announcements_academic_year` (`academic_year`),
+  ADD KEY `fk_announcements_reviewed_by` (`reviewed_by`),
+  ADD KEY `fk_announcements_approved_by` (`approved_by`);
+ALTER TABLE `announcements` ADD FULLTEXT KEY `ft_search` (`title`,`description`,`content`);
+
+--
+-- Indexes for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_audit_admin` (`admin_id`),
+  ADD KEY `idx_audit_action` (`action`),
+  ADD KEY `idx_audit_entity` (`entity_type`,`entity_id`),
+  ADD KEY `idx_audit_created` (`created_at`);
 
 --
 -- Indexes for table `batches`
@@ -424,6 +553,16 @@ ALTER TABLE `batch_members`
   ADD KEY `idx_batch_group` (`batch_id`,`group_type`,`display_order`);
 
 --
+-- Indexes for table `contact_inquiries`
+--
+ALTER TABLE `contact_inquiries`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_inquiries_status` (`status`),
+  ADD KEY `idx_inquiries_created` (`created_at`),
+  ADD KEY `fk_inquiries_responded_by` (`responded_by`),
+  ADD KEY `idx_inquiries_status_created` (`status`,`created_at`);
+
+--
 -- Indexes for table `documents`
 --
 ALTER TABLE `documents`
@@ -431,7 +570,12 @@ ALTER TABLE `documents`
   ADD KEY `idx_category` (`category`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `fk_documents_admin` (`created_by`),
-  ADD KEY `idx_documents_published_category` (`status`,`category`,`created_at`);
+  ADD KEY `idx_documents_published_category` (`status`,`category`,`created_at`),
+  ADD KEY `idx_documents_academic_year` (`academic_year`),
+  ADD KEY `idx_documents_subcategory` (`subcategory`),
+  ADD KEY `fk_documents_reviewed_by` (`reviewed_by`),
+  ADD KEY `fk_documents_approved_by` (`approved_by`);
+ALTER TABLE `documents` ADD FULLTEXT KEY `ft_search` (`title`,`description`);
 
 --
 -- Indexes for table `events`
@@ -439,11 +583,17 @@ ALTER TABLE `documents`
 ALTER TABLE `events`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_category` (`category`),
+  ADD KEY `idx_schedule_type` (`schedule_type`),
   ADD KEY `idx_date` (`date`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_display_order` (`display_order`),
   ADD KEY `fk_events_admin` (`created_by`),
-  ADD KEY `idx_events_published_date` (`status`,`date`,`display_order`);
+  ADD KEY `idx_events_published_date` (`status`,`date`,`display_order`),
+  ADD KEY `idx_events_status_date` (`status`,`date`),
+  ADD KEY `idx_events_academic_year` (`academic_year`),
+  ADD KEY `fk_events_reviewed_by` (`reviewed_by`),
+  ADD KEY `fk_events_approved_by` (`approved_by`);
+ALTER TABLE `events` ADD FULLTEXT KEY `ft_search` (`title`,`caption`,`description`);
 
 --
 -- Indexes for table `holidays`
@@ -469,7 +619,8 @@ ALTER TABLE `institute_sections`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_type` (`type`),
   ADD KEY `idx_status` (`status`),
-  ADD KEY `fk_institute_sections_admin` (`created_by`);
+  ADD KEY `fk_institute_sections_admin` (`created_by`),
+  ADD KEY `idx_institute_sections_type_status_order` (`type`,`status`,`display_order`);
 
 --
 -- Indexes for table `organization_core_values`
@@ -493,7 +644,8 @@ ALTER TABLE `student_organizations`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `idx_display_order` (`display_order`),
-  ADD KEY `fk_organizations_admin` (`created_by`);
+  ADD KEY `fk_organizations_admin` (`created_by`),
+  ADD KEY `idx_orgs_status_order` (`status`,`display_order`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -503,7 +655,7 @@ ALTER TABLE `student_organizations`
 -- AUTO_INCREMENT for table `admins`
 --
 ALTER TABLE `admins`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `announcements`
@@ -512,16 +664,28 @@ ALTER TABLE `announcements`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+
+--
 -- AUTO_INCREMENT for table `batches`
 --
 ALTER TABLE `batches`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `batch_members`
 --
 ALTER TABLE `batch_members`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `contact_inquiries`
+--
+ALTER TABLE `contact_inquiries`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `documents`
@@ -579,62 +743,80 @@ ALTER TABLE `student_organizations`
 -- Constraints for table `announcements`
 --
 ALTER TABLE `announcements`
-  ADD CONSTRAINT `fk_announcements_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_announcements_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_announcements_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_announcements_reviewed_by` FOREIGN KEY (`reviewed_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Constraints for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  ADD CONSTRAINT `fk_audit_log_admin` FOREIGN KEY (`admin_id`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `batches`
 --
 ALTER TABLE `batches`
-  ADD CONSTRAINT `fk_batches_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `fk_batches_org` FOREIGN KEY (`organization_id`) REFERENCES `student_organizations` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_batches_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_batches_org` FOREIGN KEY (`organization_id`) REFERENCES `student_organizations` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `batch_members`
 --
 ALTER TABLE `batch_members`
-  ADD CONSTRAINT `fk_batch_members_batch` FOREIGN KEY (`batch_id`) REFERENCES `batches` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_batch_members_batch` FOREIGN KEY (`batch_id`) REFERENCES `batches` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `contact_inquiries`
+--
+ALTER TABLE `contact_inquiries`
+  ADD CONSTRAINT `fk_inquiries_responded_by` FOREIGN KEY (`responded_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `documents`
 --
 ALTER TABLE `documents`
-  ADD CONSTRAINT `fk_documents_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_documents_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_documents_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_documents_reviewed_by` FOREIGN KEY (`reviewed_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `events`
 --
 ALTER TABLE `events`
-  ADD CONSTRAINT `fk_events_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_events_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_events_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_events_reviewed_by` FOREIGN KEY (`reviewed_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `institute_info`
 --
 ALTER TABLE `institute_info`
-  ADD CONSTRAINT `fk_institute_admin` FOREIGN KEY (`updated_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_institute_admin` FOREIGN KEY (`updated_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `institute_sections`
 --
 ALTER TABLE `institute_sections`
-  ADD CONSTRAINT `fk_institute_sections_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_institute_sections_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `organization_core_values`
 --
 ALTER TABLE `organization_core_values`
-  ADD CONSTRAINT `fk_org_core_values_org` FOREIGN KEY (`organization_id`) REFERENCES `student_organizations` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_org_core_values_org` FOREIGN KEY (`organization_id`) REFERENCES `student_organizations` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `site_settings`
 --
 ALTER TABLE `site_settings`
-  ADD CONSTRAINT `fk_settings_admin` FOREIGN KEY (`updated_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_settings_admin` FOREIGN KEY (`updated_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `student_organizations`
 --
 ALTER TABLE `student_organizations`
-  ADD CONSTRAINT `fk_organizations_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_organizations_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

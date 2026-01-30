@@ -39,6 +39,25 @@
                 <div class="logo-text">PROWLWAY</div>
             </a>
             
+            <!-- Search Bar -->
+            <form method="GET" action="<?php echo PUBLIC_URL; ?>/search.php" class="search-form">
+                <input 
+                    type="search" 
+                    name="q" 
+                    placeholder="Search documents, announcements, events..." 
+                    value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>"
+                    class="search-input"
+                    aria-label="Search"
+                    required
+                >
+                <button type="submit" class="search-button" aria-label="Submit search">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+            </form>
+            
             <!-- Navigation Menu -->
             <nav class="main-nav">
                 <a href="<?php echo PUBLIC_URL; ?>/home.php" class="nav-link">Home</a>
@@ -46,7 +65,7 @@
                 <a href="<?php echo PUBLIC_URL; ?>/calendar.php" class="nav-link">Calendar</a>
                 <a href="<?php echo PUBLIC_URL; ?>/events.php" class="nav-link">Events</a>
                 <a href="<?php echo PUBLIC_URL; ?>/documents.php" class="nav-link">Documents</a>
-                <a href="<?php echo PUBLIC_URL; ?>/home.php#contact" class="nav-link nav-icon">✉</a>
+                <a href="<?php echo PUBLIC_URL; ?>/contact.php" class="nav-link nav-icon" aria-label="Get in touch">✉</a>
             </nav>
             
             <!-- Mobile Menu Toggle -->

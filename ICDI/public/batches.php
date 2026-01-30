@@ -3,7 +3,7 @@ require_once '../includes/config.php';
 require_once '../includes/database.php';
 require_once '../includes/upload.php';
 
-$pageTitle = 'ORIGIN: ICDISG - BATCH - PROWLWAY';
+$pageTitle = $activeOrg ? ('ORIGIN: ' . ($activeOrg['acronym'] ?: $activeOrg['name']) . ' - BATCH - PROWLWAY') : 'ORIGIN: ICDISG - BATCH - PROWLWAY';
 $bodyClass = 'origin-page';
 include '../includes/header.php';
 
@@ -33,6 +33,12 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                     <h1 class="origin-page-title">
                         ORIGIN: <?php echo htmlspecialchars($activeOrg ? ($activeOrg['acronym'] ?: $activeOrg['name']) : 'ICDISG'); ?> - BATCH
                     </h1>
+                    <?php if ($activeOrg): ?>
+                        <p class="text-sm text-gray-400 mt-2">
+                            Showing batches for <strong><?php echo htmlspecialchars($activeOrg['name']); ?></strong>
+                            <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $activeOrg['id']; ?>" class="text-indigo-400 hover:text-indigo-300 ml-2">(← Back to organization)</a>
+                        </p>
+                    <?php endif; ?>
                 </div>
 
                 <div class="batches-grid-cards">
@@ -88,11 +94,15 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                 <ul class="sidebar-links">
                     <?php foreach ($organizationsList as $org): ?>
                         <li>
-                            <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $org['id']; ?>">
-                                <?php echo htmlspecialchars($org['name']); ?>
+                            <a href="<?php echo PUBLIC_URL; ?>/batches.php?org_id=<?php echo $org['id']; ?>" 
+                               class="<?php echo $activeOrg && $org['id'] == $activeOrg['id'] ? 'active' : ''; ?>">
+                                <?php echo htmlspecialchars($org['name']); ?> Batches
                             </a>
                         </li>
                     <?php endforeach; ?>
+                    <?php if ($activeOrg): ?>
+                        <li><a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $activeOrg['id']; ?>">← Back to <?php echo htmlspecialchars($activeOrg['name']); ?></a></li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>

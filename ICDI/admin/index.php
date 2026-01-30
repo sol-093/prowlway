@@ -1,6 +1,8 @@
 <?php
 session_start();
 require_once '../includes/config.php';
+require_once __DIR__ . '/../includes/database.php';
+require_once __DIR__ . '/../includes/auth.php';
 $pageTitle = 'PROWLWAY Admin Panel';
 $hideHeader = true;
 $bodyClass = 'admin-panel-page';
@@ -8,10 +10,17 @@ include '../includes/header.php';
 
 // Check if logged in
 $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'];
+$adminRole = $isLoggedIn ? (getAdminRole() ?? '') : '';
+$canPublish = $isLoggedIn && canPublish();
+$isSuperAdmin = $isLoggedIn && isSuperAdmin();
 ?>
 <script>
-    // Make ADMIN_URL available to JavaScript
+    // Make ADMIN_URL and role available to JavaScript
     window.ADMIN_URL = '<?php echo ADMIN_URL; ?>';
+    window.ADMIN_ROLE = '<?php echo htmlspecialchars($adminRole); ?>';
+    window.ADMIN_CAN_PUBLISH = <?php echo $canPublish ? 'true' : 'false'; ?>;
+    window.ADMIN_IS_SUPER = <?php echo $isSuperAdmin ? 'true' : 'false'; ?>;
+    window.CSRF_TOKEN = '<?php echo function_exists("generateCSRFToken") ? generateCSRFToken() : ""; ?>';
     
     // Force light theme on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -81,6 +90,9 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                 
                 <!-- Login Form -->
                 <form id="loginForm" method="POST" action="<?php echo ADMIN_URL; ?>/login.php" class="space-y-5">
+                    <?php if (function_exists('generateCSRFToken')): ?>
+                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                    <?php endif; ?>
                     <div>
                         <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
                             Email Address
@@ -124,16 +136,6 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                 placeholder="Enter your password"
                             >
                         </div>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-2">
-                        <label class="flex items-center">
-                            <input type="checkbox" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                            <span class="ml-2 text-sm text-gray-600">Remember me</span>
-                        </label>
-                        <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
-                            Forgot password?
-                        </a>
                     </div>
                     
                     <button 
@@ -224,7 +226,57 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
             <div id="dashboardAlert" class="mb-6"></div>
 
             <!-- Quick Stats / Quick Links -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <?php
+            // Calculate pending count for Review Queue (only for admins/super admins)
+            $pendingCount = 0;
+            if ($canPublish) {
+                $pendingCount = dbFetchOne("SELECT COUNT(*) as count FROM documents WHERE status = 'pending_review'")['count'] ?? 0;
+                $pendingCount += dbFetchOne("SELECT COUNT(*) as count FROM announcements WHERE status = 'pending_review'")['count'] ?? 0;
+                $pendingCount += dbFetchOne("SELECT COUNT(*) as count FROM events WHERE status = 'pending_review'")['count'] ?? 0;
+            }
+            
+            // Calculate grid columns based on visible cards
+            // Editor: 2 cards (Batches, Organizations)
+            // Admin: 5 cards (Editor + Review Queue, Archive, Audit Log, Institute)
+            // Super Admin: 8 cards (Admin + Settings, User roles)
+            $cardCount = 2; // Base cards for editors (Batches, Organizations)
+            if ($canPublish) {
+                $cardCount += 4; // Review Queue, Archive, Audit Log, Institute Content
+            }
+            if ($isSuperAdmin) $cardCount += 2; // Settings, User roles
+            
+            // Determine grid columns based on card count
+            $gridCols = 'md:grid-cols-2';
+            if ($cardCount > 6) {
+                $gridCols = 'md:grid-cols-2 lg:grid-cols-4';
+            } elseif ($cardCount > 2) {
+                $gridCols = 'md:grid-cols-2 lg:grid-cols-3';
+            }
+            ?>
+            <div class="grid grid-cols-1 <?php echo $gridCols; ?> gap-6 mb-8">
+                <!-- Review Queue - Admin and Super Admin only -->
+                <?php if ($canPublish): ?>
+                <a href="<?php echo ADMIN_URL; ?>/review_queue.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200 relative">
+                    <?php if ($pendingCount > 0): ?>
+                    <span class="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"><?php echo $pendingCount; ?></span>
+                    <?php endif; ?>
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"></path>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Review Queue</h3>
+                            <p class="text-sm text-gray-500"><?php echo $pendingCount; ?> pending</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+                <?php endif; ?>
                 <a href="<?php echo ADMIN_URL; ?>/batches.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
                     <div class="flex items-center gap-4">
                         <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
@@ -262,6 +314,105 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                         </svg>
                     </div>
                 </a>
+                
+                <!-- Institute Content - Admin and Super Admin only -->
+                <?php if ($canPublish): ?>
+                <a href="<?php echo ADMIN_URL; ?>/institute.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Institute Content</h3>
+                            <p class="text-sm text-gray-500">About, Mission, Vision, etc.</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+                <?php endif; ?>
+                <!-- Archive Management - Admin and Super Admin only -->
+                <?php if ($canPublish): ?>
+                <a href="<?php echo ADMIN_URL; ?>/archive_management.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M5 8h14M5 8a2 2 0 1 0 0-4h14a2 2 0 1 0 0 4M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8m-9 4h4"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Archive Management</h3>
+                            <p class="text-sm text-gray-500">Bulk archive & restore</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+                <!-- Audit Log - Admin and Super Admin only -->
+                <a href="<?php echo ADMIN_URL; ?>/audit_log.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Audit Log</h3>
+                            <p class="text-sm text-gray-500">Security &amp; activity</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+                <?php endif; ?>
+                <!-- Settings - Super Admin only -->
+                <?php if ($isSuperAdmin): ?>
+                <a href="<?php echo ADMIN_URL; ?>/settings.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Settings</h3>
+                            <p class="text-sm text-gray-500">Site config (Super Admin)</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+                <!-- User roles - Super Admin only -->
+                <a href="<?php echo ADMIN_URL; ?>/users.php" class="group bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-indigo-500 hover:shadow-lg transition-all duration-200">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200 shadow-md">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">User roles</h3>
+                            <p class="text-sm text-gray-500">Admins &amp; roles (Super Admin)</p>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 group-hover:text-indigo-600 transition-colors">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+                <?php endif; ?>
             </div>
 
             <!-- Tabs Navigation -->
@@ -321,6 +472,18 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                     <polyline points="14 2 14 8 20 8"></polyline>
                                 </svg>
                                 Documents
+                            </span>
+                        </button>
+                        <button 
+                            onclick="switchTab('inquiries')" 
+                            class="tab-button px-8 py-4 text-sm font-bold text-gray-600 border-b-3 border-transparent hover:text-gray-900 hover:border-gray-300 transition-colors"
+                        >
+                            <span class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                                Inquiries
                             </span>
                         </button>
                     </nav>
@@ -395,6 +558,44 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                             <span class="text-sm font-semibold text-gray-700">Pin this announcement</span>
                                         </label>
                                     </div>
+                                    <div id="ann-status-wrap">
+                                        <label for="ann-status" class="block text-sm font-bold text-gray-700 mb-2">Status</label>
+                                        <select id="ann-status" name="status" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <option value="draft">Draft</option>
+                                            <option value="pending_review">Pending Review</option>
+                                            <option value="approved">Approved</option>
+                                            <option value="published">Published</option>
+                                            <option value="archived">Archived</option>
+                                        </select>
+                                        <p class="mt-1 text-xs text-gray-500" id="ann-status-hint">Editors can save as Draft or submit for Review. Administrators can approve and publish.</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Meeting Section -->
+                                <div class="border-t-2 border-gray-200 pt-6 mt-6">
+                                    <div class="flex items-center mb-4">
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox" id="ann-is-meeting" name="is_meeting" class="w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded focus:ring-indigo-500" onchange="toggleMeetingFields()">
+                                            <span class="text-sm font-bold text-gray-700">This is a meeting that everyone needs to attend</span>
+                                        </label>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mb-4">If checked, this announcement will appear in the calendar and be highlighted as a required meeting.</p>
+                                    
+                                    <div id="ann-meeting-fields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label for="ann-meeting-date" class="block text-sm font-bold text-gray-700 mb-2">Meeting Date & Time *</label>
+                                            <input type="datetime-local" id="ann-meeting-date" name="meeting_date" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        </div>
+                                        <div>
+                                            <label for="ann-meeting-end-date" class="block text-sm font-bold text-gray-700 mb-2">End Date & Time (optional)</label>
+                                            <input type="datetime-local" id="ann-meeting-end-date" name="meeting_end_date" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <p class="mt-1 text-xs text-gray-500">For multi-day or extended meetings</p>
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label for="ann-meeting-location" class="block text-sm font-bold text-gray-700 mb-2">Meeting Location</label>
+                                            <input type="text" id="ann-meeting-location" name="meeting_location" placeholder="e.g., Main Auditorium, Room 201, Online via Zoom" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="flex gap-3 pt-4">
                                     <button type="submit" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" id="ann-submit-btn">Create Announcement</button>
@@ -435,11 +636,14 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                 Create Event
                             </h3>
                             <form id="eventForm" method="POST" action="<?php echo ADMIN_URL; ?>/events_handler.php" enctype="multipart/form-data" class="space-y-6">
+                                <?php if (function_exists('generateCSRFToken')): ?>
+                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                <?php endif; ?>
                                 <input type="hidden" id="evt-id" name="id">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="evt-title" class="block text-sm font-bold text-gray-700 mb-2">Title *</label>
-                                        <input type="text" id="evt-title" name="title" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <input type="text" id="evt-title" name="title" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onblur="clearFieldError('evt-title')">
                                     </div>
                                     <div>
                                         <label for="evt-category" class="block text-sm font-bold text-gray-700 mb-2">Category *</label>
@@ -466,7 +670,7 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                 </div>
                                 <div>
                                     <label for="evt-caption" class="block text-sm font-bold text-gray-700 mb-2">Caption *</label>
-                                    <input type="text" id="evt-caption" name="caption" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    <input type="text" id="evt-caption" name="caption" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onblur="clearFieldError('evt-caption')">
                                 </div>
                                 <div>
                                     <label for="evt-description" class="block text-sm font-bold text-gray-700 mb-2">Description *</label>
@@ -484,7 +688,7 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                             <img id="evt-image-preview-img" src="" alt="Preview" class="max-w-xs max-h-48 rounded-xl border-2 border-gray-200 shadow-md">
                                             <input type="hidden" id="evt-old-image" name="old_image">
                                         </div>
-                                        <input type="file" id="evt-image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
+                                        <input type="file" id="evt-image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors" onchange="clearFieldError('evt-image')">
                                         <p class="mt-2 text-xs text-gray-500">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</p>
                                     </div>
                                     <div>
@@ -495,7 +699,7 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="evt-date" class="block text-sm font-bold text-gray-700 mb-2">Event Date *</label>
-                                        <input type="date" id="evt-date" name="date" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <input type="date" id="evt-date" name="date" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onblur="clearFieldError('evt-date')">
                                     </div>
                                     <div>
                                         <label for="evt-order" class="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
@@ -508,6 +712,17 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                     <p class="mt-2 text-xs text-gray-500">Select multiple images. Existing gallery images are kept when you add more. Max 5MB per image.</p>
                                     <div id="evt-gallery-preview" class="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
                                     <input type="hidden" id="evt-old-gallery" name="old_gallery">
+                                </div>
+                                <div id="evt-status-wrap">
+                                    <label for="evt-status" class="block text-sm font-bold text-gray-700 mb-2">Status</label>
+                                    <select id="evt-status" name="status" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <option value="draft">Draft</option>
+                                        <option value="pending_review">Pending Review</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="published">Published</option>
+                                        <option value="archived">Archived</option>
+                                    </select>
+                                    <p class="mt-1 text-xs text-gray-500" id="evt-status-hint">Editors can save as Draft or submit for Review. Administrators can approve and publish.</p>
                                 </div>
                                 <div class="flex gap-3 pt-4">
                                     <button type="submit" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" id="evt-submit-btn">Create Event</button>
@@ -548,6 +763,9 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                 Add Calendar Entry
                             </h3>
                             <form id="holidayForm" method="POST" action="<?php echo ADMIN_URL; ?>/holidays_handler.php" class="space-y-6">
+                                <?php if (function_exists('generateCSRFToken')): ?>
+                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                <?php endif; ?>
                                 <input type="hidden" id="hol-id" name="id">
                                 <input type="hidden" id="hol-action" name="action" value="create">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -649,21 +867,51 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                 Create Document Entry
                             </h3>
                             <form id="documentForm" method="POST" action="<?php echo ADMIN_URL; ?>/documents.php" enctype="multipart/form-data" class="space-y-6">
+                                <?php if (function_exists('generateCSRFToken')): ?>
+                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                <?php endif; ?>
                                 <input type="hidden" id="doc-id" name="id">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="doc-title" class="block text-sm font-bold text-gray-700 mb-2">Title *</label>
-                                        <input type="text" id="doc-title" name="title" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <input type="text" id="doc-title" name="title" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onblur="clearFieldError('doc-title')">
                                     </div>
                                     <div>
                                         <label for="doc-category" class="block text-sm font-bold text-gray-700 mb-2">Category *</label>
-                                        <select id="doc-category" name="category" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <select id="doc-category" name="category" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onchange="updateDocumentSubcategory()">
                                             <option value="01">01 - OFFICES REPORT</option>
                                             <option value="02">02 - EXECUTIVE ORDER</option>
                                             <option value="03">03 - ORDINANCE</option>
                                             <option value="04">04 - RESOLUTION</option>
                                             <option value="05">05 - OTHER</option>
                                         </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="doc-subcategory-group">
+                                    <div>
+                                        <label for="doc-subcategory" class="block text-sm font-bold text-gray-700 mb-2">Subcategory</label>
+                                        <select id="doc-subcategory" name="subcategory" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <option value="">Select subcategory...</option>
+                                        </select>
+                                    </div>
+                                    <div id="doc-document-type-group" style="display: none;">
+                                        <label for="doc-document-type" class="block text-sm font-bold text-gray-700 mb-2">Document Type</label>
+                                        <select id="doc-document-type" name="document_type" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                            <option value="">Select type...</option>
+                                            <option value="executive_order">Executive Order</option>
+                                            <option value="administrative_order">Administrative Order</option>
+                                            <option value="memorandum">Memorandum</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="doc-series-year" class="block text-sm font-bold text-gray-700 mb-2">Series Year</label>
+                                        <input type="text" id="doc-series-year" name="series_year" placeholder="e.g., 2025" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                    </div>
+                                    <div>
+                                        <label for="doc-academic-year" class="block text-sm font-bold text-gray-700 mb-2">Academic Year</label>
+                                        <input type="text" id="doc-academic-year" name="academic_year" placeholder="e.g., 2024-2025" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onblur="if(this.value && !validateAcademicYear(this.value)) { showFieldError('doc-academic-year', 'Invalid format. Use YYYY-YYYY'); } else { clearFieldError('doc-academic-year'); }">
                                     </div>
                                 </div>
                                 <div>
@@ -674,7 +922,7 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                 <!-- File Upload Section -->
                                 <div>
                                     <label for="doc-file" class="block text-sm font-bold text-gray-700 mb-2">Upload PDF File (Max 50MB) *</label>
-                                    <input type="file" id="doc-file" name="file" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
+                                    <input type="file" id="doc-file" name="file" accept=".pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors" onchange="clearFieldError('doc-file')">
                                     <p class="mt-2 text-xs text-gray-500">Choose a PDF file to upload (Maximum size: 50MB)</p>
                                     <div id="upload-progress" class="hidden mt-4">
                                         <div class="bg-gray-200 rounded-xl overflow-hidden h-6">
@@ -683,7 +931,17 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                                         <p id="progress-text" class="mt-2 text-xs text-gray-600 font-medium"></p>
                                     </div>
                                 </div>
-
+                                <div id="doc-status-wrap">
+                                    <label for="doc-status" class="block text-sm font-bold text-gray-700 mb-2">Status</label>
+                                    <select id="doc-status" name="status" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <option value="draft">Draft</option>
+                                        <option value="pending_review">Pending Review</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="published">Published</option>
+                                        <option value="archived">Archived</option>
+                                    </select>
+                                    <p class="mt-1 text-xs text-gray-500" id="doc-status-hint">Editors can save as Draft or submit for Review. Administrators can approve and publish.</p>
+                                </div>
                                 <div class="flex gap-3 pt-4">
                                     <button type="submit" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" id="doc-submit-btn">Create Document</button>
                                     <button type="button" onclick="cancelDocumentEdit()" class="px-8 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
@@ -696,8 +954,45 @@ $isLoggedIn = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'
                             <p class="text-gray-500 text-center py-8">Loading documents...</p>
                         </div>
                     </div>
+
+                    <!-- Inquiries Tab -->
+                    <div class="tab-content hidden" id="inquiries-tab">
+                        <div class="mb-6">
+                            <h2 class="text-2xl font-bold text-gray-900">Contact Inquiries</h2>
+                            <p class="text-sm text-gray-500 mt-1">View and respond to messages from the contact form (Editors: view only; Administrators: respond and close)</p>
+                        </div>
+                        <div id="inquiries-list" class="bg-white border-2 border-gray-200 rounded-xl p-6 min-h-[200px]">
+                            <p class="text-gray-500 text-center py-8">Loading inquiries...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Inquiry Respond Modal (Administrators only) -->
+    <div id="inquiry-respond-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Respond to inquiry</h3>
+            <form id="inquiry-respond-form" onsubmit="submitInquiryResponse(event)">
+                <input type="hidden" id="inquiry-respond-id" name="id">
+                <div class="mb-4">
+                    <label for="inquiry-respond-text" class="block text-sm font-bold text-gray-700 mb-2">Response</label>
+                    <textarea id="inquiry-respond-text" name="response_text" rows="4" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Your response to the sender..."></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="inquiry-respond-status" class="block text-sm font-bold text-gray-700 mb-2">Status</label>
+                    <select id="inquiry-respond-status" name="status" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="closed">Closed</option>
+                        <option value="open">Keep open</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save response</button>
+                    <button type="button" onclick="closeInquiryRespondModal()" class="px-6 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

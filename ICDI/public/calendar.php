@@ -20,8 +20,101 @@ $events = dbFetchAll(
     "SELECT * FROM events WHERE status = 'published' AND date <= ? AND (end_date IS NULL OR end_date >= ?) ORDER BY date ASC, display_order ASC",
     [$lastDayStr, $firstDayStr]
 );
+
+// Meetings removed - all announcements go to regular announcements panel
+// Fetch meetings from announcements (DISABLED)
+$meetings = [];
+try {
+    $meetings = dbFetchAll(
+        "SELECT id, title, description, content, meeting_date, meeting_end_date, meeting_location, category, image, created_at 
+         FROM announcements 
+         WHERE status = 'published' AND is_meeting = 1 AND meeting_date IS NOT NULL 
+         AND DATE(meeting_date) <= ? AND (meeting_end_date IS NULL OR DATE(meeting_end_date) >= ?) 
+         ORDER BY meeting_date ASC",
+        [$lastDayStr, $firstDayStr]
+    );
+} catch (Throwable $e) {
+    error_log("Error fetching meetings: " . $e->getMessage());
+}
+
+// Convert meetings to event-like format for calendar display
+$meetingEvents = [];
+foreach ($meetings as $meeting) {
+    $meetingEvents[] = [
+        'id' => 'ann_' . $meeting['id'],
+        'title' => $meeting['title'],
+        'description' => $meeting['description'] ?? '',
+        'summary' => $meeting['content'] ?? '',
+        'image' => $meeting['image'] ?? '',
+        'date' => date('Y-m-d', strtotime($meeting['meeting_date'])),
+        'end_date' => !empty($meeting['meeting_end_date']) ? date('Y-m-d', strtotime($meeting['meeting_end_date'])) : null,
+        'location' => $meeting['meeting_location'] ?? '',
+        'schedule_type' => 'meeting',
+        'is_meeting' => true,
+        'announcement_id' => $meeting['id']
+    ];
+}
+
+// Fetch all announcements to show on calendar by created date
+$announcementEvents = [];
+try {
+    // Fetch announcements - include those with meeting_date in the month range OR created_at in the month range
+    $regularAnnouncements = dbFetchAll(
+        "SELECT id, title, description, content, category, image, created_at, is_meeting, meeting_date, meeting_end_date, meeting_location 
+         FROM announcements 
+         WHERE status = 'published' 
+         AND (
+             (meeting_date IS NOT NULL AND DATE(meeting_date) <= ? AND DATE(meeting_date) >= ?)
+             OR 
+             (meeting_date IS NULL AND DATE(created_at) <= ? AND DATE(created_at) >= ?)
+         )
+         ORDER BY COALESCE(meeting_date, created_at) DESC",
+        [$lastDayStr, $firstDayStr, $lastDayStr, $firstDayStr]
+    );
+    
+    // Convert to event-like format for calendar display
+    foreach ($regularAnnouncements as $ann) {
+        $hasMeetingDate = !empty($ann['meeting_date']);
+        $isMeeting = ($ann['is_meeting'] ?? 0) == 1 || $hasMeetingDate || !empty($ann['meeting_location']);
+        
+        // Use meeting_date for calendar if available, otherwise use created_at
+        $eventDate = $hasMeetingDate ? date('Y-m-d', strtotime($ann['meeting_date'])) : date('Y-m-d', strtotime($ann['created_at']));
+        
+        // Only include in calendar if it falls within the current month view
+        $eventDateObj = new DateTime($eventDate);
+        if ($eventDateObj >= $calFirst && $eventDateObj <= $calLast) {
+            $announcementEvents[] = [
+                'id' => 'ann_' . $ann['id'],
+                'title' => $ann['title'],
+                'description' => $ann['description'] ?? '',
+                'summary' => $ann['content'] ?? '',
+                'content' => $ann['content'] ?? '', // Include full content for modal
+                'image' => $ann['image'] ?? '',
+                'created_at' => $ann['created_at'] ?? '', // Include created_at for modal
+                'date' => $eventDate,
+                'end_date' => !empty($ann['meeting_end_date']) ? date('Y-m-d', strtotime($ann['meeting_end_date'])) : null,
+                'location' => $ann['meeting_location'] ?? '',
+                'schedule_type' => $isMeeting ? 'meeting' : 'announcement',
+                'is_announcement' => true,
+                'is_meeting' => $isMeeting ? 1 : 0,
+                'meeting_date' => $ann['meeting_date'] ?? null,
+                'meeting_end_date' => $ann['meeting_end_date'] ?? null,
+                'meeting_location' => $ann['meeting_location'] ?? null,
+                'announcement_id' => $ann['id'],
+                'category' => $ann['category'] ?? 'general'
+            ];
+        }
+    }
+} catch (Throwable $e) {
+    error_log("Error fetching regular announcements: " . $e->getMessage());
+    $announcementEvents = [];
+}
+
+// Merge events and regular announcements (meetings removed)
+$allEvents = array_merge($events, $announcementEvents);
+
 $eventsByDay = [];
-foreach ($events as $ev) {
+foreach ($allEvents as $ev) {
     $start = new DateTime($ev['date']);
     $end = !empty($ev['end_date']) ? new DateTime($ev['end_date']) : clone $start;
     $d = clone $start;
@@ -41,6 +134,17 @@ $upcomingEvents = dbFetchAll(
     "SELECT * FROM events WHERE status = 'published' AND date <= ? AND (date >= ? OR (end_date IS NOT NULL AND end_date >= ?)) ORDER BY date ASC, display_order ASC LIMIT 15",
     [$cutoffStr, $todayStr, $todayStr]
 );
+
+// Upcoming meetings removed - all announcements go to regular announcements panel
+$upcomingMeetings = [];
+
+// Use only events
+$upcomingEvents = $upcomingEvents;
+usort($upcomingEvents, function($a, $b) {
+    $dateA = isset($a['date']) ? $a['date'] : (isset($a['meeting_date']) ? date('Y-m-d', strtotime($a['meeting_date'])) : '9999-12-31');
+    $dateB = isset($b['date']) ? $b['date'] : (isset($b['meeting_date']) ? date('Y-m-d', strtotime($b['meeting_date'])) : '9999-12-31');
+    return strcmp($dateA, $dateB);
+});
 
 // Upcoming calendar entries (holidays / school): within next 2 months only
 $upcomingHolidays = [];
@@ -80,6 +184,8 @@ try {
 
 $scheduleTypeLabels = [
     'event' => 'Event',
+    'meeting' => 'Meeting',
+    'announcement' => 'Announcement',
     'enrollment' => 'Enrollment',
     'school_break' => 'School Break',
     'school_end' => 'School End',
@@ -91,18 +197,32 @@ $calendarDayEventsJson = [];
 foreach ($eventsByDay as $date => $evs) {
     $calendarDayEventsJson[$date] = ['events' => array_map(function ($ev) use ($scheduleTypeLabels) {
         $st = isset($ev['schedule_type']) ? $ev['schedule_type'] : 'event';
+        $isMeeting = isset($ev['is_meeting']) && $ev['is_meeting'];
+        $isAnnouncement = isset($ev['is_announcement']) && $ev['is_announcement'];
+        
+        // Determine detail URL - meetings and announcements link to announcement modal, events link to event detail
+        if (($isMeeting || $isAnnouncement) && isset($ev['announcement_id'])) {
+            $detailUrl = 'javascript:void(0);'; // Will be handled by JavaScript to show announcement modal
+        } else {
+            $detailUrl = PUBLIC_URL . '/event-detail.php?id=' . (int) $ev['id'];
+        }
+        
         return [
-            'id' => (int) $ev['id'],
+            'id' => ($isMeeting || $isAnnouncement) ? $ev['id'] : (int) $ev['id'],
             'title' => $ev['title'],
             'description' => $ev['description'] ?? '',
             'summary' => $ev['summary'] ?? '',
             'image_url' => !empty($ev['image']) ? getImageUrl($ev['image']) : '',
             'date' => $ev['date'],
             'end_date' => $ev['end_date'] ?? null,
-            'location' => $ev['location'] ?? '',
+            'location' => $ev['meeting_location'] ?? $ev['location'] ?? '',
+            'meeting_location' => $ev['meeting_location'] ?? null,
             'schedule_type' => $st,
             'schedule_type_label' => isset($scheduleTypeLabels[$st]) ? $scheduleTypeLabels[$st] : 'Event',
-            'detail_url' => PUBLIC_URL . '/event-detail.php?id=' . (int) $ev['id'],
+            'detail_url' => $detailUrl,
+            'is_meeting' => $isMeeting,
+            'is_announcement' => $isAnnouncement,
+            'announcement_id' => ($isMeeting || $isAnnouncement) ? $ev['announcement_id'] : null
         ];
     }, $evs), 'holidays' => []];
 }
@@ -201,11 +321,25 @@ include '../includes/header.php';
                                     $st = isset($ev['schedule_type']) ? $ev['schedule_type'] : 'event';
                                     $stLabelFull = isset($scheduleTypeLabels[$st]) ? $scheduleTypeLabels[$st] : $ev['title'];
                                     $stLabelShort = mb_strlen($stLabelFull) > 14 ? mb_substr($stLabelFull, 0, 13) . '…' : $stLabelFull;
+                                    $isMeeting = isset($ev['is_meeting']) && $ev['is_meeting'];
+                                    $isAnnouncement = isset($ev['is_announcement']) && $ev['is_announcement'];
+                                    $announcementId = isset($ev['announcement_id']) ? $ev['announcement_id'] : null;
+                                    
+                                    if (($isMeeting || $isAnnouncement) && $announcementId):
+                                        // For meetings and announcements, trigger the announcement modal
                                 ?>
+                                    <span class="calendar-day-event-dot schedule-type-<?php echo htmlspecialchars($st); ?>" 
+                                          data-announcement-id="<?php echo htmlspecialchars($announcementId); ?>"
+                                          onclick="openAnnouncementFromCalendar(<?php echo htmlspecialchars($announcementId); ?>)"
+                                          style="cursor: pointer;"
+                                          title="<?php echo htmlspecialchars($ev['title']); ?>">
+                                        <span class="calendar-event-text"><?php echo htmlspecialchars($stLabelShort); ?></span>
+                                    </span>
+                                <?php else: ?>
                                     <a href="<?php echo PUBLIC_URL; ?>/event-detail.php?id=<?php echo $ev['id']; ?>" class="calendar-day-event-dot schedule-type-<?php echo htmlspecialchars($st); ?>" title="<?php echo htmlspecialchars($ev['title']); ?>">
                                         <span class="calendar-event-text"><?php echo htmlspecialchars($stLabelShort); ?></span>
                                     </a>
-                                <?php endforeach; ?>
+                                <?php endif; endforeach; ?>
                                 <?php if (count($dayEvents) > 3): ?>
                                     <span class="calendar-day-more">+<?php echo count($dayEvents) - 3; ?> more</span>
                                 <?php endif; ?>
@@ -231,15 +365,36 @@ include '../includes/header.php';
                             $isTodayEv = ($ev['date'] === $todayStr) || ($evEnd && $ev['date'] <= $todayStr && $evEnd->format('Y-m-d') >= $todayStr);
                             $st = isset($ev['schedule_type']) ? $ev['schedule_type'] : 'event';
                             $stLabel = isset($scheduleTypeLabels[$st]) ? $scheduleTypeLabels[$st] : 'Event';
+                            $isMeeting = isset($ev['is_meeting']) && $ev['is_meeting'];
+                            $isAnnouncement = isset($ev['is_announcement']) && $ev['is_announcement'];
+                            $announcementId = isset($ev['announcement_id']) ? $ev['announcement_id'] : null;
                         ?>
-                            <a href="<?php echo PUBLIC_URL; ?>/event-detail.php?id=<?php echo $ev['id']; ?>" class="calendar-reminder-item reminder-schedule-<?php echo htmlspecialchars($st); ?> <?php echo $isTodayEv ? 'reminder-today' : ''; ?>">
-                                <span class="reminder-date"><?php echo $evDateDisplay; ?></span>
-                                <span class="reminder-schedule-badge"><?php echo htmlspecialchars($stLabel); ?></span>
-                                <span class="reminder-title"><?php echo htmlspecialchars($ev['title']); ?></span>
-                                <?php if (!empty($ev['location'])): ?>
-                                    <span class="reminder-location"><?php echo htmlspecialchars($ev['location']); ?></span>
-                                <?php endif; ?>
-                            </a>
+                            <?php 
+                            $displayLocation = isset($ev['meeting_location']) && !empty($ev['meeting_location']) ? $ev['meeting_location'] : ($ev['location'] ?? '');
+                            ?>
+                            <?php if (($isMeeting || $isAnnouncement) && $announcementId): ?>
+                                <span onclick="openAnnouncementFromCalendar(<?php echo htmlspecialchars($announcementId); ?>)" 
+                                      class="calendar-reminder-item reminder-schedule-<?php echo htmlspecialchars($st); ?> <?php echo $isTodayEv ? 'reminder-today' : ''; ?>" 
+                                      style="cursor: pointer;">
+                                    <span class="reminder-date"><?php echo $evDateDisplay; ?></span>
+                                    <span class="reminder-schedule-badge"><?php echo htmlspecialchars($stLabel); ?></span>
+                                    <span class="reminder-title"><?php echo htmlspecialchars($ev['title']); ?></span>
+                                    <?php if (!empty($displayLocation)): ?>
+                                        <span class="reminder-location">📍 <?php echo htmlspecialchars($displayLocation); ?></span>
+                                    <?php endif; ?>
+                                </span>
+                            <?php else: ?>
+                                <a href="<?php echo PUBLIC_URL; ?>/event-detail.php?id=<?php echo $ev['id']; ?>" class="calendar-reminder-item reminder-schedule-<?php echo htmlspecialchars($st); ?> <?php echo $isTodayEv ? 'reminder-today' : ''; ?>">
+                                    <span class="reminder-date"><?php echo $evDateDisplay; ?></span>
+                                    <span class="reminder-schedule-badge"><?php echo htmlspecialchars($stLabel); ?></span>
+                                    <span class="reminder-title"><?php echo htmlspecialchars($ev['title']); ?></span>
+                                    <?php 
+                                    $displayLocation = isset($ev['meeting_location']) && !empty($ev['meeting_location']) ? $ev['meeting_location'] : ($ev['location'] ?? '');
+                                    if (!empty($displayLocation)): ?>
+                                        <span class="reminder-location">📍 <?php echo htmlspecialchars($displayLocation); ?></span>
+                                    <?php endif; ?>
+                                </a>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
@@ -328,20 +483,44 @@ include '../includes/header.php';
                         if (ev.end_date && ev.end_date !== ev.date) dateRange += ' – ' + ev.end_date;
                         var img = ev.image_url ? '<img src="' + ev.image_url.replace(/"/g, '&quot;') + '" alt="" class="calendar-day-modal-event-img">' : '';
                         var desc = (ev.description || ev.summary || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                        var location = ev.meeting_location || ev.location || '';
+                        var detailLink = '';
+                        if (ev.is_meeting || ev.is_announcement) {
+                            // Store event data in a data attribute and use a click handler
+                            var eventDataJson = JSON.stringify(ev).replace(/"/g, '&quot;');
+                            detailLink = '<span class="calendar-day-modal-event-link calendar-announcement-link" style="cursor: pointer;" data-event=\'' + eventDataJson + '\'>View full details</span>';
+                        } else {
+                            detailLink = '<a href="' + (ev.detail_url || '').replace(/"/g, '&quot;') + '" class="calendar-day-modal-event-link">View full details</a>';
+                        }
                         return '<article class="calendar-day-modal-event schedule-type-' + (ev.schedule_type || 'event') + '">' +
                             (img ? '<div class="calendar-day-modal-event-media">' + img + '</div>' : '') +
                             '<div class="calendar-day-modal-event-body">' +
                             '<span class="calendar-day-modal-event-badge">' + (ev.schedule_type_label || 'Event') + '</span>' +
                             '<h4 class="calendar-day-modal-event-title">' + (ev.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</h4>' +
                             (dateRange ? '<p class="calendar-day-modal-event-date">' + dateRange.replace(/</g, '&lt;') + '</p>' : '') +
-                            (ev.location ? '<p class="calendar-day-modal-event-location">' + (ev.location || '').replace(/</g, '&lt;') + '</p>' : '') +
+                            (location ? '<p class="calendar-day-modal-event-location">📍 ' + location.replace(/</g, '&lt;') + '</p>' : '') +
                             (desc ? '<div class="calendar-day-modal-event-desc">' + desc + '</div>' : '') +
-                            '<a href="' + (ev.detail_url || '').replace(/"/g, '&quot;') + '" class="calendar-day-modal-event-link">View full details</a>' +
+                            detailLink +
                             '</div></article>';
                     }).join('');
                 }
                 modal.classList.add('calendar-day-modal-open');
                 modal.setAttribute('aria-hidden', 'false');
+                
+                // Set up click handlers for announcement links
+                modalEvents.querySelectorAll('.calendar-announcement-link').forEach(function(link) {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                            var eventData = JSON.parse(this.getAttribute('data-event'));
+                            openAnnouncementFromCalendar(eventData);
+                        } catch (err) {
+                            console.error('Error parsing event data:', err);
+                            alert('Error loading announcement details.');
+                        }
+                    });
+                });
             }
             function closeDayModal() {
                 modal.classList.remove('calendar-day-modal-open');
@@ -365,3 +544,76 @@ include '../includes/header.php';
 </div>
 
 <?php include '../includes/footer.php'; ?>
+
+<script>
+// Function to open announcement modal from calendar
+function openAnnouncementFromCalendar(eventData) {
+    // Close calendar day modal first
+    const calendarModal = document.getElementById('calendar-day-modal');
+    if (calendarModal) {
+        calendarModal.classList.remove('calendar-day-modal-open');
+        calendarModal.setAttribute('aria-hidden', 'true');
+    }
+    
+    // Handle both object and string (JSON) input
+    let announcement = eventData;
+    if (typeof eventData === 'string') {
+        try {
+            // Try parsing as JSON string
+            announcement = JSON.parse(eventData);
+        } catch (e) {
+            // If parsing fails, treat as ID and fetch from API
+            const actualId = parseInt(eventData);
+            fetch('<?php echo BASE_URL; ?>/admin/announcements.php?page=1&per_page=100')
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success && result.data) {
+                        const ann = result.data.find(a => a.id == actualId);
+                        if (ann) {
+                            showAnnouncementModalFromData(ann);
+                        } else {
+                            alert('Announcement not found.');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching announcement:', error);
+                    alert('Error loading announcement details.');
+                });
+            return;
+        }
+    }
+    
+    // Convert calendar event data to announcement format expected by modal
+    const announcementData = {
+        id: announcement.announcement_id || (typeof announcement.id === 'string' && announcement.id.startsWith('ann_') 
+            ? parseInt(announcement.id.replace('ann_', '')) 
+            : announcement.id),
+        title: announcement.title || '',
+        description: announcement.description || '',
+        content: announcement.content || announcement.summary || '',
+        image: announcement.image || '',
+        created_at: announcement.created_at || '',
+        is_meeting: announcement.is_meeting || (announcement.meeting_date ? 1 : 0),
+        meeting_date: announcement.meeting_date || null,
+        meeting_end_date: announcement.meeting_end_date || null,
+        meeting_location: announcement.meeting_location || announcement.location || null,
+        category: announcement.category || 'general'
+    };
+    
+    // Show the modal with the announcement data
+    showAnnouncementModalFromData(announcementData);
+}
+
+// Helper function to show announcement modal
+function showAnnouncementModalFromData(announcement) {
+    if (typeof showAnnouncementModal === 'function') {
+        showAnnouncementModal(announcement);
+    } else if (typeof window.showAnnouncementModal === 'function') {
+        window.showAnnouncementModal(announcement);
+    } else {
+        console.error('Announcement modal function not available');
+        alert('Unable to display announcement details. Please refresh the page and try again.');
+    }
+}
+</script>

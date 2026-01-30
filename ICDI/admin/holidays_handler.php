@@ -2,13 +2,9 @@
 session_start();
 require_once '../includes/config.php';
 require_once '../includes/database.php';
+require_once '../includes/auth.php';
 
-// Check authentication
-if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
-    exit;
-}
+requireAdmin(null, true);
 
 header('Content-Type: application/json');
 

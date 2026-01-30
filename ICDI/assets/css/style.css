@@ -227,6 +227,105 @@ html {
     padding: 10px 14px;
 }
 
+/* Search Form */
+.search-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    max-width: 400px;
+    margin: 0 var(--spacing-md);
+    min-width: 0;
+}
+
+.search-input {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: var(--color-text-primary);
+    font-size: 13px;
+    width: 100%;
+    min-width: 0;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.search-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Style the clear button (x) for search inputs */
+.search-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M8 8.707l3.646 3.647.708-.707L8.707 8l3.647-3.646-.707-.708L8 7.293 4.354 3.646l-.707.708L7.293 8l-3.646 3.646.707.708L8 8.707z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.search-input::-webkit-search-cancel-button:hover {
+    opacity: 1;
+}
+
+/* For Firefox */
+.search-input[type="search"]::-moz-search-clear-button {
+    cursor: pointer;
+    filter: brightness(0) invert(1);
+    opacity: 0.7;
+}
+
+.search-input[type="search"]::-moz-search-clear-button:hover {
+    opacity: 1;
+}
+
+.search-button {
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.search-button svg {
+    stroke: #ffffff;
+    fill: none;
+}
+
+.search-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+    color: #ffffff;
+}
+
+.search-button:hover svg {
+    stroke: #ffffff;
+}
+
+.search-button:active {
+    transform: scale(0.95);
+}
+
 /* Mobile Menu Toggle */
 .mobile-menu-toggle {
     display: none;
@@ -819,6 +918,161 @@ html {
 /* ============================================
    7. FOOTER SECTION
    ============================================ */
+/* ============================================
+   CONTACT / GET IN TOUCH PAGE
+   ============================================ */
+body.contact-page .contact-page-container {
+    padding-top: 90px;
+    min-height: 100vh;
+}
+.contact-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md);
+}
+.contact-page-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-text-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+.contact-page-intro {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--spacing-xl) 0;
+    line-height: 1.5;
+}
+.contact-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: var(--spacing-xl);
+    align-items: start;
+}
+.contact-info {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: var(--spacing-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.contact-info-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 var(--spacing-md) 0;
+}
+.contact-email {
+    margin: 0 0 var(--spacing-sm) 0;
+}
+.contact-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+.contact-email a {
+    color: var(--color-accent, #909398);
+    text-decoration: none;
+    font-weight: 600;
+}
+.contact-email a:hover {
+    text-decoration: underline;
+}
+.contact-org-room {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+.contact-note {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: var(--spacing-md) 0 0 0;
+}
+.contact-form-wrap {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: var(--spacing-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+.contact-field label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 6px;
+}
+.contact-field .required {
+    color: #ef4444;
+}
+.contact-field input,
+.contact-field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+}
+.contact-field input::placeholder,
+.contact-field textarea::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.8;
+}
+.contact-field textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+.contact-submit {
+    padding: 14px 24px;
+    border-radius: 10px;
+    border: none;
+    background: var(--color-accent, #909398);
+    color: #0F181D;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    margin-top: 8px;
+}
+.contact-submit:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+}
+.contact-error {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-md);
+    padding: 10px 14px;
+    background: rgba(239, 68, 68, 0.15);
+    border-radius: 8px;
+}
+.contact-success {
+    padding: var(--spacing-lg);
+    background: rgba(34, 197, 94, 0.15);
+    border-radius: 12px;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .contact-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   7. FOOTER SECTION
+   ============================================ */
 .footer-section {
     display: grid;
     grid-template-columns: 2.3fr 1fr;
@@ -975,11 +1229,12 @@ html {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     background: #0f1112;
-    opacity: 1;
+    opacity: 1 !important;
+    visibility: visible !important;
     transition: opacity 1s ease;
 }
 
@@ -1017,13 +1272,79 @@ body.intro-active {
     overflow: hidden;
 }
 
-.main-content {
+body.intro-active .main-content {
     opacity: 0;
-    transition: opacity 0.5s ease;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Ensure intro screen is visible when it exists and body has intro-active */
+body.intro-active .intro-screen {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Also ensure intro screen is visible by default (before JS runs) */
+.intro-screen:not(.hidden):not(.fade-out) {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.main-content {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 
 .main-content.show {
-    opacity: 1;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+/* Fallback: if intro screen is hidden, always show content */
+.intro-screen.hidden ~ .main-content,
+body:not(.intro-active) .main-content {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+/* Emergency fallback: show content after 10 seconds regardless (gives animation time to complete) */
+body.intro-active .main-content {
+    animation: forceShowContent 10s forwards;
+}
+
+@keyframes forceShowContent {
+    0%, 98% {
+        opacity: 0;
+        visibility: hidden;
+    }
+    100% {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+}
+
+/* Additional emergency: if JavaScript fails, hide intro after 10 seconds */
+body.intro-active .intro-screen {
+    animation: forceHideIntro 10s forwards;
+}
+
+@keyframes forceHideIntro {
+    0%, 98% {
+        opacity: 1;
+        display: flex;
+    }
+    100% {
+        opacity: 0 !important;
+        display: none !important;
+        visibility: hidden !important;
+    }
 }
 
 
@@ -1932,6 +2253,170 @@ body:has(.admin-container) {
     font-size: 0.9rem;
 }
 
+/* Announcement Modal */
+.announcement-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 10001;
+    padding: 1rem;
+    overflow-y: auto;
+    align-items: center;
+    justify-content: center;
+}
+
+.announcement-modal.active {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.announcement-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    cursor: pointer;
+}
+
+.announcement-modal-content {
+    position: relative;
+    background: var(--color-bg-medium);
+    border-radius: 18px;
+    width: min(800px, 90vw);
+    max-height: calc(100vh - 2rem);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 35px 80px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.announcement-modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: var(--color-card-dark);
+    border: none;
+    color: var(--color-white);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.3s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.announcement-modal-close:hover {
+    background: var(--color-white);
+    color: var(--color-bg-dark);
+    transform: rotate(90deg);
+}
+
+.announcement-modal-header {
+    padding: 2rem 2rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.announcement-modal-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--color-white);
+    margin: 0 0 0.75rem 0;
+    line-height: 1.3;
+}
+
+.announcement-modal-date {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.announcement-modal-meeting-info {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.meeting-detail-item {
+    font-size: 0.9rem;
+    color: #c0c0c0;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.meeting-detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.announcement-modal-body {
+    padding: 1.5rem 2rem 2rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.announcement-modal-description {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+    margin-bottom: 1.5rem;
+    white-space: pre-wrap;
+}
+
+.announcement-modal-content-full {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--color-text-primary);
+    white-space: pre-wrap;
+}
+
+.announcement-modal-content-full p {
+    margin: 0 0 1rem 0;
+}
+
+.announcement-modal-content-full p:last-child {
+    margin-bottom: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .announcement-modal-content {
+        width: 95vw;
+        max-height: calc(100vh - 1rem);
+    }
+    
+    .announcement-modal-header {
+        padding: 1.5rem 1.5rem 1rem;
+    }
+    
+    .announcement-modal-title {
+        font-size: 1.25rem;
+        padding-right: 2rem;
+    }
+    
+    .announcement-modal-body {
+        padding: 1.25rem 1.5rem 1.5rem;
+    }
+    
+    .announcement-modal-description,
+    .announcement-modal-content-full {
+        font-size: 0.9rem;
+    }
+}
+
 .sheet-summary,
 .sheet-gallery {
     background: rgba(255, 255, 255, 0.015);
@@ -2054,29 +2539,67 @@ body:has(.admin-container) {
     position: relative;
 }
 
-.search-input {
+.search-box .search-input {
     width: 100%;
     padding: 0.6rem 1rem 0.6rem 2.5rem;
-    background: var(--color-bg-medium);
-    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
     color: var(--color-text-primary);
     font-family: inherit;
     font-size: 0.85rem;
 }
 
-.search-input:focus {
-    outline: none;
-    border-color: var(--color-white);
+.search-box .search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
-.search-icon {
+.search-box .search-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Style the clear button (x) for search-box inputs */
+.search-box .search-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M8 8.707l3.646 3.647.708-.707L8.707 8l3.647-3.646-.707-.708L8 7.293 4.354 3.646l-.707.708L7.293 8l-3.646 3.646.707.708L8 8.707z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.search-box .search-input::-webkit-search-cancel-button:hover {
+    opacity: 1;
+}
+
+/* For Firefox */
+.search-box .search-input[type="search"]::-moz-search-clear-button {
+    cursor: pointer;
+    filter: brightness(0) invert(1);
+    opacity: 0.7;
+}
+
+.search-box .search-input[type="search"]::-moz-search-clear-button:hover {
+    opacity: 1;
+}
+
+.search-box .search-icon {
     position: absolute;
     left: 0.8rem;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--color-text-muted);
+    color: var(--color-text-primary);
+    opacity: 0.7;
     font-size: 0.9rem;
+    pointer-events: none;
 }
 
 .view-toggle {
@@ -2615,8 +3138,9 @@ body:has(.admin-container) {
 .documents-page .search-icon svg {
     width: 18px;
     height: 18px;
-    fill: #11161b;
+    fill: var(--color-text-primary);
     display: block;
+    opacity: 0.7;
 }
 
 .documents-page .doc-icon svg,
@@ -2626,15 +3150,22 @@ body:has(.admin-container) {
     fill: #11161b;
 }
 
-/* Lighter search field + download buttons (Documents page) */
-.documents-page .search-input {
-    background: #ffffff;
-    border-color: #d0d3da;
-    color: #11161b;
+/* Consistent search field styling (Documents page matches header) */
+.documents-page .search-box .search-input {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: var(--color-text-primary) !important;
 }
 
-.documents-page .search-input::placeholder {
-    color: #8a8f99;
+.documents-page .search-box .search-input::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.documents-page .search-box .search-input:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1) !important;
+    color: var(--color-text-primary) !important;
 }
 
 .documents-page .doc-download-btn,
@@ -2701,6 +3232,16 @@ body:has(.admin-container) {
 
 /* Tablet: 768px - 1024px */
 @media (max-width: 1024px) {
+    .search-form {
+        max-width: 300px;
+        margin: 0 var(--spacing-sm);
+    }
+    
+    .search-input {
+        font-size: 12px;
+        padding: 7px 12px;
+    }
+    
     body {
         overflow-y: auto;
     }
@@ -2756,17 +3297,41 @@ body:has(.admin-container) {
 
 /* Mobile Landscape & Small Tablet: 600px - 768px */
 @media (max-width: 768px) {
+    .site-header {
+        height: auto;
+        min-height: 60px;
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    
+    .header-container {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+    
+    .search-form {
+        order: 3;
+        width: 100%;
+        max-width: 100%;
+        margin: var(--spacing-sm) 0 0 0;
+    }
+    
+    .search-input {
+        font-size: 13px;
+    }
+    
     .main-container {
-        padding-top: 60px;
+        padding-top: 80px;
         gap: var(--spacing-sm);
     }
     
     .main-nav {
         display: none;
+        order: 4;
     }
     
     .mobile-menu-toggle {
         display: flex;
+        order: 2;
     }
     
     .main-nav.active {
@@ -4011,6 +4576,8 @@ body.calendar-page .calendar-page-container {
 .calendar-day-event-dot.schedule-type-school_end { background: #dc2626; color: #fff; }
 .calendar-day-event-dot.schedule-type-start_of_classes { background: #059669; color: #fff; }
 .calendar-day-event-dot.schedule-type-exam_period { background: #7c3aed; color: #fff; }
+.calendar-day-event-dot.schedule-type-meeting { background: #ef4444; color: #fff; font-weight: 700; }
+.calendar-day-event-dot.schedule-type-announcement { background: #8b5cf6; color: #fff; }
 .calendar-day-event-dot.schedule-type-event { background: var(--color-accent, #909398); color: #0F181D; }
 
 .calendar-day-more {
@@ -4122,6 +4689,8 @@ body.calendar-page .calendar-page-container {
 .calendar-reminder-item.reminder-schedule-school_end .reminder-schedule-badge { background: #dc2626; color: #fff; }
 .calendar-reminder-item.reminder-schedule-start_of_classes .reminder-schedule-badge { background: #059669; color: #fff; }
 .calendar-reminder-item.reminder-schedule-exam_period .reminder-schedule-badge { background: #7c3aed; color: #fff; }
+.calendar-reminder-item.reminder-schedule-meeting .reminder-schedule-badge { background: #9ca3af; color: #fff; font-weight: 700; }
+.calendar-reminder-item.reminder-schedule-announcement .reminder-schedule-badge { background: #8b5cf6; color: #fff; }
 .calendar-reminder-item.reminder-schedule-event .reminder-schedule-badge { background: var(--color-accent, #909398); color: #0F181D; }
 
 .calendar-reminder-item.calendar-reminder-holiday {
@@ -6076,9 +6645,75 @@ body.admin-panel-page [class*="card"] {
 }
 
 /* Ensure all Tailwind utility classes work */
-body.admin-panel-page [class*="bg-"],
-body.admin-panel-page [class*="text-"],
-body.admin-panel-page [class*="border-"] {
-    /* Let Tailwind handle these */
+/* Tailwind utility classes are handled by Tailwind CSS */
+
+/* ========================================
+   SEARCH PAGE - LIGHT THEME OVERRIDES
+   ======================================== */
+body.search-page,
+body.search-page .search-page-container {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+
+body.search-page .search-form-input,
+body.search-page .search-form-select {
+    background: #ffffff !important;
+    border: 1px solid #d0d0d0 !important;
+    color: #000000 !important;
+    font-weight: bold !important;
+}
+
+body.search-page .search-form-input::placeholder {
+    color: #666666 !important;
+}
+
+body.search-page .search-form-input:focus {
+    background: #ffffff !important;
+    border-color: #000000 !important;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+body.search-page .search-form-input::-webkit-search-cancel-button {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%23000000' d='M8 8.707l3.646 3.647.708-.707L8.707 8l3.647-3.646-.707-.708L8 7.293 4.354 3.646l-.707.708L7.293 8l-3.646 3.646.707.708L8 8.707z'/%3E%3C/svg%3E") !important;
+}
+
+body.search-page .search-form-input[type="search"]::-moz-search-clear-button {
+    filter: brightness(0) !important;
+}
+
+body.search-page .search-form-select option {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+
+body.search-page .search-form-button {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #d0d0d0 !important;
+    font-weight: bold !important;
+}
+
+body.search-page .search-form-button:hover {
+    background: #f5f5f5 !important;
+}
+
+body.search-page .search-form-button svg {
+    stroke: #000000 !important;
+    fill: none !important;
+}
+
+/* Event slide link styling */
+.event-slide-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.event-slide-link:hover .event-slide {
+    opacity: 0.9;
+    transform: scale(1.02);
+    transition: all 0.3s ease;
 }
 

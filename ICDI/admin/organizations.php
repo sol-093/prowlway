@@ -2,13 +2,10 @@
 session_start();
 require_once '../includes/config.php';
 require_once '../includes/database.php';
+require_once '../includes/auth.php';
 require_once '../includes/upload.php';
 
-// Check authentication
-if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
-    header('Location: ' . ADMIN_URL . '/index.php');
-    exit;
-}
+requireAdmin(null, false);
 
 $message = '';
 $messageType = '';
@@ -25,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $socialMedia = json_encode($decoded);
                 }
             }
-            
+            $requestedStatus = $_POST['status'] ?? 'active';
             $data = [
                 'name' => $_POST['name'] ?? '',
                 'acronym' => $_POST['acronym'] ?? '',
@@ -35,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'website' => $_POST['website'] ?? '',
                 'social_media' => $socialMedia,
                 'display_order' => intval($_POST['display_order'] ?? 0),
-                'status' => $_POST['status'] ?? 'active',
+                'status' => normalizeStatusByRole($requestedStatus, ['active', 'archived']),
                 'created_by' => $_SESSION['admin_id'] ?? null
             ];
             
@@ -78,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newId = dbInsert('student_organizations', $data);
                 if ($newId) {
                     $orgIdForCoreValues = (int) $newId;
+                    if ($data['status'] === 'active') {
+                        auditLog('publish', 'Organization created and published', 'organization', $newId);
+                    }
                     $message = 'Organization created successfully!';
                     $messageType = 'success';
                 } else {
@@ -87,8 +87,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $id = intval($_POST['id']);
                 $orgIdForCoreValues = $id;
+                $existing = dbFetchOne("SELECT status FROM student_organizations WHERE id = ?", [$id]);
                 $result = dbUpdate('student_organizations', $data, 'id = :id', ['id' => $id]);
                 if ($result) {
+                    if ($existing && $data['status'] === 'active' && $existing['status'] !== 'active') {
+                        auditLog('publish', 'Organization published', 'organization', $id);
+                    } elseif ($existing && $data['status'] === 'archived') {
+                        auditLog('archive', 'Organization archived', 'organization', $id);
+                    }
                     $message = 'Organization updated successfully!';
                     $messageType = 'success';
                 } else {
@@ -130,24 +136,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                 }
             }
-        } elseif ($_POST['action'] === 'delete') {
+        } elseif ($_POST['action'] === 'archive') {
             $id = intval($_POST['id']);
-            $org = dbFetchOne("SELECT logo, banner_image FROM student_organizations WHERE id = ?", [$id]);
-            if ($org) {
-                if (!empty($org['logo'])) deleteUploadedFile($org['logo']);
-                if (!empty($org['banner_image'])) deleteUploadedFile($org['banner_image']);
-            }
-            $coreValues = dbFetchAll("SELECT icon FROM organization_core_values WHERE organization_id = ?", [$id]);
-            foreach ($coreValues as $cv) {
-                if (!empty($cv['icon'])) deleteUploadedFile($cv['icon']);
-            }
-            $result = dbDelete('student_organizations', 'id = :id', ['id' => $id]);
-            if ($result) {
-                $message = 'Organization deleted successfully!';
-                $messageType = 'success';
-            } else {
-                $message = 'Error deleting organization.';
+            $org = dbFetchOne("SELECT status, created_by FROM student_organizations WHERE id = ?", [$id]);
+            if (!$org) {
+                $message = 'Organization not found.';
                 $messageType = 'error';
+            } elseif (!canPublish() && ($org['status'] !== 'draft' || (int)($org['created_by'] ?? 0) !== (int)($_SESSION['admin_id'] ?? 0))) {
+                $message = 'Only draft organizations you created can be archived, or you need publish rights.';
+                $messageType = 'error';
+            } else {
+                $result = dbUpdate('student_organizations', ['status' => 'archived'], 'id = :id', ['id' => $id]);
+                if ($result) {
+                    auditLog('archive', 'Organization archived', 'organization', $id);
+                    $message = 'Organization archived successfully!';
+                    $messageType = 'success';
+                } else {
+                    $message = 'Error archiving organization.';
+                    $messageType = 'error';
+                }
             }
         }
     }
@@ -372,11 +379,12 @@ include '../includes/header.php';
                                             <a href="<?php echo ADMIN_URL; ?>/organizations.php?edit=<?php echo $org['id']; ?>" class="px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100">
                                                 Edit
                                             </a>
-                                            <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this organization?');">
-                                                <input type="hidden" name="action" value="delete">
+                                            <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to archive this organization?');">
+                                                <input type="hidden" name="action" value="archive">
                                                 <input type="hidden" name="id" value="<?php echo $org['id']; ?>">
-                                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600">
-                                                    Delete
+                                                <?php if (function_exists('generateCSRFToken')): ?><input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>"><?php endif; ?>
+                                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 border-2 border-gray-300">
+                                                    Archive
                                                 </button>
                                             </form>
                                         </div>

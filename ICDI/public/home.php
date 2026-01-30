@@ -1,45 +1,119 @@
 <?php
-require_once '../includes/config.php';
-require_once '../includes/database.php';
-require_once '../includes/upload.php';
+// Error reporting for debugging (remove in production or set to 0)
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors to users, but log them
+ini_set('log_errors', 1);
 
-$pageTitle = 'PROWLWAY - ICDISG Archive Website';
-$bodyClass = 'intro-active';
-include '../includes/header.php';
-
-// Fetch announcements for display
-$announcements = dbFetchAll("SELECT * FROM announcements WHERE status = 'published' ORDER BY pinned DESC, created_at DESC LIMIT 10");
-
-// Fetch events for carousel
-$events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY date DESC, display_order ASC LIMIT 5");
-
-// Fetch document counts by category
-$docCounts = [];
-$documents = dbFetchAll("SELECT category FROM documents WHERE status = 'published'");
-foreach ($documents as $doc) {
-    $docCounts[$doc['category']] = ($docCounts[$doc['category']] ?? 0) + 1;
+// Disable output buffering if active to prevent blocking
+while (ob_get_level() > 0) {
+    ob_end_flush();
 }
 
-// Fetch site settings (for dynamic footer, contact, social links, etc.)
-$settingsRows = dbFetchAll("SELECT setting_key, setting_value, setting_type FROM site_settings");
-$settings = [];
-foreach ($settingsRows as $row) {
-    $key = $row['setting_key'];
-    $value = $row['setting_value'];
-    switch ($row['setting_type']) {
-        case 'json':
-            $decoded = json_decode($value, true);
-            $settings[$key] = $decoded !== null ? $decoded : $value;
-            break;
-        case 'boolean':
-            $settings[$key] = $value === '1' || $value === 'true';
-            break;
-        case 'number':
-            $settings[$key] = is_numeric($value) ? (float)$value : $value;
-            break;
-        default:
-            $settings[$key] = $value;
+try {
+    require_once '../includes/config.php';
+    require_once '../includes/database.php';
+    require_once '../includes/upload.php';
+} catch (Exception $e) {
+    error_log("Homepage initialization error: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    // Show a user-friendly error page instead of dying
+    http_response_code(500);
+    ?>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Error - PROWLWAY</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #0f1112; color: #fff; }
+            h1 { color: #e74c3c; }
+            a { color: #4a9eff; }
+            pre { text-align: left; background: #1a1a1a; padding: 15px; border-radius: 5px; overflow: auto; }
+        </style>
+    </head>
+    <body>
+        <h1>Error Loading Page</h1>
+        <p>We're experiencing technical difficulties. Please try again later.</p>
+        <?php if (defined('DEBUG_MODE') && DEBUG_MODE): ?>
+        <pre>Error: <?php echo htmlspecialchars($e->getMessage()); ?>\n\n<?php echo htmlspecialchars($e->getTraceAsString()); ?></pre>
+        <?php endif; ?>
+        <p><a href="<?php echo isset($_SERVER['HTTP_REFERER']) ? htmlspecialchars($_SERVER['HTTP_REFERER']) : '/'; ?>">Go Back</a></p>
+        <p><a href="<?php echo defined('BASE_URL') ? BASE_URL : ''; ?>/debug_homepage.php">Run Diagnostics</a></p>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+$pageTitle = 'PROWLWAY - ICDISG Archive Website';
+// Enable intro animation (can be skipped with ?skip_intro=1)
+$showIntro = !isset($_GET['skip_intro']);
+$bodyClass = $showIntro ? 'intro-active' : '';
+include '../includes/header.php';
+
+// Fetch announcements for display (with error handling)
+try {
+    $announcements = dbFetchAll("SELECT *, is_meeting, meeting_date, meeting_end_date, meeting_location FROM announcements WHERE status = 'published' ORDER BY pinned DESC, created_at DESC LIMIT 10");
+    if (!is_array($announcements)) {
+        $announcements = [];
     }
+} catch (Exception $e) {
+    error_log("Error fetching announcements: " . $e->getMessage());
+    $announcements = [];
+}
+
+// Upcoming meetings removed - all announcements go to regular announcements panel
+$upcomingMeetings = [];
+
+// Fetch events for carousel (with error handling)
+try {
+    $events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY date DESC, display_order ASC LIMIT 5");
+    if (!is_array($events)) {
+        $events = [];
+    }
+} catch (Exception $e) {
+    error_log("Error fetching events: " . $e->getMessage());
+    $events = [];
+}
+
+// Fetch document counts by category (with error handling)
+$docCounts = [];
+try {
+    $documents = dbFetchAll("SELECT category FROM documents WHERE status = 'published'");
+    if (is_array($documents)) {
+        foreach ($documents as $doc) {
+            $docCounts[$doc['category']] = ($docCounts[$doc['category']] ?? 0) + 1;
+        }
+    }
+} catch (Exception $e) {
+    error_log("Error fetching document counts: " . $e->getMessage());
+}
+
+// Fetch site settings (for dynamic footer, contact, social links, etc.) (with error handling)
+$settings = [];
+try {
+    $settingsRows = dbFetchAll("SELECT setting_key, setting_value, setting_type FROM site_settings");
+    if (is_array($settingsRows)) {
+        foreach ($settingsRows as $row) {
+            $key = $row['setting_key'];
+            $value = $row['setting_value'];
+            switch ($row['setting_type']) {
+                case 'json':
+                    $decoded = json_decode($value, true);
+                    $settings[$key] = $decoded !== null ? $decoded : $value;
+                    break;
+                case 'boolean':
+                    $settings[$key] = $value === '1' || $value === 'true';
+                    break;
+                case 'number':
+                    $settings[$key] = is_numeric($value) ? (float)$value : $value;
+                    break;
+                default:
+                    $settings[$key] = $value;
+            }
+        }
+    }
+} catch (Exception $e) {
+    error_log("Error fetching site settings: " . $e->getMessage());
 }
 
 // Helper values with sensible fallbacks
@@ -47,19 +121,45 @@ $siteName     = $settings['site_name']     ?? 'PROWLWAY';
 $siteTagline  = $settings['site_description'] ?? 'ICDISG Archive Website';
 $contactEmail = $settings['contact_email'] ?? 'imacsac@kidduph';
 
-// Dynamic hero organization label (from student_organizations)
-$primaryOrg = dbFetchOne("SELECT name, acronym FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC LIMIT 1");
-$heroOrgLabel = $primaryOrg ? trim(($primaryOrg['acronym'] ?? '') . ' ' . ($primaryOrg['name'] ?? '')) : 'KLD-ICDI Student Government';
+// Dynamic hero organization label (from student_organizations) (with error handling)
+try {
+    $primaryOrg = dbFetchOne("SELECT name, acronym FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC LIMIT 1");
+    $heroOrgLabel = $primaryOrg ? trim(($primaryOrg['acronym'] ?? '') . ' ' . ($primaryOrg['name'] ?? '')) : 'KLD-ICDI Student Government';
+} catch (Exception $e) {
+    error_log("Error fetching primary organization: " . $e->getMessage());
+    $heroOrgLabel = 'KLD-ICDI Student Government';
+}
 
 // Hero logo: use ICDI.png if it exists, else fallback icon (avoids broken image on mobile)
-$heroLogoPath = dirname(__DIR__) . '/assets/images/ICDI.png';
-$heroLogoSrc = (file_exists($heroLogoPath)) ? ASSETS_URL . '/images/ICDI.png' : ASSETS_URL . '/IMG/ICONS/OFFICE.png';
+try {
+    $heroLogoPath = (defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__)) . '/assets/images/ICDI.png';
+    $heroLogoSrc = (file_exists($heroLogoPath)) ? ASSETS_URL . '/images/ICDI.png' : ASSETS_URL . '/IMG/ICONS/OFFICE.png';
+} catch (Exception $e) {
+    error_log("Error setting hero logo: " . $e->getMessage());
+    $heroLogoSrc = ASSETS_URL . '/IMG/ICONS/OFFICE.png';
+}
 
-// Dynamic Origin section organizations (limited to 4)
-$originOrganizations = dbFetchAll("SELECT id, name, acronym, logo FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC LIMIT 4");
+// Dynamic Origin section organizations (limited to 4) (with error handling)
+try {
+    $originOrganizations = dbFetchAll("SELECT id, name, acronym, logo FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC LIMIT 4");
+    if (!is_array($originOrganizations)) {
+        $originOrganizations = [];
+    }
+} catch (Exception $e) {
+    error_log("Error fetching origin organizations: " . $e->getMessage());
+    $originOrganizations = [];
+}
 
-// Dynamic footer about text from institute_info
-$footerAbout = dbFetchOne("SELECT title, content FROM institute_info WHERE section = 'about' AND status = 'published' LIMIT 1");
+// Dynamic footer about text from institute_info (with error handling)
+try {
+    $footerAbout = dbFetchOne("SELECT title, content FROM institute_info WHERE section = 'about' AND status = 'published' LIMIT 1");
+    if (!is_array($footerAbout)) {
+        $footerAbout = [];
+    }
+} catch (Exception $e) {
+    error_log("Error fetching footer about: " . $e->getMessage());
+    $footerAbout = [];
+}
 
 // Dynamic Tech Care links from settings (JSON), with fallback list
 $defaultTechcareLinks = [
@@ -88,14 +188,16 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
 <!-- ========================================
      INTRO ANIMATION SCREEN
      ======================================== -->
+<?php if ($showIntro): ?>
 <div class="intro-screen" id="introScreen">
     <div class="intro-text" id="introText"></div>
 </div>
+<?php endif; ?>
 
 <!-- ========================================
      MAIN CONTENT (Your Landing Page)
      ======================================== -->
-<div class="main-content" id="mainContent">
+<div class="main-content" id="mainContent" <?php echo $showIntro ? '' : 'style="opacity: 1 !important; visibility: visible !important; display: block !important;"'; ?>>
     
     <!-- ========================================
          MAIN CONTENT AREA
@@ -132,6 +234,7 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                 </div>
             </div>
             
+            
             <!-- Announcements Panel -->
             <aside class="announcements-panel">
                 <h2 class="panel-title">ANNOUNCEMENTS</h2>
@@ -144,16 +247,20 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                         </div>
                     <?php else: ?>
                         <?php foreach ($announcements as $announcement): 
-                            $annDate = new DateTime($announcement['created_at']);
+                            try {
+                                $annDate = new DateTime($announcement['created_at'] ?? 'now');
+                            } catch (Exception $e) {
+                                $annDate = new DateTime('now');
+                            }
+                            // Escape JSON for data attribute (double encode to prevent issues)
+                            $announcementJson = htmlspecialchars(json_encode($announcement, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8');
                         ?>
-                            <div class="announcement-card">
-                                <div class="announcement-title"><?php echo htmlspecialchars($announcement['title']); ?></div>
+                            <div class="announcement-card" data-announcement='<?php echo $announcementJson; ?>' style="cursor: pointer;">
+                                <div class="announcement-title"><?php echo htmlspecialchars($announcement['title'] ?? ''); ?></div>
                                 <div class="announcement-date"><?php echo $annDate->format('M d, Y'); ?></div>
                                 <div class="card-divider"></div>
                                 <p class="announcement-desc"><?php echo htmlspecialchars($announcement['description'] ?? ''); ?></p>
-                                <?php if ($announcement['content']): ?>
-                                    <button class="btn-read-more" onclick="showAnnouncementModal(<?php echo htmlspecialchars(json_encode($announcement)); ?>)">READ MORE ></button>
-                                <?php endif; ?>
+                                <button class="btn-read-more" data-announcement='<?php echo $announcementJson; ?>'>READ MORE ></button>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -266,12 +373,18 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                             </div>
                         <?php else: ?>
                             <?php foreach ($events as $index => $event): ?>
-                                <div class="event-slide <?php echo $index === 0 ? 'active' : ''; ?>">
-                                    <div class="event-image">
-                                        <img src="<?php echo getImageUrl($event['image']); ?>" alt="<?php echo htmlspecialchars($event['title']); ?>">
+                                <a href="<?php echo PUBLIC_URL; ?>/event-detail.php?id=<?php echo htmlspecialchars($event['id'] ?? ''); ?>" class="event-slide-link" style="text-decoration: none; color: inherit;">
+                                    <div class="event-slide <?php echo $index === 0 ? 'active' : ''; ?>">
+                                        <div class="event-image">
+                                            <?php if (!empty($event['image'])): ?>
+                                                <img src="<?php echo htmlspecialchars(getImageUrl($event['image'])); ?>" alt="<?php echo htmlspecialchars($event['title'] ?? 'Event'); ?>" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'width:100%;height:200px;background:var(--color-card-dark);display:flex;align-items:center;justify-content:center;color:var(--color-text-muted);\'>No image</div>';">
+                                            <?php else: ?>
+                                                <div style="width: 100%; height: 200px; background: var(--color-card-dark); display: flex; align-items: center; justify-content: center; color: var(--color-text-muted);">No image</div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <p class="event-caption"><?php echo htmlspecialchars($event['caption'] ?? $event['title'] ?? 'Event'); ?></p>
                                     </div>
-                                    <p class="event-caption"><?php echo htmlspecialchars($event['caption'] ?? $event['title']); ?></p>
-                                </div>
+                                </a>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
@@ -305,7 +418,7 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                 
                 <p class="footer-description">
                     <?php
-                    if (!empty($footerAbout['content'])) {
+                    if (!empty($footerAbout) && is_array($footerAbout) && !empty($footerAbout['content'])) {
                         echo nl2br(htmlspecialchars($footerAbout['content']));
                     } else {
                         echo 'The official archival platform for the Institute of Computing and Digital Innovation Student Government.';

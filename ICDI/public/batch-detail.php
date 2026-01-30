@@ -53,6 +53,13 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                     <h1 class="origin-page-title">ICDISG Batch</h1>
                     <p>Batch not found.</p>
                 <?php else: ?>
+                    <?php if ($batchOrg): ?>
+                        <div class="mb-4">
+                            <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $batchOrg['id']; ?>" class="text-sm text-gray-400 hover:text-gray-300 inline-flex items-center gap-1">
+                                ← Back to <?php echo htmlspecialchars($batchOrg['name']); ?>
+                            </a>
+                        </div>
+                    <?php endif; ?>
                     <!-- Top: Batch hero / logo -->
                     <div class="batch-detail-hero">
                         <div class="batch-grid-card-inner">
@@ -174,11 +181,15 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                 <ul class="sidebar-links">
                     <?php foreach ($organizationsList as $org): ?>
                         <li>
-                            <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $org['id']; ?>">
-                                <?php echo htmlspecialchars($org['name']); ?>
+                            <a href="<?php echo PUBLIC_URL; ?>/batches.php?org_id=<?php echo $org['id']; ?>"
+                               class="<?php echo $batchOrg && $org['id'] == $batchOrg['id'] ? 'active' : ''; ?>">
+                                <?php echo htmlspecialchars($org['name']); ?> Batches
                             </a>
                         </li>
                     <?php endforeach; ?>
+                    <?php if ($batchOrg): ?>
+                        <li><a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $batchOrg['id']; ?>">← Back to <?php echo htmlspecialchars($batchOrg['name']); ?></a></li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>

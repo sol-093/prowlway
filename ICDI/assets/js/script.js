@@ -94,56 +94,383 @@ if (typeof window.staticData === 'undefined') {
 // No Node.js backend dependencies
 
 // ============================================
+// 2.1. FORM VALIDATION HELPERS
+// ============================================
+/**
+ * Validate email address
+ */
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+/**
+ * Validate academic year format (YYYY-YYYY)
+ */
+function validateAcademicYear(year) {
+    const yearRegex = /^\d{4}-\d{4}$/;
+    return yearRegex.test(year);
+}
+
+/**
+ * Validate required field
+ */
+function validateRequired(value, fieldName) {
+    if (!value || value.trim() === '') {
+        return { valid: false, error: `${fieldName} is required` };
+    }
+    return { valid: true };
+}
+
+/**
+ * Validate string length
+ */
+function validateLength(value, min, max, fieldName) {
+    if (value.length < min) {
+        return { valid: false, error: `${fieldName} must be at least ${min} characters` };
+    }
+    if (max && value.length > max) {
+        return { valid: false, error: `${fieldName} must be no more than ${max} characters` };
+    }
+    return { valid: true };
+}
+
+/**
+ * Show field error message
+ */
+function showFieldError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    // Remove existing error
+    const existingError = field.parentElement.querySelector('.field-error');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Add error styling
+    field.classList.add('border-red-500', 'border-2');
+    field.classList.remove('border-gray-200');
+    
+    // Add error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'field-error text-red-600 text-sm mt-1 font-semibold';
+    errorDiv.textContent = message;
+    field.parentElement.appendChild(errorDiv);
+}
+
+/**
+ * Clear field error
+ */
+function clearFieldError(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    field.classList.remove('border-red-500', 'border-2');
+    field.classList.add('border-gray-200');
+    
+    const error = field.parentElement.querySelector('.field-error');
+    if (error) {
+        error.remove();
+    }
+}
+
+/**
+ * Validate document form
+ */
+function validateDocumentForm(formData) {
+    const errors = [];
+    const id = formData.get('id');
+    const isUpdate = id && id !== '';
+    
+    // Title validation
+    const title = formData.get('title') || '';
+    const titleValidation = validateRequired(title, 'Title');
+    if (!titleValidation.valid) {
+        errors.push({ field: 'title', message: titleValidation.error });
+    } else {
+        const lengthValidation = validateLength(title, 3, 255, 'Title');
+        if (!lengthValidation.valid) {
+            errors.push({ field: 'title', message: lengthValidation.error });
+        }
+    }
+    
+    // File validation (required for create)
+    if (!isUpdate) {
+        const file = formData.get('file');
+        if (!file || !file.name) {
+            errors.push({ field: 'file', message: 'PDF file upload is required' });
+        }
+    }
+    
+    // Academic year validation (if provided)
+    const academicYear = formData.get('academic_year') || '';
+    if (academicYear && !validateAcademicYear(academicYear)) {
+        errors.push({ field: 'academic-year', message: 'Invalid academic year format. Use YYYY-YYYY (e.g., 2024-2025)' });
+    }
+    
+    return errors;
+}
+
+/**
+ * Validate announcement form
+ */
+function validateAnnouncementForm(formData) {
+    const errors = [];
+    
+    const title = formData.get('title') || '';
+    const titleValidation = validateRequired(title, 'Title');
+    if (!titleValidation.valid) {
+        errors.push({ field: 'ann-title', message: titleValidation.error });
+    }
+    
+    const description = formData.get('description') || '';
+    const descValidation = validateRequired(description, 'Description');
+    if (!descValidation.valid) {
+        errors.push({ field: 'ann-description', message: descValidation.error });
+    }
+    
+    return errors;
+}
+
+/**
+ * Validate event form
+ */
+function validateEventForm(formData) {
+    const errors = [];
+    const id = formData.get('id');
+    const isUpdate = id && id !== '';
+    
+    const title = formData.get('title') || '';
+    const titleValidation = validateRequired(title, 'Title');
+    if (!titleValidation.valid) {
+        errors.push({ field: 'evt-title', message: titleValidation.error });
+    }
+    
+    const caption = formData.get('caption') || '';
+    const captionValidation = validateRequired(caption, 'Caption');
+    if (!captionValidation.valid) {
+        errors.push({ field: 'evt-caption', message: captionValidation.error });
+    }
+    
+    const date = formData.get('date') || '';
+    const dateValidation = validateRequired(date, 'Event date');
+    if (!dateValidation.valid) {
+        errors.push({ field: 'evt-date', message: dateValidation.error });
+    }
+    
+    // Image validation (required for create)
+    if (!isUpdate) {
+        const image = formData.get('image');
+        if (!image || !image.name) {
+            errors.push({ field: 'evt-image', message: 'Event image is required' });
+        }
+    }
+    
+    return errors;
+}
+
+// ============================================
 // 3. INTRO ANIMATION
 // ============================================
 (function initIntroAnimation() {
-    const introScreen = document.getElementById('introScreen');
-    const introTextEl = document.getElementById('introText');
-    const mainContent = document.getElementById('mainContent');
-    const body = document.body;
-
-    if (!introScreen || !introTextEl) return;
-
-    const INTRO_CONFIG = {
-        text: "ICDISG PROWLWAY",
-        letterDelay: 50,
-        holdDuration: 500,
-        fadeOutDuration: 500
-    };
-
-    const text = INTRO_CONFIG.text;
-    const letters = text.split('');
-    let revealedCount = 0;
-
-    letters.forEach(letter => {
-        const span = document.createElement('span');
-        span.textContent = letter === ' ' ? '\u00A0' : letter;
-        introTextEl.appendChild(span);
-    });
-
-    const spans = introTextEl.querySelectorAll('span');
-
-    function revealNextLetter() {
-        if (revealedCount < spans.length) {
-            spans[revealedCount].classList.add('revealed');
-            revealedCount++;
-            setTimeout(revealNextLetter, INTRO_CONFIG.letterDelay);
-        } else {
-            setTimeout(fadeOutIntro, INTRO_CONFIG.holdDuration);
-        }
-    }
-
-    function fadeOutIntro() {
-        introScreen.classList.add('fade-out');
+    // Wait for DOM to be ready
+    function startIntroAnimation() {
+        console.log('[Intro Debug] Starting intro animation check...');
         
+        const introScreen = document.getElementById('introScreen');
+        const introTextEl = document.getElementById('introText');
+        const mainContent = document.getElementById('mainContent');
+        const body = document.body;
+
+        console.log('[Intro Debug] introScreen:', introScreen);
+        console.log('[Intro Debug] introTextEl:', introTextEl);
+        console.log('[Intro Debug] body.className:', body.className);
+        console.log('[Intro Debug] body has intro-active:', body.classList.contains('intro-active'));
+
+        // If elements don't exist, skip animation and show content immediately
+        if (!introScreen || !introTextEl) {
+            console.warn('[Intro Debug] Intro elements not found - showing content immediately');
+            // Fallback: ensure content is visible if intro elements are missing
+            if (mainContent) {
+                mainContent.classList.add('show');
+                mainContent.style.opacity = '1';
+                mainContent.style.visibility = 'visible';
+            }
+            if (body) {
+                body.classList.remove('intro-active');
+                body.style.overflow = '';
+            }
+            return;
+        }
+        
+        // Only proceed if body has intro-active class OR if intro screen exists
+        // This ensures intro shows even if body class check fails
+        const hasIntroActive = body.classList.contains('intro-active');
+        console.log('[Intro Debug] Body has intro-active class:', hasIntroActive);
+        
+        if (!hasIntroActive && introScreen) {
+            // If body doesn't have class but intro screen exists, add the class
+            console.log('[Intro Debug] Adding intro-active class to body');
+            body.classList.add('intro-active');
+        }
+        
+        if (!hasIntroActive && !introScreen) {
+            // No intro screen and no class - skip animation
+            console.log('[Intro Debug] No intro screen and no intro-active class - showing content');
+            if (mainContent) {
+                mainContent.classList.add('show');
+                mainContent.style.opacity = '1';
+                mainContent.style.visibility = 'visible';
+            }
+            return;
+        }
+        
+        console.log('[Intro Debug] All checks passed - starting animation');
+        
+        // Ensure body has intro-active class
+        if (!body.classList.contains('intro-active')) {
+            body.classList.add('intro-active');
+            console.log('[Intro Debug] Added intro-active class to body');
+        }
+        
+        // Ensure intro screen is visible and properly styled
+        if (introScreen) {
+            introScreen.style.display = 'flex';
+            introScreen.style.opacity = '1';
+            introScreen.style.visibility = 'visible';
+            introScreen.classList.remove('hidden', 'fade-out');
+            console.log('[Intro Debug] Ensured intro screen is visible');
+            console.log('[Intro Debug] Intro screen computed display:', window.getComputedStyle(introScreen).display);
+        }
+
+        const INTRO_CONFIG = {
+            text: "ICDISG PROWLWAY",
+            letterDelay: 50,
+            holdDuration: 500,
+            fadeOutDuration: 500
+        };
+
+        const text = INTRO_CONFIG.text;
+        const letters = text.split('');
+        let revealedCount = 0;
+
+        // Clear any existing content
+        introTextEl.innerHTML = '';
+
+        letters.forEach(letter => {
+            const span = document.createElement('span');
+            span.textContent = letter === ' ' ? '\u00A0' : letter;
+            introTextEl.appendChild(span);
+        });
+
+        const spans = introTextEl.querySelectorAll('span');
+        console.log('[Intro Debug] Created', spans.length, 'letter spans');
+
+        function revealNextLetter() {
+            if (revealedCount < spans.length) {
+                spans[revealedCount].classList.add('revealed');
+                revealedCount++;
+                setTimeout(revealNextLetter, INTRO_CONFIG.letterDelay);
+            } else {
+                console.log('[Intro Debug] All letters revealed - waiting before fade out');
+                setTimeout(fadeOutIntro, INTRO_CONFIG.holdDuration);
+            }
+        }
+
+        function fadeOutIntro() {
+            console.log('[Intro Debug] Fading out intro');
+            if (!introScreen) {
+                console.error('[Intro Debug] introScreen is null in fadeOutIntro');
+                return;
+            }
+            
+            introScreen.classList.add('fade-out');
+            
+            setTimeout(() => {
+                console.log('[Intro Debug] Hiding intro screen and showing content');
+                if (introScreen) {
+                    introScreen.classList.add('hidden');
+                    introScreen.style.display = 'none';
+                }
+                if (body) {
+                    body.classList.remove('intro-active');
+                    body.style.overflow = '';
+                }
+                if (mainContent) {
+                    mainContent.classList.add('show');
+                    mainContent.style.opacity = '1';
+                    mainContent.style.visibility = 'visible';
+                    mainContent.style.pointerEvents = 'auto';
+                }
+            }, INTRO_CONFIG.fadeOutDuration);
+        }
+        
+        console.log('[Intro Debug] Starting letter reveal animation in 200ms');
+
+        // Safety timeout: if animation doesn't complete in 10 seconds, force show content
+        // Animation should complete in ~2-3 seconds, so 10 seconds is a safe buffer
         setTimeout(() => {
-            introScreen.classList.add('hidden');
-            if (body) body.classList.remove('intro-active');
-            if (mainContent) mainContent.classList.add('show');
-        }, INTRO_CONFIG.fadeOutDuration);
+            const intro = document.getElementById('introScreen');
+            const content = document.getElementById('mainContent');
+            const bodyEl = document.body;
+            
+            if (intro && !intro.classList.contains('hidden') && intro.offsetParent !== null) {
+                console.warn('Intro animation timeout (10s) - forcing content display');
+                intro.style.display = 'none';
+                intro.classList.add('fade-out', 'hidden');
+            }
+            if (bodyEl && bodyEl.classList.contains('intro-active')) {
+                bodyEl.classList.remove('intro-active');
+                bodyEl.style.overflow = '';
+            }
+            if (content) {
+                content.classList.add('show');
+                content.style.opacity = '1';
+                content.style.visibility = 'visible';
+                content.style.pointerEvents = 'auto';
+            }
+        }, 10000);
+        
+        // Additional emergency timeout at 5 seconds
+        setTimeout(() => {
+            const intro = document.getElementById('introScreen');
+            const content = document.getElementById('mainContent');
+            const bodyEl = document.body;
+            
+            if (intro && intro.offsetParent !== null) {
+                console.warn('Emergency timeout (5s) - forcing content display');
+                intro.style.display = 'none';
+                intro.classList.add('hidden', 'fade-out');
+            }
+            if (bodyEl) {
+                bodyEl.classList.remove('intro-active');
+                bodyEl.style.overflow = '';
+            }
+            if (content) {
+                content.classList.add('show');
+                content.style.opacity = '1';
+                content.style.visibility = 'visible';
+                content.style.pointerEvents = 'auto';
+            }
+        }, 5000);
+
+        setTimeout(revealNextLetter, 200);
     }
 
-    setTimeout(revealNextLetter, 200);
+    // Run when DOM is ready
+    console.log('[Intro Debug] initIntroAnimation called, document.readyState:', document.readyState);
+    if (document.readyState === 'loading') {
+        console.log('[Intro Debug] DOM still loading - waiting for DOMContentLoaded');
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[Intro Debug] DOMContentLoaded fired - starting animation');
+            startIntroAnimation();
+        });
+    } else {
+        // DOM is already ready
+        console.log('[Intro Debug] DOM already ready - starting animation immediately');
+        startIntroAnimation();
+    }
 })();
 
 // ============================================
@@ -913,7 +1240,8 @@ const ADMIN_API = {
     announcements: window.ADMIN_URL + '/announcements.php',
     events: window.ADMIN_URL + '/events_handler.php',
     holidays: window.ADMIN_URL + '/holidays_handler.php',
-    documents: window.ADMIN_URL + '/documents.php'
+    documents: window.ADMIN_URL + '/documents.php',
+    inquiries: window.ADMIN_URL + '/inquiries_handler.php'
 };
 
 // Tab switching
@@ -952,6 +1280,8 @@ function switchTab(tabName) {
         loadHolidaysList();
     } else if (tabName === 'documents') {
         loadDocumentsList();
+    } else if (tabName === 'inquiries') {
+        loadInquiriesList();
     }
 }
 
@@ -991,16 +1321,37 @@ async function loadAnnouncementsList() {
     }
 }
 
-function displayAnnouncementsList(announcements) {
+function displayAnnouncementsList(announcements, pagination = null) {
     const container = document.getElementById('announcements-list');
     if (!container) return;
+    
+    // Bulk selection state
+    const selectedIds = new Set();
     
     if (announcements.length === 0) {
         container.innerHTML = '<p class="text-gray-500 text-center py-8">No announcements found. Create your first announcement!</p>';
         return;
     }
     
-    const html = announcements.map(ann => {
+    // Add bulk actions UI
+    let html = `
+        <div class="mb-4 flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="select-all-announcements" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" onchange="toggleSelectAll('announcements', this.checked)">
+                    <span class="text-sm font-medium text-gray-700">Select All</span>
+                </label>
+                <button onclick="archiveAllItems('announcements')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-medium border-2 border-gray-300">Archive All</button>
+                <span id="selected-count-announcements" class="text-sm text-gray-600 hidden">0 selected</span>
+            </div>
+            <div id="bulk-actions-announcements" class="hidden flex gap-2">
+                <button onclick="bulkAction('announcements', 'publish')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">Publish</button>
+                <button onclick="bulkAction('announcements', 'archive')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-medium border-2 border-gray-300">Archive</button>
+            </div>
+        </div>
+    `;
+    
+    html += announcements.map(ann => {
         const date = new Date(ann.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -1028,6 +1379,7 @@ function displayAnnouncementsList(announcements) {
         
         return `
             <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex gap-4 items-start hover:shadow-md transition-shadow">
+                <input type="checkbox" class="item-checkbox w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 mt-1" value="${ann.id}" onchange="updateBulkActions('announcements')">
                 ${imageUrl ? `<img src="${imageUrl}" alt="${ann.title}" class="w-24 h-24 object-cover rounded-lg flex-shrink-0 bg-gray-100" style="min-width: 96px; min-height: 96px;" onerror="console.error('Image failed to load:', this.src); this.style.display='none'">` : ''}
                 <div class="flex-1">
                     <div class="flex justify-between items-start mb-2">
@@ -1037,7 +1389,7 @@ function displayAnnouncementsList(announcements) {
                         </div>
                         <div class="flex gap-2">
                             <button onclick="editAnnouncement(${ann.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Edit</button>
-                            <button onclick="deleteAnnouncement(${ann.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Delete</button>
+                            <button onclick="archiveAnnouncement(${ann.id})" class="px-3 py-1.5 text-xs font-semibold text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors border-2 border-gray-300">Archive</button>
                         </div>
                     </div>
                     <p class="text-sm text-gray-600 mb-2">${ann.description || ''}</p>
@@ -1064,6 +1416,29 @@ function editAnnouncement(id) {
                     document.getElementById('ann-content').value = ann.content || '';
                     document.getElementById('ann-category').value = ann.category;
                     document.getElementById('ann-pinned').checked = ann.pinned == 1;
+                    const annStatus = document.getElementById('ann-status');
+                    if (annStatus) annStatus.value = ann.status || 'draft';
+                    
+                    // Populate meeting fields
+                    const isMeeting = ann.is_meeting == 1;
+                    document.getElementById('ann-is-meeting').checked = isMeeting;
+                    if (isMeeting) {
+                        if (ann.meeting_date) {
+                            // Convert datetime to datetime-local format (YYYY-MM-DDTHH:mm)
+                            const meetingDate = new Date(ann.meeting_date);
+                            const localDate = new Date(meetingDate.getTime() - meetingDate.getTimezoneOffset() * 60000);
+                            document.getElementById('ann-meeting-date').value = localDate.toISOString().slice(0, 16);
+                        }
+                        if (ann.meeting_end_date) {
+                            const meetingEndDate = new Date(ann.meeting_end_date);
+                            const localEndDate = new Date(meetingEndDate.getTime() - meetingEndDate.getTimezoneOffset() * 60000);
+                            document.getElementById('ann-meeting-end-date').value = localEndDate.toISOString().slice(0, 16);
+                        }
+                        document.getElementById('ann-meeting-location').value = ann.meeting_location || '';
+                        toggleMeetingFields(); // Show meeting fields
+                    } else {
+                        toggleMeetingFields(); // Hide meeting fields
+                    }
                     
                     // Show image preview if exists
                     if (ann.image) {
@@ -1092,6 +1467,23 @@ function editAnnouncement(id) {
         });
 }
 
+function toggleMeetingFields() {
+    const isMeeting = document.getElementById('ann-is-meeting').checked;
+    const meetingFields = document.getElementById('ann-meeting-fields');
+    if (isMeeting) {
+        meetingFields.classList.remove('hidden');
+        // Make meeting date required when checked
+        document.getElementById('ann-meeting-date').required = true;
+    } else {
+        meetingFields.classList.add('hidden');
+        document.getElementById('ann-meeting-date').required = false;
+        // Clear meeting fields
+        document.getElementById('ann-meeting-date').value = '';
+        document.getElementById('ann-meeting-end-date').value = '';
+        document.getElementById('ann-meeting-location').value = '';
+    }
+}
+
 function cancelAnnouncementEdit() {
     // Reset form
     document.getElementById('announcementForm').reset();
@@ -1100,16 +1492,21 @@ function cancelAnnouncementEdit() {
     document.getElementById('ann-old-image').value = '';
     document.getElementById('announcement-form-title').textContent = 'Create Announcement';
     document.getElementById('ann-submit-btn').textContent = 'Create Announcement';
+    // Hide meeting fields
+    document.getElementById('ann-meeting-fields').classList.add('hidden');
     toggleForm('announcement-form');
 }
 
-async function deleteAnnouncement(id) {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
+async function archiveAnnouncement(id) {
+    if (!confirm('Are you sure you want to archive this announcement?')) return;
     
     try {
         const formData = new FormData();
-        formData.append('action', 'delete');
+        formData.append('action', 'archive');
         formData.append('id', id);
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
         
         const response = await fetch(ADMIN_API.announcements, {
             method: 'POST',
@@ -1119,13 +1516,13 @@ async function deleteAnnouncement(id) {
         const result = await response.json();
         
         if (result.success) {
-            showAlert('Announcement deleted successfully', 'success');
+            showAlert('Announcement archived successfully', 'success');
             loadAnnouncementsList();
         } else {
-            showAlert(result.error || 'Error deleting announcement', 'error');
+            showAlert(result.error || 'Error archiving announcement', 'error');
         }
     } catch (error) {
-        showAlert('Failed to delete announcement', 'error');
+        showAlert('Failed to archive announcement', 'error');
         console.error('Error:', error);
     }
 }
@@ -1134,13 +1531,45 @@ async function deleteAnnouncement(id) {
 document.addEventListener('DOMContentLoaded', function() {
     const annForm = document.getElementById('announcementForm');
     if (annForm) {
+        const annStatusEl = document.getElementById('ann-status');
+        if (window.ADMIN_CAN_PUBLISH === false && annStatusEl) {
+            annStatusEl.innerHTML = '<option value="draft">Draft</option><option value="pending_review">Pending Review</option>';
+            annStatusEl.value = 'draft';
+        }
         annForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
+            if (window.CSRF_TOKEN) {
+                formData.append('csrf_token', window.CSRF_TOKEN);
+            }
+            
+            // Clear previous errors
+            document.querySelectorAll('.field-error').forEach(el => el.remove());
+            document.querySelectorAll('.border-red-500').forEach(el => {
+                el.classList.remove('border-red-500', 'border-2');
+                el.classList.add('border-gray-200');
+            });
+            
+            // Validate form
+            const validationErrors = validateAnnouncementForm(formData);
+            if (validationErrors.length > 0) {
+                validationErrors.forEach(error => {
+                    showFieldError(error.field, error.message);
+                });
+                showAlert('Please fix the errors in the form', 'error');
+                return;
+            }
+            
             const id = formData.get('id');
             formData.append('action', id ? 'update' : 'create');
-            formData.append('status', 'published');
+            formData.set('status', annStatusEl ? annStatusEl.value : 'draft');
+            
+            // Show loading state
+            const submitBtn = document.getElementById('ann-submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
             
             try {
                 const response = await fetch(ADMIN_API.announcements, {
@@ -1157,10 +1586,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     loadAnnouncementsList();
                 } else {
                     showAlert(result.error || 'Error saving announcement', 'error');
+                    if (result.errors) {
+                        result.errors.forEach(error => {
+                            const fieldId = 'ann-' + error.field;
+                            showFieldError(fieldId, error.message);
+                        });
+                    }
                 }
             } catch (error) {
                 showAlert('Failed to save announcement', 'error');
                 console.error('Error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
     }
@@ -1191,7 +1629,7 @@ async function loadEventsList() {
     }
 }
 
-function displayEventsList(events) {
+function displayEventsList(events, pagination = null) {
     const container = document.getElementById('events-list');
     if (!container) return;
     
@@ -1200,7 +1638,25 @@ function displayEventsList(events) {
         return;
     }
     
-    const html = events.map(event => {
+    // Add bulk actions UI
+    let html = `
+        <div class="mb-4 flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="select-all-events" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" onchange="toggleSelectAll('events', this.checked)">
+                    <span class="text-sm font-medium text-gray-700">Select All</span>
+                </label>
+                <button onclick="archiveAllItems('events')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-medium border-2 border-gray-300">Archive All</button>
+                <span id="selected-count-events" class="text-sm text-gray-600 hidden">0 selected</span>
+            </div>
+            <div id="bulk-actions-events" class="hidden flex gap-2">
+                <button onclick="bulkAction('events', 'publish')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">Publish</button>
+                <button onclick="bulkAction('events', 'archive')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-medium border-2 border-gray-300">Archive</button>
+            </div>
+        </div>
+    `;
+    
+    html += events.map(event => {
         const date = new Date(event.date).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -1228,6 +1684,7 @@ function displayEventsList(events) {
         
         return `
             <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex gap-4 items-start hover:shadow-md transition-shadow">
+                <input type="checkbox" class="item-checkbox w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 mt-1" value="${event.id}" onchange="updateBulkActions('events')">
                 ${imageUrl ? `<img src="${imageUrl}" alt="${event.title}" class="w-36 h-24 object-cover rounded-lg flex-shrink-0 bg-gray-100" style="min-width: 144px; min-height: 96px;" onerror="console.error('Image failed to load:', this.src); this.style.display='none'">` : ''}
                 <div class="flex-1">
                     <div class="flex justify-between items-start mb-2">
@@ -1237,7 +1694,7 @@ function displayEventsList(events) {
                         </div>
                         <div class="flex gap-2">
                             <button onclick="editEvent(${event.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Edit</button>
-                            <button onclick="deleteEvent(${event.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Delete</button>
+                            <button onclick="archiveEvent(${event.id})" class="px-3 py-1.5 text-xs font-semibold text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors border-2 border-gray-300">Archive</button>
                         </div>
                     </div>
                     <p class="text-sm text-gray-600 mb-2">${event.caption || event.description || ''}</p>
@@ -1246,6 +1703,11 @@ function displayEventsList(events) {
             </div>
         `;
     }).join('');
+    
+    // Add pagination
+    if (pagination && pagination.total_pages > 1) {
+        html += generatePagination('events', pagination);
+    }
     
     container.innerHTML = html;
 }
@@ -1370,13 +1832,16 @@ function cancelEventEdit() {
     toggleForm('event-form');
 }
 
-async function deleteEvent(id) {
-    if (!confirm('Are you sure you want to delete this event? This will also delete all associated images.')) return;
+async function archiveEvent(id) {
+    if (!confirm('Are you sure you want to archive this event?')) return;
     
     try {
         const formData = new FormData();
-        formData.append('action', 'delete');
+        formData.append('action', 'archive');
         formData.append('id', id);
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
         
         const response = await fetch(ADMIN_API.events, {
             method: 'POST',
@@ -1386,13 +1851,13 @@ async function deleteEvent(id) {
         const result = await response.json();
         
         if (result.success) {
-            showAlert('Event deleted successfully', 'success');
+            showAlert('Event archived successfully', 'success');
             loadEventsList();
         } else {
-            showAlert(result.error || 'Error deleting event', 'error');
+            showAlert(result.error || 'Error archiving event', 'error');
         }
     } catch (error) {
-        showAlert('Failed to delete event', 'error');
+        showAlert('Failed to archive event', 'error');
         console.error('Error:', error);
     }
 }
@@ -1401,13 +1866,40 @@ async function deleteEvent(id) {
 document.addEventListener('DOMContentLoaded', function() {
     const eventForm = document.getElementById('eventForm');
     if (eventForm) {
+        const evtStatusEl = document.getElementById('evt-status');
+        if (window.ADMIN_CAN_PUBLISH === false && evtStatusEl) {
+            evtStatusEl.innerHTML = '<option value="draft">Draft</option><option value="pending_review">Pending Review</option>';
+            evtStatusEl.value = 'draft';
+        }
         eventForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
+            if (window.CSRF_TOKEN) {
+                formData.append('csrf_token', window.CSRF_TOKEN);
+            }
+            
+            // Clear previous errors
+            document.querySelectorAll('.field-error').forEach(el => el.remove());
+            document.querySelectorAll('.border-red-500').forEach(el => {
+                el.classList.remove('border-red-500', 'border-2');
+                el.classList.add('border-gray-200');
+            });
+            
+            // Validate form
+            const validationErrors = validateEventForm(formData);
+            if (validationErrors.length > 0) {
+                validationErrors.forEach(error => {
+                    showFieldError(error.field, error.message);
+                });
+                showAlert('Please fix the errors in the form', 'error');
+                return;
+            }
+            
             const id = formData.get('id');
             formData.append('action', id ? 'update' : 'create');
-            formData.append('status', 'published');
+            const evtStatusEl = document.getElementById('evt-status');
+            formData.set('status', evtStatusEl ? evtStatusEl.value : 'draft');
             
             // Explicitly append multiple gallery files (FormData from form can miss multiple in some browsers)
             const galleryInput = document.getElementById('evt-gallery');
@@ -1418,10 +1910,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // If updating and no new image, make image not required
-            if (id && !formData.get('image').name) {
-                // Image is optional on update if old_image exists
-            }
+            // Show loading state
+            const submitBtn = document.getElementById('evt-submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
             
             try {
                 const response = await fetch(ADMIN_API.events, {
@@ -1438,10 +1931,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     loadEventsList();
                 } else {
                     showAlert(result.error || 'Error saving event', 'error');
+                    if (result.errors) {
+                        result.errors.forEach(error => {
+                            const fieldId = 'evt-' + error.field;
+                            showFieldError(fieldId, error.message);
+                        });
+                    }
                 }
             } catch (error) {
                 showAlert('Failed to save event', 'error');
                 console.error('Error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
     }
@@ -1458,6 +1960,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             const formData = new FormData(this);
+            if (window.CSRF_TOKEN) {
+                formData.append('csrf_token', window.CSRF_TOKEN);
+            }
             const action = document.getElementById('hol-action').value || 'create';
             formData.set('action', action);
             try {
@@ -1709,6 +2214,9 @@ async function deleteHoliday(id) {
         const formData = new FormData();
         formData.append('action', 'delete');
         formData.append('id', id);
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
         const response = await fetch(ADMIN_API.holidays, {
             method: 'POST',
             body: formData
@@ -1750,7 +2258,7 @@ async function loadDocumentsList() {
     }
 }
 
-function displayDocumentsList(documents) {
+function displayDocumentsList(documents, pagination = null) {
     const container = document.getElementById('documents-list');
     if (!container) return;
     
@@ -1758,6 +2266,24 @@ function displayDocumentsList(documents) {
         container.innerHTML = '<p class="text-gray-500 text-center py-8">No documents found. Create your first document!</p>';
         return;
     }
+    
+    // Add bulk actions UI
+    let html = `
+        <div class="mb-4 flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="select-all-documents" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" onchange="toggleSelectAll('documents', this.checked)">
+                    <span class="text-sm font-medium text-gray-700">Select All</span>
+                </label>
+                <button onclick="archiveAllItems('documents')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-medium border-2 border-gray-300">Archive All</button>
+                <span id="selected-count-documents" class="text-sm text-gray-600 hidden">0 selected</span>
+            </div>
+            <div id="bulk-actions-documents" class="hidden flex gap-2">
+                <button onclick="bulkAction('documents', 'publish')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">Publish</button>
+                <button onclick="bulkAction('documents', 'archive')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm font-medium border-2 border-gray-300">Archive</button>
+            </div>
+        </div>
+    `;
     
     const categoryNames = {
         '01': 'OFFICES REPORT',
@@ -1767,7 +2293,7 @@ function displayDocumentsList(documents) {
         '05': 'OTHER'
     };
     
-    const html = documents.map(doc => {
+    const documentsHtml = documents.map(doc => {
         const date = new Date(doc.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
@@ -1777,6 +2303,7 @@ function displayDocumentsList(documents) {
         
         return `
             <div class="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex gap-4 items-start hover:shadow-md transition-shadow">
+                <input type="checkbox" class="item-checkbox w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 mt-1" value="${doc.id}" onchange="updateBulkActions('documents')">
                 <div class="text-5xl flex-shrink-0">📄</div>
                 <div class="flex-1">
                     <div class="flex justify-between items-start mb-2">
@@ -1786,7 +2313,7 @@ function displayDocumentsList(documents) {
                         </div>
                         <div class="flex gap-2">
                             <button onclick="editDocument(${doc.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Edit</button>
-                            <button onclick="deleteDocument(${doc.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Delete</button>
+                            <button onclick="archiveDocument(${doc.id})" class="px-3 py-1.5 text-xs font-semibold text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors border-2 border-gray-300">Archive</button>
                         </div>
                     </div>
                     ${doc.description ? `<p class="text-sm text-gray-600 mb-2">${doc.description}</p>` : ''}
@@ -1796,7 +2323,53 @@ function displayDocumentsList(documents) {
         `;
     }).join('');
     
+    html += documentsHtml;
+    
+    // Add pagination
+    if (pagination && pagination.total_pages > 1) {
+        html += generatePagination('documents', pagination);
+    }
+    
     container.innerHTML = html;
+}
+
+function updateDocumentSubcategory() {
+    const category = document.getElementById('doc-category').value;
+    const subcategorySelect = document.getElementById('doc-subcategory');
+    const documentTypeGroup = document.getElementById('doc-document-type-group');
+    
+    // Clear existing options
+    subcategorySelect.innerHTML = '<option value="">Select subcategory...</option>';
+    
+    if (category === '01') {
+        // Office Reports subcategories
+        const subcategories = [
+            { value: 'OTP', label: 'OTP Report - InnoVision Masterplan' },
+            { value: 'OVIA', label: 'OVIA Report - TechCare Summary' },
+            { value: 'OVPEA', label: 'OVPEA Report - External Partnership' },
+            { value: 'OS', label: 'OS Report - Documents Summary' },
+            { value: 'OTA', label: 'OTA Report - Financial Report' },
+            { value: 'OBPR', label: 'OBPR Report' },
+            { value: 'Media Publication', label: 'Media and Publication Division Report' },
+            { value: 'Arts Craft', label: 'Arts and Craft Division Report' },
+            { value: 'Documentation', label: 'Media Documentation Report' },
+            { value: 'Business', label: 'Business Report' }
+        ];
+        subcategories.forEach(sub => {
+            const option = document.createElement('option');
+            option.value = sub.value;
+            option.textContent = sub.label;
+            subcategorySelect.appendChild(option);
+        });
+        documentTypeGroup.style.display = 'none';
+    } else if (category === '02') {
+        // Executive Orders - show document type instead
+        documentTypeGroup.style.display = 'block';
+        subcategorySelect.style.display = 'none';
+    } else {
+        subcategorySelect.style.display = 'block';
+        documentTypeGroup.style.display = 'none';
+    }
 }
 
 function editDocument(id) {
@@ -1811,6 +2384,26 @@ function editDocument(id) {
                     document.getElementById('doc-title').value = doc.title;
                     document.getElementById('doc-description').value = doc.description || '';
                     document.getElementById('doc-category').value = doc.category;
+                    
+                    // Update subcategory dropdown based on category
+                    updateDocumentSubcategory();
+                    
+                    // Populate new fields
+                    if (doc.subcategory) {
+                        document.getElementById('doc-subcategory').value = doc.subcategory;
+                    }
+                    if (doc.document_type) {
+                        document.getElementById('doc-document-type').value = doc.document_type;
+                    }
+                    if (doc.series_year) {
+                        document.getElementById('doc-series-year').value = doc.series_year;
+                    }
+                    if (doc.academic_year) {
+                        document.getElementById('doc-academic-year').value = doc.academic_year;
+                    }
+                    
+                    const docStatus = document.getElementById('doc-status');
+                    if (docStatus) docStatus.value = doc.status || 'draft';
                     
                     // Store old file path
                     if (doc.file_path) {
@@ -1851,13 +2444,16 @@ function cancelDocumentEdit() {
     toggleForm('document-form');
 }
 
-async function deleteDocument(id) {
-    if (!confirm('Are you sure you want to delete this document? This will also delete the associated PDF file.')) return;
+async function archiveDocument(id) {
+    if (!confirm('Are you sure you want to archive this document?')) return;
     
     try {
         const formData = new FormData();
-        formData.append('action', 'delete');
+        formData.append('action', 'archive');
         formData.append('id', id);
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
         
         const response = await fetch(ADMIN_API.documents, {
             method: 'POST',
@@ -1867,13 +2463,13 @@ async function deleteDocument(id) {
         const result = await response.json();
         
         if (result.success) {
-            showAlert('Document deleted successfully', 'success');
+            showAlert('Document archived successfully', 'success');
             loadDocumentsList();
         } else {
-            showAlert(result.error || 'Error deleting document', 'error');
+            showAlert(result.error || 'Error archiving document', 'error');
         }
     } catch (error) {
-        showAlert('Failed to delete document', 'error');
+        showAlert('Failed to archive document', 'error');
         console.error('Error:', error);
     }
 }
@@ -1882,18 +2478,47 @@ async function deleteDocument(id) {
 document.addEventListener('DOMContentLoaded', function() {
     const docForm = document.getElementById('documentForm');
     if (docForm) {
+        const docStatusEl = document.getElementById('doc-status');
+        if (window.ADMIN_CAN_PUBLISH === false && docStatusEl) {
+            docStatusEl.innerHTML = '<option value="draft">Draft</option><option value="pending_review">Pending Review</option>';
+            docStatusEl.value = 'draft';
+        }
         docForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
+            if (window.CSRF_TOKEN) {
+                formData.append('csrf_token', window.CSRF_TOKEN);
+            }
+            
+            // Clear previous errors
+            document.querySelectorAll('.field-error').forEach(el => el.remove());
+            document.querySelectorAll('.border-red-500').forEach(el => {
+                el.classList.remove('border-red-500', 'border-2');
+                el.classList.add('border-gray-200');
+            });
+            
+            // Validate form
+            const validationErrors = validateDocumentForm(formData);
+            if (validationErrors.length > 0) {
+                validationErrors.forEach(error => {
+                    const fieldId = 'doc-' + error.field;
+                    showFieldError(fieldId, error.message);
+                });
+                showAlert('Please fix the errors in the form', 'error');
+                return;
+            }
+            
             const id = formData.get('id');
             formData.append('action', id ? 'update' : 'create');
-            formData.append('status', 'published');
+            const docStatusEl = document.getElementById('doc-status');
+            formData.set('status', docStatusEl ? docStatusEl.value : 'draft');
             
-            // If updating and no new file, file is optional
-            if (id && !formData.get('file').name) {
-                // File is optional on update
-            }
+            // Show loading state
+            const submitBtn = document.getElementById('doc-submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
             
             try {
                 const response = await fetch(ADMIN_API.documents, {
@@ -1924,6 +2549,117 @@ document.addEventListener('DOMContentLoaded', function() {
         loadAnnouncementsList();
     }
 });
+
+// ============================================
+// INQUIRIES (Contact form submissions)
+// ============================================
+async function loadInquiriesList() {
+    const container = document.getElementById('inquiries-list');
+    if (!container) return;
+    container.innerHTML = '<p class="text-gray-500 text-center py-8">Loading inquiries...</p>';
+    try {
+        const response = await fetch(ADMIN_API.inquiries);
+        const result = await response.json();
+        if (result.success && result.data) {
+            displayInquiriesList(result.data);
+        } else {
+            container.innerHTML = '<p class="text-gray-500 text-center py-8">No inquiries or error loading.</p>';
+        }
+    } catch (e) {
+        container.innerHTML = '<p class="text-red-600 text-center py-8">Failed to load inquiries.</p>';
+    }
+}
+
+function displayInquiriesList(inquiries) {
+    const container = document.getElementById('inquiries-list');
+    if (!container) return;
+    const canRespond = window.ADMIN_CAN_PUBLISH === true;
+    if (!inquiries || inquiries.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-center py-8">No inquiries yet.</p>';
+        return;
+    }
+    const html = inquiries.map(inq => {
+        const date = new Date(inq.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+        const statusClass = inq.status === 'open' ? 'bg-amber-100 text-amber-800' : inq.status === 'closed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+        const respondBtn = canRespond ? `<button onclick="openRespondModal(${inq.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Respond</button>` : '';
+        return `
+            <div class="border border-gray-200 rounded-xl p-4 mb-4 bg-gray-50">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <strong class="text-gray-900">${escapeHtml(inq.name)}</strong>
+                        <span class="text-gray-500 text-sm ml-2">${escapeHtml(inq.email)}</span>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <span class="px-2 py-1 text-xs font-medium rounded ${statusClass}">${inq.status}</span>
+                        ${respondBtn}
+                    </div>
+                </div>
+                ${inq.subject ? `<p class="text-sm text-gray-600 mb-1"><strong>Subject:</strong> ${escapeHtml(inq.subject)}</p>` : ''}
+                <p class="text-sm text-gray-700 whitespace-pre-wrap">${escapeHtml(inq.message)}</p>
+                <p class="text-xs text-gray-500 mt-2">${date}</p>
+                ${inq.response_text ? `<div class="mt-3 pt-3 border-t border-gray-200"><p class="text-xs text-gray-600 font-semibold">Response:</p><p class="text-sm text-gray-700 whitespace-pre-wrap">${escapeHtml(inq.response_text)}</p></div>` : ''}
+            </div>
+        `;
+    }).join('');
+    
+    // Add pagination
+    if (pagination && pagination.total_pages > 1) {
+        html += generatePagination('documents', pagination);
+    }
+    
+    container.innerHTML = html;
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function openRespondModal(id) {
+    const form = document.getElementById('inquiry-respond-form');
+    const modal = document.getElementById('inquiry-respond-modal');
+    const inpId = document.getElementById('inquiry-respond-id');
+    if (!form || !modal || !inpId) return;
+    inpId.value = id;
+    modal.classList.remove('hidden');
+    document.getElementById('inquiry-respond-text').value = '';
+    document.getElementById('inquiry-respond-status').value = 'closed';
+}
+
+function closeInquiryRespondModal() {
+    const modal = document.getElementById('inquiry-respond-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function submitInquiryResponse(e) {
+    e.preventDefault();
+    const id = document.getElementById('inquiry-respond-id').value;
+    const responseText = document.getElementById('inquiry-respond-text').value;
+    const status = document.getElementById('inquiry-respond-status').value;
+    const formData = new FormData();
+    formData.append('action', 'respond');
+    formData.append('id', id);
+    formData.append('response_text', responseText);
+    formData.append('status', status);
+    if (window.CSRF_TOKEN) {
+        formData.append('csrf_token', window.CSRF_TOKEN);
+    }
+    try {
+        const response = await fetch(ADMIN_API.inquiries, { method: 'POST', body: formData });
+        const result = await response.json();
+        if (result.success) {
+            showAlert(result.message, 'success');
+            closeInquiryRespondModal();
+            loadInquiriesList();
+        } else {
+            showAlert(result.error || 'Error', 'error');
+        }
+    } catch (err) {
+        showAlert('Failed to save response', 'error');
+    }
+}
 
 // Alert function
 function showAlert(message, type = 'success') {
@@ -1971,37 +2707,255 @@ function showAlert(message, type = 'success') {
 
 // Global: used by PHP-rendered announcement "Read more" buttons
 function showAnnouncementModal(announcement) {
-    if (!announcement) return;
+    console.log('[Announcement Modal] Function called with:', announcement);
+    
+    // Ensure function is available globally
+    if (typeof window !== 'undefined') {
+        window.showAnnouncementModal = showAnnouncementModal;
+    }
+    
+    if (!announcement) {
+        console.error('[Announcement Modal] No announcement data provided');
+        alert('Announcement data is missing. Please try again.');
+        return;
+    }
+    
+    // Handle string JSON if passed as string
+    if (typeof announcement === 'string') {
+        try {
+            announcement = JSON.parse(announcement);
+            console.log('[Announcement Modal] Parsed JSON string:', announcement);
+        } catch (e) {
+            console.error('[Announcement Modal] Failed to parse JSON:', e);
+            alert('Error loading announcement data.');
+            return;
+        }
+    }
+    
+    // Get or create modal element
+    let modal = document.getElementById('announcement-modal');
+    if (!modal) {
+        console.log('[Announcement Modal] Creating new modal element');
+        // Create modal structure
+        modal = document.createElement('div');
+        modal.id = 'announcement-modal';
+        modal.className = 'announcement-modal';
+        modal.innerHTML = `
+            <div class="announcement-modal-overlay" onclick="closeAnnouncementModal()"></div>
+            <div class="announcement-modal-content">
+                <button class="announcement-modal-close" onclick="closeAnnouncementModal()" aria-label="Close modal">×</button>
+                <div class="announcement-modal-header">
+                    <h2 class="announcement-modal-title" id="announcement-modal-title"></h2>
+                    <div class="announcement-modal-date" id="announcement-modal-date"></div>
+                    <div class="announcement-modal-meeting-info" id="announcement-modal-meeting-info" style="display: none;">
+                        <div class="meeting-detail-item" id="meeting-date-time"></div>
+                        <div class="meeting-detail-item" id="meeting-location"></div>
+                        <div class="meeting-detail-item" id="meeting-purpose"></div>
+                    </div>
+                </div>
+                <div class="announcement-modal-body">
+                    <div class="announcement-modal-description" id="announcement-modal-description"></div>
+                    <div class="announcement-modal-content-full" id="announcement-modal-content-full"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        console.log('[Announcement Modal] Modal element created and appended to body');
+    } else {
+        console.log('[Announcement Modal] Using existing modal element');
+    }
+    
+    // Format date
     const date = announcement.created_at
-        ? new Date(announcement.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: '2-digit' })
+        ? new Date(announcement.created_at).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        })
         : '';
-    const content = announcement.content || announcement.description || '';
-    const text = [announcement.title, date, content].filter(Boolean).join('\n\n');
-    if (text) alert(text);
+    
+    // Populate modal content
+    document.getElementById('announcement-modal-title').textContent = announcement.title || 'Announcement';
+    document.getElementById('announcement-modal-date').textContent = date;
+    
+    // Handle meeting information - show if it has meeting fields (date or location)
+    const hasMeetingInfo = announcement.meeting_date || announcement.meeting_location || announcement.is_meeting == 1 || announcement.is_meeting === true;
+    const meetingInfoEl = document.getElementById('announcement-modal-meeting-info');
+    
+    if (hasMeetingInfo && (announcement.meeting_date || announcement.meeting_location)) {
+        meetingInfoEl.style.display = 'block';
+        
+        // Meeting date and time
+        const meetingDateEl = document.getElementById('meeting-date-time');
+        if (announcement.meeting_date) {
+            try {
+                const meetingDate = new Date(announcement.meeting_date);
+                const dateStr = meetingDate.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                const timeStr = meetingDate.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+                
+                let dateTimeText = `📅 Date & Time: ${dateStr} at ${timeStr}`;
+                
+                if (announcement.meeting_end_date) {
+                    try {
+                        const endDate = new Date(announcement.meeting_end_date);
+                        const endTimeStr = endDate.toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true 
+                        });
+                        dateTimeText += ` - ${endTimeStr}`;
+                    } catch (e) {
+                        console.error('Error parsing end date:', e);
+                    }
+                }
+                
+                meetingDateEl.textContent = dateTimeText;
+                meetingDateEl.style.display = 'block';
+            } catch (e) {
+                console.error('Error parsing meeting date:', e);
+                meetingDateEl.style.display = 'none';
+            }
+        } else {
+            meetingDateEl.style.display = 'none';
+        }
+        
+        // Meeting location (always show if available, even if not marked as meeting)
+        const meetingLocationEl = document.getElementById('meeting-location');
+        if (announcement.meeting_location) {
+            meetingLocationEl.textContent = `📍 Location: ${announcement.meeting_location}`;
+            meetingLocationEl.style.display = 'block';
+        } else {
+            meetingLocationEl.style.display = 'none';
+        }
+        
+        // Meeting purpose (what it's for) - use title
+        const meetingPurposeEl = document.getElementById('meeting-purpose');
+        const purpose = announcement.title || '';
+        if (purpose.trim()) {
+            meetingPurposeEl.textContent = `📋 What it's for: ${purpose}`;
+            meetingPurposeEl.style.display = 'block';
+        } else {
+            meetingPurposeEl.style.display = 'none';
+        }
+    } else {
+        meetingInfoEl.style.display = 'none';
+    }
+    
+    const description = announcement.description || '';
+    const fullContent = announcement.content || '';
+    
+    const descriptionEl = document.getElementById('announcement-modal-description');
+    if (description && description.trim()) {
+        // Use textContent for description to prevent XSS, but preserve line breaks
+        descriptionEl.textContent = description;
+        descriptionEl.style.display = 'block';
+        descriptionEl.style.whiteSpace = 'pre-wrap';
+    } else {
+        descriptionEl.style.display = 'none';
+    }
+    
+    const contentEl = document.getElementById('announcement-modal-content-full');
+    if (fullContent && fullContent.trim()) {
+        // Check if content contains HTML tags
+        const hasHtmlTags = /<[a-z][\s\S]*>/i.test(fullContent);
+        if (hasHtmlTags) {
+            // If HTML is present, use innerHTML (content is trusted from database)
+            contentEl.innerHTML = fullContent;
+        } else {
+            // Otherwise, preserve line breaks as <br> tags
+            contentEl.innerHTML = fullContent.replace(/\n/g, '<br>');
+        }
+        contentEl.style.display = 'block';
+    } else {
+        contentEl.style.display = 'none';
+    }
+    
+    // Show modal
+    console.log('[Announcement Modal] Showing modal');
+    console.log('[Announcement Modal] Modal element:', modal);
+    console.log('[Announcement Modal] Modal classes before:', modal.className);
+    
+    // Remove any hidden classes first
+    modal.classList.remove('hidden');
+    
+    // Add active class
+    modal.classList.add('active');
+    
+    // Force inline styles to ensure visibility
+    modal.style.display = 'flex';
+    modal.style.visibility = 'visible';
+    modal.style.opacity = '1';
+    modal.style.zIndex = '10001';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.right = '0';
+    modal.style.bottom = '0';
+    
+    document.body.style.overflow = 'hidden';
+    
+    console.log('[Announcement Modal] Modal classes after:', modal.className);
+    console.log('[Announcement Modal] Modal computed display:', window.getComputedStyle(modal).display);
+    
+    // Force display in case CSS doesn't apply immediately
+    setTimeout(() => {
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.style.visibility = 'visible';
+            modal.style.opacity = '1';
+            modal.style.zIndex = '10001';
+            console.log('[Announcement Modal] Modal should now be visible');
+            console.log('[Announcement Modal] Final computed display:', window.getComputedStyle(modal).display);
+            
+            // Verify modal is in DOM
+            const modalInDom = document.getElementById('announcement-modal');
+            if (modalInDom) {
+                console.log('[Announcement Modal] ✓ Modal is in DOM');
+            } else {
+                console.error('[Announcement Modal] ✗ Modal is NOT in DOM');
+            }
+        }
+    }, 50);
+    
+    // Close on Escape key
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeAnnouncementModal();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+}
+
+function closeAnnouncementModal() {
+    console.log('[Announcement Modal] Closing modal');
+    
+    // Ensure function is available globally
+    if (typeof window !== 'undefined') {
+        window.closeAnnouncementModal = closeAnnouncementModal;
+    }
+    
+    const modal = document.getElementById('announcement-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        modal.style.visibility = 'hidden';
+        modal.style.opacity = '0';
+        document.body.style.overflow = '';
+    }
 }
 
 // Read More button handler (for static/JS-rendered cards)
-(function initReadMoreButtons() {
-    document.addEventListener('click', function(e) {
-        if (!e.target.classList.contains('btn-read-more')) return;
-        const announcementId = e.target.getAttribute('data-id');
-        const announcement = staticAnnouncements.find(item => (item._id || item.id) === announcementId);
-
-        if (announcement) {
-            const date = new Date(announcement.date).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: '2-digit'
-            });
-
-            alert(`${announcement.title}\n\nDate: ${date}\n\n${announcement.fullContent || announcement.description}`);
-        } else {
-            const card = e.target.closest('.announcement-card');
-            const title = card?.querySelector('.announcement-title')?.textContent || 'Announcement';
-            alert(`Opening announcement: ${title}\n\nYou can replace this alert with a modal or navigate to a detail page.`);
-        }
-    });
-})();
+// REMOVED: This old handler used alert() and conflicted with the new modal implementation.
+// The event delegation in ensureAnnouncementModalFunctions() now handles all announcement clicks.
 
 // Document folder click handler
 (function initDocumentFolders() {
@@ -2052,11 +3006,225 @@ function showAnnouncementModal(announcement) {
     }
 })();
 
+// Ensure announcement modal functions are available globally on page load
+// Also set up event delegation for announcement cards
+(function ensureAnnouncementModalFunctions() {
+    function init() {
+        // Make functions globally available
+        if (typeof window !== 'undefined') {
+            window.showAnnouncementModal = showAnnouncementModal;
+            window.closeAnnouncementModal = closeAnnouncementModal;
+            console.log('[Announcement Modal] Functions registered globally');
+            
+            // Test that function is accessible
+            if (typeof window.showAnnouncementModal === 'function') {
+                console.log('[Announcement Modal] ✓ Function is accessible');
+            } else {
+                console.error('[Announcement Modal] ✗ Function is NOT accessible');
+            }
+        }
+        
+        // Set up event delegation for announcement cards and buttons
+        // Use capture phase to ensure we catch events before other handlers
+        document.addEventListener('click', function(e) {
+            // Check if clicked element is a read more button or announcement card
+            const readMoreBtn = e.target.closest('.btn-read-more');
+            const announcementCard = e.target.closest('.announcement-card');
+            
+            if (readMoreBtn && readMoreBtn.hasAttribute('data-announcement')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation(); // Prevent other handlers from running
+                console.log('[Announcement Modal] Read More button clicked');
+                
+                try {
+                    const announcementData = readMoreBtn.getAttribute('data-announcement');
+                    const announcement = JSON.parse(announcementData);
+                    console.log('[Announcement Modal] Parsed announcement data:', announcement);
+                    
+                    if (typeof showAnnouncementModal === 'function') {
+                        showAnnouncementModal(announcement);
+                    } else {
+                        console.error('[Announcement Modal] Function not available, trying window.showAnnouncementModal');
+                        if (typeof window.showAnnouncementModal === 'function') {
+                            window.showAnnouncementModal(announcement);
+                        } else {
+                            console.error('[Announcement Modal] Function not loaded');
+                        }
+                    }
+                } catch (error) {
+                    console.error('[Announcement Modal] Error parsing announcement data:', error);
+                }
+            } else if (announcementCard && announcementCard.hasAttribute('data-announcement') && !readMoreBtn) {
+                // Only trigger on card click if not clicking the button
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation(); // Prevent other handlers from running
+                console.log('[Announcement Modal] Announcement card clicked');
+                
+                try {
+                    const announcementData = announcementCard.getAttribute('data-announcement');
+                    const announcement = JSON.parse(announcementData);
+                    console.log('[Announcement Modal] Parsed announcement data:', announcement);
+                    
+                    if (typeof showAnnouncementModal === 'function') {
+                        showAnnouncementModal(announcement);
+                    } else if (typeof window.showAnnouncementModal === 'function') {
+                        window.showAnnouncementModal(announcement);
+                    } else {
+                        console.error('[Announcement Modal] Function not available');
+                    }
+                } catch (error) {
+                    console.error('[Announcement Modal] Error parsing announcement data:', error);
+                }
+            }
+        }, true); // Use capture phase (true) to catch events before they bubble
+        
+        console.log('[Announcement Modal] Event delegation set up');
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
 // Page load logging
 window.addEventListener('load', function() {
     const loadTime = performance.now();
     console.log(`PROWLWAY page loaded in ${loadTime.toFixed(2)}ms`);
+    
+    // Verify announcement modal functions are available
+    if (typeof showAnnouncementModal === 'function') {
+        console.log('[Announcement Modal] ✓ Function available after page load');
+    } else {
+        console.error('[Announcement Modal] ✗ Function NOT available after page load');
+    }
 });
+
+// Bulk selection and actions
+function toggleSelectAll(type, checked) {
+    const checkboxes = document.querySelectorAll(`#${type}-list .item-checkbox:not(#select-all-${type})`);
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+    });
+    updateBulkActions(type);
+}
+
+function updateBulkActions(type) {
+    const checkboxes = document.querySelectorAll(`#${type}-list .item-checkbox:checked`);
+    const selectedCount = checkboxes.length;
+    const bulkActions = document.getElementById(`bulk-actions-${type}`);
+    const selectedCountEl = document.getElementById(`selected-count-${type}`);
+    const selectAllCheckbox = document.getElementById(`select-all-${type}`);
+    
+    if (selectedCountEl) {
+        if (selectedCount > 0) {
+            selectedCountEl.textContent = `${selectedCount} selected`;
+            selectedCountEl.classList.remove('hidden');
+        } else {
+            selectedCountEl.classList.add('hidden');
+        }
+    }
+    
+    if (bulkActions) {
+        if (selectedCount > 0) {
+            bulkActions.classList.remove('hidden');
+        } else {
+            bulkActions.classList.add('hidden');
+        }
+    }
+    
+    if (selectAllCheckbox) {
+        const allCheckboxes = document.querySelectorAll(`#${type}-list .item-checkbox:not(#select-all-${type})`);
+        selectAllCheckbox.checked = allCheckboxes.length > 0 && selectedCount === allCheckboxes.length;
+    }
+}
+
+async function bulkAction(type, action) {
+    const checkboxes = document.querySelectorAll(`#${type}-list .item-checkbox:checked`);
+    if (checkboxes.length === 0) {
+        showAlert('Please select at least one item', 'error');
+        return;
+    }
+    
+    const ids = Array.from(checkboxes).map(cb => cb.value);
+    const actionText = action === 'publish' ? 'publish' : 'archive';
+    if (!confirm(`Are you sure you want to ${actionText} ${ids.length} item(s)?`)) return;
+    
+    try {
+        const formData = new FormData();
+        formData.append('action', 'bulk');
+        formData.append('bulk_action', action);
+        ids.forEach(id => formData.append('ids[]', id));
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
+        
+        const apiEndpoint = ADMIN_API[type] || ADMIN_API.announcements;
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(`${ids.length} item(s) ${actionText}ed successfully`, 'success');
+            if (type === 'announcements') loadAnnouncementsList();
+            else if (type === 'events') loadEventsList();
+            else if (type === 'documents') loadDocumentsList();
+        } else {
+            showAlert(result.error || `Error ${actionText}ing items`, 'error');
+        }
+    } catch (error) {
+        showAlert(`Failed to ${actionText} items`, 'error');
+        console.error('Error:', error);
+    }
+}
+
+async function archiveAllItems(type) {
+    const checkboxes = document.querySelectorAll(`#${type}-list .item-checkbox:not(#select-all-${type})`);
+    if (checkboxes.length === 0) {
+        showAlert('No items to archive', 'error');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to archive all ${checkboxes.length} item(s)?`)) return;
+    
+    const ids = Array.from(checkboxes).map(cb => cb.value);
+    
+    try {
+        const formData = new FormData();
+        formData.append('action', 'bulk');
+        formData.append('bulk_action', 'archive');
+        ids.forEach(id => formData.append('ids[]', id));
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
+        
+        const apiEndpoint = ADMIN_API[type] || ADMIN_API.announcements;
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(`All ${ids.length} item(s) archived successfully`, 'success');
+            if (type === 'announcements') loadAnnouncementsList();
+            else if (type === 'events') loadEventsList();
+            else if (type === 'documents') loadDocumentsList();
+        } else {
+            showAlert(result.error || 'Error archiving items', 'error');
+        }
+    } catch (error) {
+        showAlert('Failed to archive items', 'error');
+        console.error('Error:', error);
+    }
+}
 
 console.log('PROWLWAY scripts initialized successfully');
 
