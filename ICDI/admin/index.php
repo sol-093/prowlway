@@ -469,6 +469,21 @@ $isSuperAdmin = $isLoggedIn && isSuperAdmin();
                                 Inquiries
                             </span>
                         </button>
+                        <?php if ($canPublish): ?>
+                        <button 
+                            onclick="switchTab('sponsors')" 
+                            class="tab-button px-8 py-4 text-sm font-bold text-gray-600 border-b-3 border-transparent hover:text-gray-900 hover:border-gray-300 transition-colors"
+                        >
+                            <span class="flex items-center gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                </svg>
+                                Sponsors
+                            </span>
+                        </button>
+                        <?php endif; ?>
                     </nav>
                 </div>
 
@@ -482,7 +497,7 @@ $isSuperAdmin = $isLoggedIn && isSuperAdmin();
                                 <p class="text-sm text-gray-500 mt-1">Manage site announcements and updates</p>
                             </div>
                             <button 
-                                onclick="toggleForm('announcement-form')" 
+                                onclick="resetAndShowAnnouncementForm()" 
                                 class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -527,13 +542,38 @@ $isSuperAdmin = $isLoggedIn && isSuperAdmin();
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label for="ann-image" class="block text-sm font-bold text-gray-700 mb-2">Image (optional)</label>
+                                        <label for="ann-image" class="block text-sm font-bold text-gray-700 mb-2">
+                                            Image <span id="ann-image-required-indicator" class="text-red-600 hidden">*</span>
+                                            <span class="text-gray-500 font-normal" id="ann-image-optional-text">(optional)</span>
+                                        </label>
                                         <div id="ann-image-preview" class="hidden mb-3">
                                             <img id="ann-image-preview-img" src="" alt="Preview" class="max-w-xs max-h-48 rounded-xl border-2 border-gray-200 shadow-md">
                                             <input type="hidden" id="ann-old-image" name="old_image">
                                         </div>
                                         <input type="file" id="ann-image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
-                                        <p class="mt-2 text-xs text-gray-500">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</p>
+                                        <p class="mt-2 text-xs text-gray-500">
+                                            <span id="ann-image-help-text">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP</span>
+                                            <span id="ann-image-required-text" class="text-red-600 font-semibold hidden"> • Required for published or pinned announcements</span>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label for="ann-pdf" class="block text-sm font-bold text-gray-700 mb-2">
+                                            PDF File <span class="text-gray-500 font-normal">(optional)</span>
+                                        </label>
+                                        <div id="ann-pdf-preview" class="hidden mb-3">
+                                            <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-xl border-2 border-gray-200">
+                                                <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                </svg>
+                                                <div class="flex-1">
+                                                    <p id="ann-pdf-filename" class="text-sm font-semibold text-gray-700"></p>
+                                                    <p class="text-xs text-gray-500">PDF Document</p>
+                                                </div>
+                                            </div>
+                                            <input type="hidden" id="ann-old-pdf" name="old_pdf">
+                                        </div>
+                                        <input type="file" id="ann-pdf" name="pdf_file" accept=".pdf,application/pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors">
+                                        <p class="mt-2 text-xs text-gray-500">Max size: 50MB. Format: PDF</p>
                                     </div>
                                     <div class="flex items-center">
                                         <label class="flex items-center gap-3 cursor-pointer">
@@ -681,9 +721,16 @@ $isSuperAdmin = $isLoggedIn && isSuperAdmin();
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label for="evt-date" class="block text-sm font-bold text-gray-700 mb-2">Event Date *</label>
+                                        <label for="evt-date" class="block text-sm font-bold text-gray-700 mb-2">Start Date *</label>
                                         <input type="date" id="evt-date" name="date" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onblur="clearFieldError('evt-date')">
                                     </div>
+                                    <div>
+                                        <label for="evt-end-date" class="block text-sm font-bold text-gray-700 mb-2">End Date (Optional)</label>
+                                        <input type="date" id="evt-end-date" name="end_date" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onblur="clearFieldError('evt-end-date')">
+                                        <p class="mt-1 text-xs text-gray-500">Leave empty for single-day events</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label for="evt-order" class="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
                                         <input type="number" id="evt-order" name="order" value="0" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
@@ -872,10 +919,11 @@ $isSuperAdmin = $isLoggedIn && isSuperAdmin();
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="doc-subcategory-group">
                                     <div>
-                                        <label for="doc-subcategory" class="block text-sm font-bold text-gray-700 mb-2">Subcategory</label>
-                                        <select id="doc-subcategory" name="subcategory" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <label for="doc-subcategory" class="block text-sm font-bold text-gray-700 mb-2">Subcategory *</label>
+                                        <select id="doc-subcategory" name="subcategory" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
                                             <option value="">Select subcategory...</option>
                                         </select>
+                                        <p class="mt-1 text-xs text-gray-500">Select a category first to load subcategories</p>
                                     </div>
                                     <div id="doc-document-type-group" style="display: none;">
                                         <label for="doc-document-type" class="block text-sm font-bold text-gray-700 mb-2">Document Type</label>
@@ -936,6 +984,76 @@ $isSuperAdmin = $isLoggedIn && isSuperAdmin();
                         <div id="documents-list" class="bg-white border-2 border-gray-200 rounded-xl p-6 min-h-[200px]">
                             <p class="text-gray-500 text-center py-8">Loading documents...</p>
                         </div>
+
+                        <!-- Subcategories Management Section -->
+                        <div class="mt-8 bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl p-8 shadow-lg">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xl font-bold text-gray-900 flex items-center gap-3">
+                                    <span class="w-1.5 h-8 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full"></span>
+                                    Manage Subcategories
+                                </h3>
+                                <button onclick="toggleForm('subcategory-form')" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <path d="M12 5v14M5 12h14"></path>
+                                    </svg>
+                                    <span>Add Subcategory</span>
+                                </button>
+                            </div>
+
+                            <!-- Subcategory Form -->
+                            <div id="subcategory-form" class="hidden mb-6 bg-white border border-gray-200 rounded-xl p-6">
+                                <h4 id="subcategory-form-title" class="text-lg font-bold text-gray-900 mb-4">Add New Subcategory</h4>
+                                <form id="subcategoryForm" class="space-y-4">
+                                    <?php if (function_exists('generateCSRFToken')): ?>
+                                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                    <?php endif; ?>
+                                    <input type="hidden" id="subcat-id" name="id">
+                                    <input type="hidden" id="subcat-action" name="action" value="create">
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="subcat-category" class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                                            <select id="subcat-category" name="category" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                                <option value="">Select category...</option>
+                                                <option value="01">01 - OFFICES REPORT</option>
+                                                <option value="02">02 - EXECUTIVE ORDER</option>
+                                                <option value="03">03 - ORDINANCE</option>
+                                                <option value="04">04 - RESOLUTION</option>
+                                                <option value="05">05 - OTHER</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label for="subcat-name" class="block text-sm font-semibold text-gray-700 mb-2">Subcategory Name *</label>
+                                            <input type="text" id="subcat-name" name="name" required maxlength="100" placeholder="e.g., OTP, OVIA, OVPEA" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="subcat-status" class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                                            <select id="subcat-status" name="status" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label for="subcat-order" class="block text-sm font-semibold text-gray-700 mb-2">Display Order</label>
+                                            <input type="number" id="subcat-order" name="display_order" value="0" min="0" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex gap-3 pt-2">
+                                        <button type="submit" id="subcat-submit-btn" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">Create Subcategory</button>
+                                        <button type="button" onclick="cancelSubcategoryEdit()" class="px-8 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Subcategories List -->
+                            <div id="subcategories-list" class="bg-white border border-gray-200 rounded-xl p-6 min-h-[200px]">
+                                <p class="text-gray-500 text-center py-8">Select a category to view subcategories</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Inquiries Tab -->
@@ -948,6 +1066,85 @@ $isSuperAdmin = $isLoggedIn && isSuperAdmin();
                             <p class="text-gray-500 text-center py-8">Loading inquiries...</p>
                         </div>
                     </div>
+
+                    <!-- Sponsors Tab -->
+                    <?php if ($canPublish): ?>
+                    <div class="tab-content hidden" id="sponsors-tab">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">Sponsors / Ads</h2>
+                                <p class="text-sm text-gray-500 mt-1">Manage sponsors and advertisements shown in popup</p>
+                            </div>
+                            <button 
+                                onclick="toggleForm('sponsor-form')" 
+                                class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>Add Sponsor</span>
+                            </button>
+                        </div>
+
+                        <!-- Sponsor Form -->
+                        <div id="sponsor-form" class="hidden bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl p-8 mb-6 shadow-lg">
+                            <h3 id="sponsor-form-title" class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                                <span class="w-1.5 h-8 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full"></span>
+                                <span>Add New Sponsor</span>
+                            </h3>
+                            <form id="sponsorForm" method="POST" enctype="multipart/form-data" onsubmit="submitSponsor(event)">
+                                <input type="hidden" name="action" value="create" id="sponsor-action">
+                                <input type="hidden" name="id" id="sponsor-id">
+                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                <input type="hidden" name="old_image" id="sponsor-old-image">
+                                
+                                <div class="space-y-6">
+                                    <div>
+                                        <label for="sponsor-title" class="block text-sm font-bold text-gray-700 mb-2">Title *</label>
+                                        <input type="text" id="sponsor-title" name="title" required class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white" onblur="clearFieldError('sponsor-title')">
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="sponsor-link-url" class="block text-sm font-bold text-gray-700 mb-2">Link URL (Optional)</label>
+                                        <input type="url" id="sponsor-link-url" name="link_url" placeholder="https://example.com" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        <p class="mt-1 text-xs text-gray-500">If provided, clicking the sponsor image will open this URL</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="sponsor-image" class="block text-sm font-bold text-gray-700 mb-2">Image *</label>
+                                        <input type="file" id="sponsor-image" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors" onchange="clearFieldError('sponsor-image')">
+                                        <p class="mt-2 text-xs text-gray-500">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP.</p>
+                                        <div id="sponsor-image-preview" class="mt-4"></div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label for="sponsor-order" class="block text-sm font-bold text-gray-700 mb-2">Display Order</label>
+                                            <input type="number" id="sponsor-order" name="display_order" value="0" min="0" class="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 bg-white">
+                                        </div>
+                                        <div>
+                                            <label class="flex items-center gap-3 cursor-pointer mt-8">
+                                                <input type="checkbox" name="active" value="1" id="sponsor-active" checked class="w-5 h-5 text-indigo-600 border-2 border-gray-300 rounded">
+                                                <span class="text-sm font-bold text-gray-700">Active (show in popup)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex gap-3 pt-4">
+                                        <button type="submit" class="px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5" id="sponsor-submit-btn">Create Sponsor</button>
+                                        <button type="button" onclick="cancelSponsorEdit()" class="px-8 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Sponsors List -->
+                        <div id="sponsors-list" class="bg-white border-2 border-gray-200 rounded-xl p-6 min-h-[200px]">
+                            <p class="text-gray-500 text-center py-8">Loading sponsors...</p>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

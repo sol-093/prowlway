@@ -37,6 +37,9 @@ if ($organization && $orgId > 0) {
 
 // Fetch organizations list for sidebar
 $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC");
+
+// Fetch faculty subcategories for sidebar
+$facultySubcategories = dbFetchAll("SELECT * FROM institute_sections WHERE type = 'faculty_subcategory' AND status = 'published' ORDER BY display_order ASC, title ASC");
 ?>
 
 <div class="origin-page-container">
@@ -200,8 +203,23 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                 <h2 class="sidebar-title">INSTITUTE</h2>
                 <ul class="sidebar-links">
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about">About</a></li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=faculty">Faculty Unit</a></li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=admin">Admin Representative</a></li>
+                    <li class="org-item-with-batch">
+                        <a href="<?php echo PUBLIC_URL; ?>/faculty.php">Faculty Unit</a>
+                        
+                        <!-- Subcategories - Show below Faculty Unit on hover -->
+                        <?php if (!empty($facultySubcategories)): ?>
+                        <ul class="sidebar-sublinks batch-hover-menu">
+                            <?php foreach ($facultySubcategories as $subcat): ?>
+                            <li>
+                                <a href="<?php echo htmlspecialchars($subcat['description'] ?: '#'); ?>" class="sidebar-sublink">
+                                    <?php echo htmlspecialchars($subcat['title']); ?>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <?php endif; ?>
+                    </li>
+                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative.php">Admin Representative</a></li>
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program">Program</a></li>
                 </ul>
             </div>
@@ -210,12 +228,29 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
             <div class="sidebar-section">
                 <h2 class="sidebar-title">STUDENT ORGANIZATION</h2>
                 <ul class="sidebar-links">
-                    <?php foreach ($organizationsList as $org): ?>
-                        <li>
+                    <?php 
+                    // Check if we're currently on the batches page
+                    $isBatchesPage = (basename($_SERVER['PHP_SELF']) === 'batches.php' && isset($_GET['org_id']));
+                    $currentBatchOrgId = $isBatchesPage ? (int)$_GET['org_id'] : null;
+                    
+                    foreach ($organizationsList as $org): 
+                        $isCurrentOrg = $organization && $org['id'] == $organization['id'];
+                    ?>
+                        <li class="org-item-with-batch">
                             <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $org['id']; ?>"
-                               class="<?php echo $organization && $org['id'] == $organization['id'] ? 'active' : ''; ?>">
+                               class="<?php echo $isCurrentOrg ? 'active' : ''; ?>">
                                 <?php echo htmlspecialchars($org['name']); ?>
                             </a>
+                            
+                            <!-- BATCH Subcategory - Show below organization on hover -->
+                            <ul class="sidebar-sublinks batch-hover-menu">
+                                <li>
+                                    <a href="<?php echo PUBLIC_URL; ?>/batches.php?org_id=<?php echo $org['id']; ?>" 
+                                       class="sidebar-sublink <?php echo ($isBatchesPage && $currentBatchOrgId == $org['id']) ? 'active' : ''; ?>">
+                                        BATCH
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                     <?php endforeach; ?>
                 </ul>

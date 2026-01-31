@@ -79,6 +79,38 @@ include '../includes/header.php';
                         CB1 2052
                     </p>
                     <p class="contact-note"><?php echo htmlspecialchars($siteName); ?> – ICDISG Archive Website</p>
+                    
+                    <!-- Tech Care Platform Section -->
+                    <div class="contact-techcare mt-8">
+                        <h3 class="techcare-title" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; color: #1f2937;">TECH CARE<br>PLATFORM</h3>
+                        <ul class="techcare-links" style="list-style: none; padding: 0; margin: 0;">
+                            <?php 
+                            // Fetch techcare links from settings
+                            $defaultTechcareLinks = [
+                                ['id' => 'concern',  'label' => 'Concern Form'],
+                                ['id' => 'printing', 'label' => 'Diy Printing Station'],
+                                ['id' => 'wiring',   'label' => 'Lab Wiring'],
+                                ['id' => 'outreach', 'label' => 'Outreach'],
+                            ];
+                            $techcareLinks = [];
+                            if (!empty($settings['techcare_links']) && is_array($settings['techcare_links'])) {
+                                $techcareLinks = $settings['techcare_links'];
+                            } else {
+                                $techcareLinks = $defaultTechcareLinks;
+                            }
+                            foreach ($techcareLinks as $item): 
+                                $id    = isset($item['id']) ? $item['id'] : '';
+                                $label = isset($item['label']) ? $item['label'] : $id;
+                                if ($label === '') continue;
+                            ?>
+                                <li style="margin-bottom: 0.5rem;">
+                                    <a href="<?php echo $id !== '' ? '#'.htmlspecialchars($id) : '#'; ?>" style="color: #4b5563; text-decoration: none; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#1f2937';" onmouseout="this.style.color='#4b5563';">
+                                        <?php echo htmlspecialchars($label); ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
                 </div>
 
                 <div class="contact-form-wrap flex-1">

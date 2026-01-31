@@ -3,8 +3,9 @@ require_once '../includes/config.php';
 require_once '../includes/database.php';
 require_once '../includes/upload.php';
 
-// Optional filter by organization (MOVED UP)
+// Filtering: Organization (from URL) → Batches
 $orgId = isset($_GET['org_id']) ? (int) $_GET['org_id'] : 0;
+
 $activeOrg = null;
 if ($orgId > 0) {
     $activeOrg = dbFetchOne("SELECT id, name, acronym FROM student_organizations WHERE id = ? AND status != 'archived'", [$orgId]);
@@ -14,14 +15,24 @@ $pageTitle = $activeOrg ? ('ORIGIN: ' . ($activeOrg['acronym'] ?: $activeOrg['na
 $bodyClass = 'origin-page';
 include '../includes/header.php';
 
-// Fetch active batches for grid
-$batches = dbFetchAll(
-    "SELECT b.* FROM batches b WHERE b.status = 'active' " . ($activeOrg ? "AND b.organization_id = ? " : "") . "ORDER BY b.display_order DESC, b.start_year DESC",
-    $activeOrg ? [$activeOrg['id']] : []
-);
-
-// Fetch organizations list for sidebar directory
+// Fetch organizations list for sidebar
 $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC");
+
+// Fetch faculty subcategories for sidebar
+$facultySubcategories = dbFetchAll("SELECT * FROM institute_sections WHERE type = 'faculty_subcategory' AND status = 'published' ORDER BY display_order ASC, title ASC");
+
+// Fetch batches for selected organization
+$batchesQuery = "SELECT b.* FROM batches b WHERE b.status = 'active'";
+$batchesParams = [];
+
+if ($activeOrg) {
+    $batchesQuery .= " AND b.organization_id = ?";
+    $batchesParams[] = $activeOrg['id'];
+}
+
+// Order by academic year (descending - newest first), then by display_order
+$batchesQuery .= " ORDER BY b.academic_year DESC, b.display_order ASC";
+$batches = dbFetchAll($batchesQuery, $batchesParams);
 ?>
 
 <div class="origin-page-container flex flex-col lg:flex-row min-h-screen">
@@ -33,14 +44,20 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                     <h1 class="origin-page-title text-xl md:text-2xl lg:text-3xl font-bold mb-3 md:mb-4">
                         ORIGIN: <?php echo htmlspecialchars($activeOrg ? ($activeOrg['acronym'] ?: $activeOrg['name']) : 'ICDISG'); ?> - BATCH
                     </h1>
+                    
                     <?php if ($activeOrg): ?>
                         <p class="text-xs md:text-sm text-black mt-2 leading-relaxed">
-                            Showing batches for <strong><?php echo htmlspecialchars($activeOrg['name']); ?></strong>
+                            Showing all batches for <strong><?php echo htmlspecialchars($activeOrg['name']); ?></strong>
                             <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $activeOrg['id']; ?>" class="text-black hover:text-gray-800 ml-1 md:ml-2 inline-block">(← Back to organization)</a>
                         </p>
                     <?php endif; ?>
                 </div>
 
+                <?php if (!$activeOrg): ?>
+                    <p class="text-center text-gray-600 py-12">No organization selected. Please navigate from an organization page.</p>
+                <?php elseif (empty($batches)): ?>
+                    <p class="text-center text-gray-600 py-12">No batches available.</p>
+                <?php else: ?>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
                     <?php if (empty($batches)): ?>
                         <div class="col-span-full text-center py-12">
@@ -70,6 +87,7 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -82,8 +100,23 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                 <h2 class="sidebar-title">INSTITUTE</h2>
                 <ul class="sidebar-links">
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about">About</a></li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=faculty">Faculty Unit</a></li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=admin">Admin Representative</a></li>
+                    <li class="org-item-with-batch">
+                        <a href="<?php echo PUBLIC_URL; ?>/faculty.php">Faculty Unit</a>
+                        
+                        <!-- Subcategories - Show below Faculty Unit on hover -->
+                        <?php if (!empty($facultySubcategories)): ?>
+                        <ul class="sidebar-sublinks batch-hover-menu">
+                            <?php foreach ($facultySubcategories as $subcat): ?>
+                            <li>
+                                <a href="<?php echo htmlspecialchars($subcat['description'] ?: '#'); ?>" class="sidebar-sublink">
+                                    <?php echo htmlspecialchars($subcat['title']); ?>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <?php endif; ?>
+                    </li>
+                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative.php">Admin Representative</a></li>
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program">Program</a></li>
                 </ul>
             </div>

@@ -195,6 +195,18 @@ function validateDocumentForm(formData) {
         }
     }
     
+    // Category validation
+    const category = formData.get('category') || '';
+    if (!category) {
+        errors.push({ field: 'category', message: 'Category is required' });
+    }
+    
+    // Subcategory validation (required)
+    const subcategory = formData.get('subcategory') || '';
+    if (!subcategory) {
+        errors.push({ field: 'subcategory', message: 'Subcategory is required. Please select a category first to load subcategories.' });
+    }
+    
     // File validation (required for create)
     if (!isUpdate) {
         const file = formData.get('file');
@@ -228,6 +240,21 @@ function validateAnnouncementForm(formData) {
     const descValidation = validateRequired(description, 'Description');
     if (!descValidation.valid) {
         errors.push({ field: 'ann-description', message: descValidation.error });
+    }
+    
+    // Image is required for published or pinned announcements (strong announcements)
+    const status = formData.get('status') || 'draft';
+    const pinned = formData.get('pinned') === 'on' || formData.get('pinned') === '1';
+    const isStrongAnnouncement = status === 'published' || pinned;
+    
+    if (isStrongAnnouncement) {
+        const imageFile = formData.get('image');
+        const oldImage = formData.get('old_image') || '';
+        const hasImage = (imageFile && imageFile.name) || oldImage;
+        
+        if (!hasImage) {
+            errors.push({ field: 'ann-image', message: 'Image is required for published or pinned announcements' });
+        }
     }
     
     return errors;
@@ -277,6 +304,25 @@ function validateEventForm(formData) {
     // Wait for DOM to be ready
     function startIntroAnimation() {
         console.log('[Intro Debug] Starting intro animation check...');
+        
+    // Check if animation was already shown (cookie check)
+    const introShownCookie = document.cookie.split(';').find(c => c.trim().startsWith('prowlway_intro_shown='));
+    if (introShownCookie && introShownCookie.split('=')[1] === '1') {
+        console.log('[Intro Debug] Animation already shown (cookie found) - skipping');
+        const mainContent = document.getElementById('mainContent');
+        const introScreen = document.getElementById('introScreen');
+        if (introScreen) {
+            introScreen.style.display = 'none';
+            introScreen.classList.add('hidden');
+        }
+        if (mainContent) {
+            mainContent.style.opacity = '1';
+            mainContent.style.visibility = 'visible';
+            mainContent.style.display = 'block';
+        }
+        document.body.classList.remove('intro-active');
+        return;
+    }
         
     const introScreen = document.getElementById('introScreen');
     const introTextEl = document.getElementById('introText');
@@ -384,6 +430,11 @@ function validateEventForm(formData) {
                 console.error('[Intro Debug] introScreen is null in fadeOutIntro');
                 return;
             }
+            
+        // Set cookie to remember animation was shown (expires in 1 year)
+        const expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        document.cookie = 'prowlway_intro_shown=1; expires=' + expiryDate.toUTCString() + '; path=/; SameSite=Lax';
             
         introScreen.classList.add('fade-out');
         
@@ -496,6 +547,17 @@ function validateEventForm(formData) {
                 
                 const href = this.getAttribute('href');
                 if (href && !href.startsWith('#') && !href.startsWith('http') && (href.endsWith('.html') || href.endsWith('.php'))) {
+                    // Skip page transition for origin-page type pages (same behavior as organization.php)
+                    if (href.includes('faculty.php') || 
+                        href.includes('faculty-detail.php') ||
+                        href.includes('admin-representative.php') || 
+                        href.includes('batch-detail.php') ||
+                        href.includes('organization.php') ||
+                        href.includes('batches.php') ||
+                        href.includes('institute.php')) {
+                        return; // Let the link work naturally without transition
+                    }
+                    
                     e.preventDefault();
                     
                     document.body.classList.add('page-transition-out');
@@ -1247,7 +1309,9 @@ const ADMIN_API = {
     events: window.ADMIN_URL + '/events_handler.php',
     holidays: window.ADMIN_URL + '/holidays_handler.php',
     documents: window.ADMIN_URL + '/documents.php',
-    inquiries: window.ADMIN_URL + '/inquiries_handler.php'
+    inquiries: window.ADMIN_URL + '/inquiries_handler.php',
+    sponsors: window.ADMIN_URL + '/sponsors_handler.php',
+    subcategories: window.ADMIN_URL + '/subcategories_handler.php'
 };
 
 // Tab switching
@@ -1286,8 +1350,11 @@ function switchTab(tabName) {
         loadHolidaysList();
     } else if (tabName === 'documents') {
         loadDocumentsList();
+        loadSubcategoriesList();
     } else if (tabName === 'inquiries') {
         loadInquiriesList();
+    } else if (tabName === 'sponsors') {
+        loadSponsorsList();
     }
 }
 
@@ -1462,9 +1529,22 @@ function editAnnouncement(id) {
                         preview.style.display = 'block';
                     }
                     
+                    // Show PDF preview if exists
+                    if (ann.pdf_file) {
+                        const pdfPreview = document.getElementById('ann-pdf-preview');
+                        const pdfFilename = document.getElementById('ann-pdf-filename');
+                        const oldPdf = document.getElementById('ann-old-pdf');
+                        pdfFilename.textContent = ann.pdf_file.split('/').pop() || 'PDF Document';
+                        oldPdf.value = ann.pdf_file;
+                        pdfPreview.style.display = 'block';
+                    }
+                    
                     // Update form title and button
                     document.getElementById('announcement-form-title').textContent = 'Edit Announcement';
                     document.getElementById('ann-submit-btn').textContent = 'Update Announcement';
+                    
+                    // Update image requirement indicator
+                    toggleAnnouncementImageRequired();
                     
                     // Show form
                     toggleForm('announcement-form');
@@ -1496,11 +1576,63 @@ function cancelAnnouncementEdit() {
     document.getElementById('ann-id').value = '';
     document.getElementById('ann-image-preview').style.display = 'none';
     document.getElementById('ann-old-image').value = '';
+    document.getElementById('ann-pdf-preview').style.display = 'none';
+    document.getElementById('ann-old-pdf').value = '';
     document.getElementById('announcement-form-title').textContent = 'Create Announcement';
     document.getElementById('ann-submit-btn').textContent = 'Create Announcement';
     // Hide meeting fields
     document.getElementById('ann-meeting-fields').classList.add('hidden');
+    document.getElementById('ann-is-meeting').checked = false;
+    // Reset image requirement indicator
+    toggleAnnouncementImageRequired();
     toggleForm('announcement-form');
+}
+
+function resetAndShowAnnouncementForm() {
+    // Reset form to create mode first (without toggling visibility)
+    const form = document.getElementById('announcementForm');
+    if (form) {
+        form.reset();
+    }
+    
+    // Explicitly clear all fields
+    const annId = document.getElementById('ann-id');
+    if (annId) annId.value = '';
+    
+    const annImagePreview = document.getElementById('ann-image-preview');
+    if (annImagePreview) annImagePreview.style.display = 'none';
+    
+    const annOldImage = document.getElementById('ann-old-image');
+    if (annOldImage) annOldImage.value = '';
+    
+    const annPdfPreview = document.getElementById('ann-pdf-preview');
+    if (annPdfPreview) annPdfPreview.style.display = 'none';
+    
+    const annOldPdf = document.getElementById('ann-old-pdf');
+    if (annOldPdf) annOldPdf.value = '';
+    
+    const formTitle = document.getElementById('announcement-form-title');
+    if (formTitle) formTitle.textContent = 'Create Announcement';
+    
+    const submitBtn = document.getElementById('ann-submit-btn');
+    if (submitBtn) submitBtn.textContent = 'Create Announcement';
+    
+    // Hide meeting fields
+    const meetingFields = document.getElementById('ann-meeting-fields');
+    if (meetingFields) meetingFields.classList.add('hidden');
+    
+    const isMeeting = document.getElementById('ann-is-meeting');
+    if (isMeeting) isMeeting.checked = false;
+    
+    // Reset image requirement indicator
+    toggleAnnouncementImageRequired();
+    
+    // Show the form
+    const announcementForm = document.getElementById('announcement-form');
+    if (announcementForm) {
+        announcementForm.classList.remove('hidden');
+        announcementForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 }
 
 async function archiveAnnouncement(id) {
@@ -1533,15 +1665,90 @@ async function archiveAnnouncement(id) {
     }
 }
 
+// Toggle image required indicator based on status and pinned checkbox
+function toggleAnnouncementImageRequired() {
+    const statusEl = document.getElementById('ann-status');
+    const pinnedEl = document.getElementById('ann-pinned');
+    const imageRequiredIndicator = document.getElementById('ann-image-required-indicator');
+    const imageOptionalText = document.getElementById('ann-image-optional-text');
+    const imageRequiredText = document.getElementById('ann-image-required-text');
+    const imageInput = document.getElementById('ann-image');
+    const oldImageInput = document.getElementById('ann-old-image');
+    
+    if (!statusEl || !pinnedEl || !imageRequiredIndicator) return;
+    
+    const isPublished = statusEl.value === 'published';
+    const isPinned = pinnedEl.checked;
+    const isStrongAnnouncement = isPublished || isPinned;
+    const hasImage = (imageInput && imageInput.files.length > 0) || (oldImageInput && oldImageInput.value);
+    
+    if (isStrongAnnouncement) {
+        imageRequiredIndicator.classList.remove('hidden');
+        imageOptionalText.classList.add('hidden');
+        imageRequiredText.classList.remove('hidden');
+        if (imageInput) {
+            imageInput.setAttribute('required', 'required');
+        }
+    } else {
+        imageRequiredIndicator.classList.add('hidden');
+        imageOptionalText.classList.remove('hidden');
+        imageRequiredText.classList.add('hidden');
+        if (imageInput) {
+            imageInput.removeAttribute('required');
+        }
+    }
+}
+
 // Announcement form submission
 document.addEventListener('DOMContentLoaded', function() {
     const annForm = document.getElementById('announcementForm');
     if (annForm) {
         const annStatusEl = document.getElementById('ann-status');
+        const annPinnedEl = document.getElementById('ann-pinned');
+        
         if (window.ADMIN_CAN_PUBLISH === false && annStatusEl) {
             annStatusEl.innerHTML = '<option value="draft">Draft</option><option value="pending_review">Pending Review</option>';
             annStatusEl.value = 'draft';
         }
+        
+        // Add event listeners to toggle image requirement
+        if (annStatusEl) {
+            annStatusEl.addEventListener('change', toggleAnnouncementImageRequired);
+        }
+        if (annPinnedEl) {
+            annPinnedEl.addEventListener('change', toggleAnnouncementImageRequired);
+        }
+        
+        // Also check when image is selected/removed
+        const annImageEl = document.getElementById('ann-image');
+        if (annImageEl) {
+            annImageEl.addEventListener('change', function() {
+                // Update old_image hidden field when new image is selected
+                const oldImageEl = document.getElementById('ann-old-image');
+                if (this.files.length > 0 && oldImageEl) {
+                    // Keep old image value for validation purposes
+                }
+                toggleAnnouncementImageRequired();
+            });
+        }
+        
+        // Handle PDF file selection preview
+        const annPdfEl = document.getElementById('ann-pdf');
+        if (annPdfEl) {
+            annPdfEl.addEventListener('change', function() {
+                const pdfPreview = document.getElementById('ann-pdf-preview');
+                const pdfFilename = document.getElementById('ann-pdf-filename');
+                if (this.files.length > 0) {
+                    pdfFilename.textContent = this.files[0].name;
+                    pdfPreview.style.display = 'block';
+                } else {
+                    pdfPreview.style.display = 'none';
+                }
+            });
+        }
+        
+        // Check on page load
+        toggleAnnouncementImageRequired();
         annForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -1568,8 +1775,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const id = formData.get('id');
-            formData.append('action', id ? 'update' : 'create');
-            formData.set('status', annStatusEl ? annStatusEl.value : 'draft');
+            const action = (id && id !== '' && id !== '0') ? 'update' : 'create';
+            formData.append('action', action);
+            
+            // Set status - ensure it's always set
+            const statusValue = annStatusEl ? annStatusEl.value : 'draft';
+            // Remove existing status if present, then append new one
+            if (formData.has('status')) {
+                formData.delete('status');
+            }
+            formData.append('status', statusValue);
+            
+            // Debug: Log form data (for troubleshooting)
+            console.log('Submitting announcement:', {
+                action: action,
+                id: id,
+                status: statusValue,
+                title: formData.get('title'),
+                description: formData.get('description') ? 'present' : 'missing'
+            });
             
             // Show loading state
             const submitBtn = document.getElementById('ann-submit-btn');
@@ -1583,6 +1807,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: formData
                 });
                 
+                // Check if response is ok
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorMessage = 'Error saving announcement';
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMessage = errorJson.error || errorJson.message || errorMessage;
+                    } catch (e) {
+                        errorMessage = errorText || `Server error: ${response.status} ${response.statusText}`;
+                    }
+                    showAlert(errorMessage, 'error');
+                    console.error('Server error:', errorText);
+                    return;
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
@@ -1591,7 +1830,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     cancelAnnouncementEdit();
                     loadAnnouncementsList();
                 } else {
-                    showAlert(result.error || 'Error saving announcement', 'error');
+                    const errorMsg = result.error || result.message || 'Error saving announcement';
+                    showAlert(errorMsg, 'error');
                     if (result.errors) {
                         result.errors.forEach(error => {
                             const fieldId = 'ann-' + error.field;
@@ -1600,7 +1840,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } catch (error) {
-                showAlert('Failed to save announcement', 'error');
+                const errorMsg = error.message || 'Failed to save announcement. Please check your connection and try again.';
+                showAlert(errorMsg, 'error');
                 console.error('Error:', error);
             } finally {
                 submitBtn.disabled = false;
@@ -1663,11 +1904,22 @@ function displayEventsList(events, pagination = null) {
     `;
     
     html += events.map(event => {
-        const date = new Date(event.date).toLocaleDateString('en-US', {
+        // Format date range or single date
+        const startDate = new Date(event.date);
+        let date = startDate.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         });
+        if (event.end_date && event.end_date !== event.date) {
+            const endDate = new Date(event.end_date);
+            const endDateStr = endDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            date = date + ' - ' + endDateStr;
+        }
         let imageUrl = '';
         if (event.image) {
             // Use PUBLIC_URL if available, otherwise construct from BASE_URL
@@ -1734,6 +1986,7 @@ function editEvent(id) {
                     document.getElementById('evt-category').value = event.category;
                     document.getElementById('evt-schedule-type').value = event.schedule_type || 'event';
                     document.getElementById('evt-date').value = event.date;
+                    document.getElementById('evt-end-date').value = event.end_date || '';
                     document.getElementById('evt-location').value = event.location || '';
                     document.getElementById('evt-order').value = event.display_order || 0;
                     
@@ -2339,65 +2592,96 @@ function displayDocumentsList(documents, pagination = null) {
     container.innerHTML = html;
 }
 
-function updateDocumentSubcategory() {
+// Dynamic subcategory loading from API
+async function updateDocumentSubcategory() {
     const category = document.getElementById('doc-category').value;
     const subcategorySelect = document.getElementById('doc-subcategory');
     const documentTypeGroup = document.getElementById('doc-document-type-group');
     
     // Clear existing options
-    subcategorySelect.innerHTML = '<option value="">Select subcategory...</option>';
+    subcategorySelect.innerHTML = '<option value="">Loading subcategories...</option>';
+    subcategorySelect.disabled = true;
     
-    if (category === '01') {
-        // Office Reports subcategories
-        const subcategories = [
-            { value: 'OTP', label: 'OTP Report - InnoVision Masterplan' },
-            { value: 'OVIA', label: 'OVIA Report - TechCare Summary' },
-            { value: 'OVPEA', label: 'OVPEA Report - External Partnership' },
-            { value: 'OS', label: 'OS Report - Documents Summary' },
-            { value: 'OTA', label: 'OTA Report - Financial Report' },
-            { value: 'OBPR', label: 'OBPR Report' },
-            { value: 'Media Publication', label: 'Media and Publication Division Report' },
-            { value: 'Arts Craft', label: 'Arts and Craft Division Report' },
-            { value: 'Documentation', label: 'Media Documentation Report' },
-            { value: 'Business', label: 'Business Report' }
-        ];
-        subcategories.forEach(sub => {
-            const option = document.createElement('option');
-            option.value = sub.value;
-            option.textContent = sub.label;
-            subcategorySelect.appendChild(option);
-        });
-        documentTypeGroup.style.display = 'none';
-    } else if (category === '02') {
-        // Executive Orders - show document type instead
+    if (!category) {
+        subcategorySelect.innerHTML = '<option value="">Select subcategory...</option>';
+        subcategorySelect.disabled = false;
+        return;
+    }
+    
+    // Show/hide document type group based on category
+    if (category === '02') {
         documentTypeGroup.style.display = 'block';
-        subcategorySelect.style.display = 'none';
     } else {
-        subcategorySelect.style.display = 'block';
         documentTypeGroup.style.display = 'none';
+    }
+    
+    try {
+        // Fetch subcategories from API
+        const response = await fetch(`${ADMIN_API.subcategories}?category=${category}`);
+        const result = await response.json();
+        
+        subcategorySelect.innerHTML = '<option value="">Select subcategory...</option>';
+        
+        if (result.success && result.data && result.data.length > 0) {
+            result.data.forEach(subcat => {
+                const option = document.createElement('option');
+                option.value = subcat.name;
+                option.textContent = subcat.name;
+                subcategorySelect.appendChild(option);
+            });
+        } else {
+            // No subcategories found - show message
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No subcategories available. Create one first.';
+            option.disabled = true;
+            subcategorySelect.appendChild(option);
+        }
+        
+        subcategorySelect.style.display = 'block';
+        subcategorySelect.disabled = false;
+    } catch (error) {
+        console.error('Error loading subcategories:', error);
+        subcategorySelect.innerHTML = '<option value="">Error loading subcategories</option>';
+        subcategorySelect.disabled = false;
     }
 }
 
-function editDocument(id) {
-    fetch(ADMIN_API.documents)
-        .then(res => res.json())
-        .then(result => {
-            if (result.success && result.data) {
-                const doc = result.data.find(d => d.id == id);
-                if (doc) {
-                    // Populate form
-                    document.getElementById('doc-id').value = doc.id;
-                    document.getElementById('doc-title').value = doc.title;
-                    document.getElementById('doc-description').value = doc.description || '';
-                    document.getElementById('doc-category').value = doc.category;
+async function editDocument(id) {
+    try {
+        const response = await fetch(ADMIN_API.documents);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            const doc = result.data.find(d => d.id == id);
+            if (doc) {
+                // Populate form
+                document.getElementById('doc-id').value = doc.id;
+                document.getElementById('doc-title').value = doc.title;
+                document.getElementById('doc-description').value = doc.description || '';
+                document.getElementById('doc-category').value = doc.category;
+                
+                // Update subcategory dropdown based on category (wait for it to load)
+                await updateDocumentSubcategory();
+                
+                // Wait a bit for dropdown to fully populate, then set subcategory value
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Populate subcategory after dropdown is loaded
+                const subcategorySelect = document.getElementById('doc-subcategory');
+                if (doc.subcategory && subcategorySelect) {
+                    // Try to set the value
+                    subcategorySelect.value = doc.subcategory;
                     
-                    // Update subcategory dropdown based on category
-                    updateDocumentSubcategory();
-                    
-                    // Populate new fields
-                    if (doc.subcategory) {
-                        document.getElementById('doc-subcategory').value = doc.subcategory;
+                    // If value didn't set (option might not exist yet), add it temporarily
+                    if (subcategorySelect.value !== doc.subcategory) {
+                        const option = document.createElement('option');
+                        option.value = doc.subcategory;
+                        option.textContent = doc.subcategory;
+                        option.selected = true;
+                        subcategorySelect.appendChild(option);
                     }
+                }
                     if (doc.document_type) {
                         document.getElementById('doc-document-type').value = doc.document_type;
                     }
@@ -2433,9 +2717,16 @@ function editDocument(id) {
                     
                     // Show form
                     toggleForm('document-form');
+                } else {
+                    showAlert('Document not found', 'error');
                 }
+            } else {
+                showAlert('Error loading document', 'error');
             }
-        });
+        } catch (error) {
+            console.error('Error loading document:', error);
+            showAlert('Failed to load document', 'error');
+        }
 }
 
 function cancelDocumentEdit() {
@@ -2504,6 +2795,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 el.classList.add('border-gray-200');
             });
             
+            // Ensure subcategory is included in form data
+            const subcategoryValue = document.getElementById('doc-subcategory')?.value || '';
+            if (subcategoryValue) {
+                formData.set('subcategory', subcategoryValue);
+            }
+            
             // Validate form
             const validationErrors = validateDocumentForm(formData);
             if (validationErrors.length > 0) {
@@ -2536,15 +2833,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (result.success) {
                     showAlert(result.message, 'success');
-                    this.reset();
                     cancelDocumentEdit();
                     loadDocumentsList();
                 } else {
-                    showAlert(result.error || 'Error saving document', 'error');
+                    const errorMsg = result.error || 'Error saving document';
+                    console.error('Document save error:', errorMsg, result);
+                    showAlert(errorMsg, 'error');
+                    // Re-enable submit button on error
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
                 }
             } catch (error) {
                 showAlert('Failed to save document', 'error');
                 console.error('Error:', error);
+                // Re-enable submit button on error
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
     }
@@ -2759,9 +3063,18 @@ function showAnnouncementModal(announcement) {
                         <div class="meeting-detail-item" id="meeting-purpose"></div>
                     </div>
                 </div>
-                <div class="announcement-modal-body">
-                    <div class="announcement-modal-description" id="announcement-modal-description"></div>
-                    <div class="announcement-modal-content-full" id="announcement-modal-content-full"></div>
+                <div class="announcement-modal-content-wrapper">
+                    <div class="announcement-modal-left-panel">
+                        <div class="announcement-modal-image" id="announcement-modal-image" style="display: none;">
+                            <img id="announcement-modal-img" src="" alt="Announcement image">
+                        </div>
+                        <div class="announcement-modal-pdf" id="announcement-modal-pdf" style="display: none;">
+                            <iframe id="announcement-modal-pdf-iframe" src="" title="PDF Document"></iframe>
+                        </div>
+                    </div>
+                    <div class="announcement-modal-body">
+                        <div class="announcement-modal-content-full" id="announcement-modal-content-full"></div>
+                    </div>
                 </div>
             </div>
         `;
@@ -2855,18 +3168,61 @@ function showAnnouncementModal(announcement) {
         meetingInfoEl.style.display = 'none';
     }
     
-    const description = announcement.description || '';
-    const fullContent = announcement.content || '';
+    // Handle image display
+    const imageEl = document.getElementById('announcement-modal-image');
+    const imgEl = document.getElementById('announcement-modal-img');
+    const pdfEl = document.getElementById('announcement-modal-pdf');
+    const pdfIframe = document.getElementById('announcement-modal-pdf-iframe');
+    const contentWrapper = modal.querySelector('.announcement-modal-content-wrapper');
+    const leftPanel = modal.querySelector('.announcement-modal-left-panel');
     
-    const descriptionEl = document.getElementById('announcement-modal-description');
-    if (description && description.trim()) {
-        // Use textContent for description to prevent XSS, but preserve line breaks
-        descriptionEl.textContent = description;
-        descriptionEl.style.display = 'block';
-        descriptionEl.style.whiteSpace = 'pre-wrap';
+    if (announcement.image && announcement.image.trim()) {
+        // Construct image URL using getImageUrl helper pattern
+        let imageUrl = announcement.image;
+        // If it's not already a full URL, construct it
+        if (!imageUrl.startsWith('http') && !imageUrl.startsWith('//')) {
+            const baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : '/ICDI/public');
+            imageUrl = baseUrl + '/image.php?path=' + encodeURIComponent(announcement.image);
+        }
+        imgEl.src = imageUrl;
+        imgEl.alt = announcement.title || 'Announcement image';
+        imageEl.style.display = 'flex';
     } else {
-        descriptionEl.style.display = 'none';
+        imageEl.style.display = 'none';
     }
+    
+    // Handle PDF display
+    if (announcement.pdf_file && announcement.pdf_file.trim()) {
+        let pdfUrl = announcement.pdf_file;
+        // If it's not already a full URL, construct it
+        if (!pdfUrl.startsWith('http') && !pdfUrl.startsWith('//')) {
+            const baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : '/ICDI/public');
+            // Use download endpoint for security
+            pdfUrl = baseUrl.replace('/public', '') + '/public/download.php?path=' + encodeURIComponent(announcement.pdf_file);
+        }
+        pdfIframe.src = pdfUrl;
+        pdfEl.style.display = 'flex';
+        if (leftPanel) {
+            leftPanel.style.display = 'flex';
+        }
+    } else {
+        pdfEl.style.display = 'none';
+        // Hide left panel if no image and no PDF
+        if (!announcement.image && leftPanel) {
+            leftPanel.style.display = 'none';
+            const bodyEl = modal.querySelector('.announcement-modal-body');
+            if (bodyEl) {
+                bodyEl.style.width = '100%';
+            }
+        }
+    }
+    
+    if (contentWrapper) {
+        contentWrapper.style.display = 'flex';
+    }
+    
+    // Use full content, fallback to description if content is empty
+    const fullContent = announcement.content || announcement.description || '';
     
     const contentEl = document.getElementById('announcement-modal-content-full');
     if (fullContent && fullContent.trim()) {
@@ -2881,7 +3237,8 @@ function showAnnouncementModal(announcement) {
         }
         contentEl.style.display = 'block';
     } else {
-        contentEl.style.display = 'none';
+        contentEl.innerHTML = '<p style="color: var(--color-text-muted); font-style: italic;">No content available.</p>';
+        contentEl.style.display = 'block';
     }
     
     // Show modal
@@ -3033,6 +3390,12 @@ function closeAnnouncementModal() {
         // Set up event delegation for announcement cards and buttons
         // Use capture phase to ensure we catch events before other handlers
         document.addEventListener('click', function(e) {
+            // Skip if card is inside a link (new page-based approach)
+            const cardLink = e.target.closest('.announcement-card-link');
+            if (cardLink) {
+                return; // Let the link handle navigation
+            }
+            
             // Check if clicked element is a read more button or announcement card
             const readMoreBtn = e.target.closest('.btn-read-more');
             const announcementCard = e.target.closest('.announcement-card');
@@ -3097,6 +3460,476 @@ function closeAnnouncementModal() {
 })();
 
 // Page load logging
+// ============================================
+// SPONSOR MANAGEMENT FUNCTIONS
+// ============================================
+async function loadSponsorsList() {
+    const listEl = document.getElementById('sponsors-list');
+    if (!listEl) return;
+    
+    try {
+        const response = await fetch(ADMIN_API.sponsors);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            displaySponsorsList(result.data);
+        } else {
+            listEl.innerHTML = '<p class="text-gray-500 text-center py-8">No sponsors found.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading sponsors:', error);
+        listEl.innerHTML = '<p class="text-red-500 text-center py-8">Error loading sponsors.</p>';
+    }
+}
+
+function displaySponsorsList(sponsors) {
+    const listEl = document.getElementById('sponsors-list');
+    if (!listEl) return;
+    
+    if (sponsors.length === 0) {
+        listEl.innerHTML = '<p class="text-gray-500 text-center py-8">No sponsors found. Click "Add Sponsor" to create one.</p>';
+        return;
+    }
+    
+    let html = '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">';
+    sponsors.forEach(sponsor => {
+        const imageUrl = sponsor.image ? (window.PUBLIC_URL || window.BASE_URL + '/public') + '/image.php?path=' + encodeURIComponent(sponsor.image) : '';
+        const activeClass = sponsor.active ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200';
+        html += `
+            <div class="bg-white border-2 ${activeClass} rounded-xl p-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-900 mb-1">${escapeHtml(sponsor.title || 'Untitled')}</h4>
+                        <span class="inline-block px-2 py-1 text-xs font-semibold rounded ${sponsor.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}">
+                            ${sponsor.active ? 'Active' : 'Inactive'}
+                        </span>
+                    </div>
+                </div>
+                ${imageUrl ? `<img src="${imageUrl}" alt="${escapeHtml(sponsor.title)}" class="w-full h-32 object-cover rounded-lg mb-3">` : ''}
+                ${sponsor.link_url ? `<p class="text-xs text-gray-600 mb-2 truncate">🔗 ${escapeHtml(sponsor.link_url)}</p>` : ''}
+                <p class="text-xs text-gray-500 mb-3">Order: ${sponsor.display_order || 0}</p>
+                <div class="flex gap-2">
+                    <button onclick="editSponsor('${sponsor.id}')" class="flex-1 px-3 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Edit</button>
+                    <button onclick="toggleSponsorActive('${sponsor.id}')" class="px-3 py-2 ${sponsor.active ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white text-sm font-semibold rounded-lg">
+                        ${sponsor.active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button onclick="deleteSponsor('${sponsor.id}')" class="px-3 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700">Delete</button>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    listEl.innerHTML = html;
+}
+
+async function editSponsor(id) {
+    try {
+        const response = await fetch(ADMIN_API.sponsors);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            const sponsor = result.data.find(s => s.id === id);
+            if (sponsor) {
+                document.getElementById('sponsor-id').value = sponsor.id;
+                document.getElementById('sponsor-title').value = sponsor.title || '';
+                document.getElementById('sponsor-link-url').value = sponsor.link_url || '';
+                document.getElementById('sponsor-order').value = sponsor.display_order || 0;
+                document.getElementById('sponsor-active').checked = sponsor.active == 1;
+                document.getElementById('sponsor-old-image').value = sponsor.image || '';
+                document.getElementById('sponsor-action').value = 'update';
+                document.getElementById('sponsor-form-title').textContent = 'Edit Sponsor';
+                document.getElementById('sponsor-submit-btn').textContent = 'Update Sponsor';
+                document.getElementById('sponsor-image').required = false;
+                
+                // Show image preview
+                const previewEl = document.getElementById('sponsor-image-preview');
+                if (sponsor.image) {
+                    const imageUrl = (window.PUBLIC_URL || window.BASE_URL + '/public') + '/image.php?path=' + encodeURIComponent(sponsor.image);
+                    previewEl.innerHTML = `<img src="${imageUrl}" alt="Current image" class="max-w-xs max-h-48 rounded-xl border border-gray-200">`;
+                }
+                
+                toggleForm('sponsor-form');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading sponsor:', error);
+        showAlert('Error loading sponsor', 'error');
+    }
+}
+
+function cancelSponsorEdit() {
+    document.getElementById('sponsorForm').reset();
+    document.getElementById('sponsor-id').value = '';
+    document.getElementById('sponsor-old-image').value = '';
+    document.getElementById('sponsor-action').value = 'create';
+    document.getElementById('sponsor-form-title').textContent = 'Add New Sponsor';
+    document.getElementById('sponsor-submit-btn').textContent = 'Create Sponsor';
+    document.getElementById('sponsor-image').required = true;
+    document.getElementById('sponsor-image-preview').innerHTML = '';
+    toggleForm('sponsor-form');
+}
+
+async function submitSponsor(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    if (window.CSRF_TOKEN) {
+        formData.append('csrf_token', window.CSRF_TOKEN);
+    }
+    
+    try {
+        const response = await fetch(ADMIN_API.sponsors, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(result.message || 'Sponsor saved successfully', 'success');
+            cancelSponsorEdit();
+            loadSponsorsList();
+        } else {
+            showAlert(result.error || 'Error saving sponsor', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving sponsor:', error);
+        showAlert('Failed to save sponsor', 'error');
+    }
+}
+
+async function deleteSponsor(id) {
+    if (!confirm('Are you sure you want to delete this sponsor?')) return;
+    
+    try {
+        const formData = new FormData();
+        formData.append('action', 'delete');
+        formData.append('id', id);
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
+        
+        const response = await fetch(ADMIN_API.sponsors, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('Sponsor deleted successfully', 'success');
+            loadSponsorsList();
+        } else {
+            showAlert(result.error || 'Error deleting sponsor', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting sponsor:', error);
+        showAlert('Failed to delete sponsor', 'error');
+    }
+}
+
+async function toggleSponsorActive(id) {
+    try {
+        const formData = new FormData();
+        formData.append('action', 'toggle_active');
+        formData.append('id', id);
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
+        
+        const response = await fetch(ADMIN_API.sponsors, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('Sponsor status updated', 'success');
+            loadSponsorsList();
+        } else {
+            showAlert(result.error || 'Error updating sponsor', 'error');
+        }
+    } catch (error) {
+        console.error('Error toggling sponsor:', error);
+        showAlert('Failed to update sponsor', 'error');
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================
+// SUBCATEGORY MANAGEMENT FUNCTIONS
+// ============================================
+let currentSubcategoryCategory = '';
+
+async function loadSubcategoriesList(category = '') {
+    const listEl = document.getElementById('subcategories-list');
+    if (!listEl) return;
+    
+    currentSubcategoryCategory = category;
+    
+    try {
+        const url = category 
+            ? `${ADMIN_API.subcategories}?category=${category}&show_all=1`
+            : `${ADMIN_API.subcategories}?show_all=1`;
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            displaySubcategoriesList(result.data, category);
+        } else {
+            listEl.innerHTML = '<p class="text-gray-500 text-center py-8">No subcategories found. Select a category filter or create one.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading subcategories:', error);
+        listEl.innerHTML = '<p class="text-red-500 text-center py-8">Error loading subcategories.</p>';
+    }
+}
+
+function displaySubcategoriesList(subcategories, filterCategory = '') {
+    const listEl = document.getElementById('subcategories-list');
+    if (!listEl) return;
+    
+    if (subcategories.length === 0) {
+        listEl.innerHTML = '<p class="text-gray-500 text-center py-8">No subcategories found. Click "Add Subcategory" to create one.</p>';
+        return;
+    }
+    
+    const categoryNames = {
+        '01': 'OFFICES REPORT',
+        '02': 'EXECUTIVE ORDER',
+        '03': 'ORDINANCE',
+        '04': 'RESOLUTION',
+        '05': 'OTHER'
+    };
+    
+    // Group by category if no filter
+    const grouped = {};
+    if (!filterCategory) {
+        subcategories.forEach(sub => {
+            if (!grouped[sub.category]) grouped[sub.category] = [];
+            grouped[sub.category].push(sub);
+        });
+    }
+    
+    let html = '';
+    
+    if (filterCategory) {
+        // Show filtered list
+        html = '<div class="mb-4"><h4 class="font-semibold text-gray-700">' + categoryNames[filterCategory] + ' Subcategories</h4></div>';
+        html += '<div class="space-y-2">';
+        subcategories.forEach(sub => {
+            const activeClass = sub.status === 'active' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200';
+            html += `
+                <div class="bg-white border-2 ${activeClass} rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-900">${escapeHtml(sub.name)}</h4>
+                        <p class="text-xs text-gray-500 mt-1">Order: ${sub.display_order || 0}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <span class="inline-block px-2 py-1 text-xs font-semibold rounded ${sub.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}">
+                            ${sub.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                        <button onclick="editSubcategory(${sub.id})" class="px-3 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Edit</button>
+                        <button onclick="toggleSubcategoryStatus(${sub.id})" class="px-3 py-2 ${sub.status === 'active' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white text-sm font-semibold rounded-lg">
+                            ${sub.status === 'active' ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button onclick="deleteSubcategory(${sub.id})" class="px-3 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700">Delete</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+    } else {
+        // Show grouped by category
+        Object.keys(grouped).sort().forEach(cat => {
+            html += `<div class="mb-6"><h4 class="font-semibold text-gray-700 mb-3">${categoryNames[cat]}</h4>`;
+            html += '<div class="space-y-2">';
+            grouped[cat].forEach(sub => {
+                const activeClass = sub.status === 'active' ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200';
+                html += `
+                    <div class="bg-white border-2 ${activeClass} rounded-xl p-4 flex items-center justify-between">
+                        <div class="flex-1">
+                            <h4 class="font-bold text-gray-900">${escapeHtml(sub.name)}</h4>
+                            <p class="text-xs text-gray-500 mt-1">Order: ${sub.display_order || 0}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="inline-block px-2 py-1 text-xs font-semibold rounded ${sub.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}">
+                                ${sub.status === 'active' ? 'Active' : 'Inactive'}
+                            </span>
+                            <button onclick="editSubcategory(${sub.id})" class="px-3 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Edit</button>
+                            <button onclick="toggleSubcategoryStatus(${sub.id})" class="px-3 py-2 ${sub.status === 'active' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'} text-white text-sm font-semibold rounded-lg">
+                                ${sub.status === 'active' ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button onclick="deleteSubcategory(${sub.id})" class="px-3 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div></div>';
+        });
+    }
+    
+    listEl.innerHTML = html;
+}
+
+async function editSubcategory(id) {
+    try {
+        const response = await fetch(`${ADMIN_API.subcategories}?show_all=1`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            const subcat = result.data.find(s => s.id == id);
+            if (subcat) {
+                document.getElementById('subcat-id').value = subcat.id;
+                document.getElementById('subcat-category').value = subcat.category;
+                document.getElementById('subcat-name').value = subcat.name;
+                document.getElementById('subcat-status').value = subcat.status;
+                document.getElementById('subcat-order').value = subcat.display_order || 0;
+                document.getElementById('subcat-action').value = 'update';
+                document.getElementById('subcategory-form-title').textContent = 'Edit Subcategory';
+                document.getElementById('subcat-submit-btn').textContent = 'Update Subcategory';
+                
+                toggleForm('subcategory-form');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading subcategory:', error);
+        showAlert('Error loading subcategory', 'error');
+    }
+}
+
+function cancelSubcategoryEdit() {
+    document.getElementById('subcategoryForm').reset();
+    document.getElementById('subcat-id').value = '';
+    document.getElementById('subcat-action').value = 'create';
+    document.getElementById('subcategory-form-title').textContent = 'Add New Subcategory';
+    document.getElementById('subcat-submit-btn').textContent = 'Create Subcategory';
+    toggleForm('subcategory-form');
+}
+
+async function submitSubcategory(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const action = document.getElementById('subcat-action').value;
+    formData.append('action', action);
+    
+    if (window.CSRF_TOKEN) {
+        formData.append('csrf_token', window.CSRF_TOKEN);
+    }
+    
+    try {
+        const response = await fetch(ADMIN_API.subcategories, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(result.message || 'Subcategory saved successfully', 'success');
+            cancelSubcategoryEdit();
+            loadSubcategoriesList(currentSubcategoryCategory);
+            // Reload subcategory dropdown if category matches
+            const docCategory = document.getElementById('doc-category')?.value;
+            if (docCategory && formData.get('category') === docCategory) {
+                await updateDocumentSubcategory();
+            }
+        } else {
+            showAlert(result.error || 'Error saving subcategory', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving subcategory:', error);
+        showAlert('Failed to save subcategory', 'error');
+    }
+}
+
+async function deleteSubcategory(id) {
+    if (!confirm('Are you sure you want to delete this subcategory? This action cannot be undone.')) return;
+    
+    try {
+        const formData = new FormData();
+        formData.append('action', 'delete');
+        formData.append('id', id);
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
+        
+        const response = await fetch(ADMIN_API.subcategories, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('Subcategory deleted successfully', 'success');
+            loadSubcategoriesList(currentSubcategoryCategory);
+        } else {
+            showAlert(result.error || 'Error deleting subcategory', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting subcategory:', error);
+        showAlert('Failed to delete subcategory', 'error');
+    }
+}
+
+async function toggleSubcategoryStatus(id) {
+    try {
+        const formData = new FormData();
+        formData.append('action', 'toggle_status');
+        formData.append('id', id);
+        if (window.CSRF_TOKEN) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
+        
+        const response = await fetch(ADMIN_API.subcategories, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('Subcategory status updated', 'success');
+            loadSubcategoriesList(currentSubcategoryCategory);
+        } else {
+            showAlert(result.error || 'Error updating subcategory', 'error');
+        }
+    } catch (error) {
+        console.error('Error toggling subcategory:', error);
+        showAlert('Failed to update subcategory', 'error');
+    }
+}
+
+// Attach subcategory form submit handler
+document.addEventListener('DOMContentLoaded', function() {
+    const subcatForm = document.getElementById('subcategoryForm');
+    if (subcatForm) {
+        subcatForm.addEventListener('submit', submitSubcategory);
+    }
+    
+    // Filter subcategories by category
+    const subcatCategoryFilter = document.getElementById('subcat-category');
+    if (subcatCategoryFilter) {
+        subcatCategoryFilter.addEventListener('change', function() {
+            if (this.value) {
+                loadSubcategoriesList(this.value);
+            } else {
+                loadSubcategoriesList();
+            }
+        });
+    }
+});
+
 window.addEventListener('load', function() {
     const loadTime = performance.now();
     console.log(`PROWLWAY page loaded in ${loadTime.toFixed(2)}ms`);

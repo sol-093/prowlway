@@ -65,7 +65,7 @@ include '../includes/header.php';
                         
                         <?php if ($event['description']): ?>
                             <div class="event-description-text">
-                                <?php echo htmlspecialchars($event['description']); ?>
+                                <?php echo nl2br(htmlspecialchars($event['description'])); ?>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -74,7 +74,7 @@ include '../includes/header.php';
                 <!-- Event Summary Text (Below) -->
                 <?php if ($event['summary']): ?>
                     <div class="event-summary-text">
-                        <?php echo htmlspecialchars($event['summary']); ?>
+                        <?php echo nl2br(htmlspecialchars($event['summary'])); ?>
                     </div>
                 <?php endif; ?>
             </div>

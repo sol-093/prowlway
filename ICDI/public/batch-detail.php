@@ -192,8 +192,23 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
                 <h2 class="sidebar-title">INSTITUTE</h2>
                 <ul class="sidebar-links">
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about">About</a></li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=faculty">Faculty Unit</a></li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=admin">Admin Representative</a></li>
+                    <li class="org-item-with-batch">
+                        <a href="<?php echo PUBLIC_URL; ?>/faculty.php">Faculty Unit</a>
+                        
+                        <!-- Subcategories - Show below Faculty Unit on hover -->
+                        <?php if (!empty($facultySubcategories)): ?>
+                        <ul class="sidebar-sublinks batch-hover-menu">
+                            <?php foreach ($facultySubcategories as $subcat): ?>
+                            <li>
+                                <a href="<?php echo htmlspecialchars($subcat['description'] ?: '#'); ?>" class="sidebar-sublink">
+                                    <?php echo htmlspecialchars($subcat['title']); ?>
+                                </a>
+                            </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <?php endif; ?>
+                    </li>
+                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative.php">Admin Representative</a></li>
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program">Program</a></li>
                 </ul>
             </div>

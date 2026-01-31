@@ -6,17 +6,24 @@ require_once '../includes/upload.php';
 $pageTitle = 'Documents - PROWLWAY ICDISG';
 $bodyClass = 'documents-page';
 $selectedCategory = $_GET['category'] ?? null;
+$selectedSubcategory = $_GET['subcategory'] ?? null;
 
 include '../includes/header.php';
 
-// Fetch documents
+// Fetch documents with hierarchical filtering
 $query = "SELECT * FROM documents WHERE status = 'published'";
 $params = [];
 if ($selectedCategory) {
     $query .= " AND category = ?";
     $params[] = $selectedCategory;
+    
+    // If subcategory is selected, filter by it
+    if ($selectedSubcategory) {
+        $query .= " AND subcategory = ?";
+        $params[] = $selectedSubcategory;
+    }
 }
-$query .= " ORDER BY category ASC, created_at DESC";
+$query .= " ORDER BY display_order ASC, category ASC, subcategory ASC, created_at DESC";
 
 $documents = dbFetchAll($query, $params);
 
@@ -25,6 +32,46 @@ $docCounts = [];
 $allDocs = dbFetchAll("SELECT category FROM documents WHERE status = 'published'");
 foreach ($allDocs as $doc) {
     $docCounts[$doc['category']] = ($docCounts[$doc['category']] ?? 0) + 1;
+}
+
+// Get subcategories for selected category from subcategories table
+$subcategories = [];
+$subcategoryCounts = [];
+if ($selectedCategory) {
+    try {
+        // Fetch active subcategories from subcategories table
+        $subcategoryRows = dbFetchAll(
+            "SELECT id, name, display_order FROM subcategories WHERE category = ? AND status = 'active' ORDER BY display_order ASC, name ASC",
+            [$selectedCategory]
+        );
+        
+        foreach ($subcategoryRows as $subRow) {
+            $subcat = $subRow['name'];
+            $subcategories[] = $subcat;
+            // Count documents per subcategory
+            $subCount = dbFetchOne(
+                "SELECT COUNT(*) as count FROM documents WHERE status = 'published' AND category = ? AND subcategory = ?",
+                [$selectedCategory, $subcat]
+            );
+            $subcategoryCounts[$subcat] = $subCount['count'] ?? 0;
+        }
+    } catch (Exception $e) {
+        // Fallback to old method if subcategories table doesn't exist yet
+        error_log("Error fetching subcategories: " . $e->getMessage());
+        $subcategoryDocs = dbFetchAll(
+            "SELECT DISTINCT subcategory FROM documents WHERE status = 'published' AND category = ? AND subcategory IS NOT NULL AND subcategory != ''",
+            [$selectedCategory]
+        );
+        foreach ($subcategoryDocs as $subDoc) {
+            $subcat = $subDoc['subcategory'];
+            $subcategories[] = $subcat;
+            $subCount = dbFetchOne(
+                "SELECT COUNT(*) as count FROM documents WHERE status = 'published' AND category = ? AND subcategory = ?",
+                [$selectedCategory, $subcat]
+            );
+            $subcategoryCounts[$subcat] = $subCount['count'] ?? 0;
+        }
+    }
 }
 
 // Category names
@@ -48,18 +95,56 @@ $categoryNames = [
             <div class="documents-divider"></div>
         </div>
 
-    <!-- Breadcrumb Navigation -->
-    <div class="breadcrumb" id="breadcrumb">
-        <div class="breadcrumb-item">
-            <a href="<?php echo PUBLIC_URL; ?>/documents.php" class="breadcrumb-link">DOCUMENTS</a>
+    <!-- Breadcrumb Navigation with Back Arrows (Folder Path Style) -->
+    <div class="breadcrumb-path mb-4" id="breadcrumb">
+        <div class="breadcrumb-container">
+            <!-- DOCUMENTS (always shown) -->
+            <a href="<?php echo PUBLIC_URL; ?>/documents.php" class="breadcrumb-link hover-zoom">
+                DOCUMENTS
+            </a>
+            
             <?php if ($selectedCategory && isset($categoryNames[$selectedCategory])): ?>
-                <span class="breadcrumb-separator"> › </span>
-                <span class="breadcrumb-item"><?php echo $categoryNames[$selectedCategory]; ?></span>
+                <!-- Back Arrow -->
+                <span class="breadcrumb-arrow">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                </span>
+                
+                <!-- Category -->
+                <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=<?php echo $selectedCategory; ?>" class="breadcrumb-link hover-zoom">
+                    <?php echo $categoryNames[$selectedCategory]; ?>
+                </a>
+                
+                <?php if ($selectedSubcategory): ?>
+                    <!-- Back Arrow -->
+                    <span class="breadcrumb-arrow">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </span>
+                    
+                    <!-- Subcategory (current, not clickable) -->
+                    <span class="breadcrumb-current">
+                        <?php echo htmlspecialchars($selectedSubcategory); ?>
+                    </span>
+                <?php elseif (!empty($subcategories)): ?>
+                    <!-- Back Arrow -->
+                    <span class="breadcrumb-arrow">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </span>
+                    
+                    <!-- SUBCATEGORY (current level) -->
+                    <span class="breadcrumb-current">SUBCATEGORY</span>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
 
-        <!-- Folders Section -->
+        <!-- Category Folders Section (shown when no category selected) -->
+        <?php if (!$selectedCategory): ?>
         <div id="foldersSection" class="mb-6 md:mb-8">
             <div class="documents-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6" id="foldersGrid">
                 <?php 
@@ -77,7 +162,7 @@ $categoryNames = [
                 ?>
                     <a
                         href="<?php echo PUBLIC_URL; ?>/documents.php?category=<?php echo $catCode; ?>"
-                        class="folder-item <?php echo $selectedCategory === $catCode ? 'active' : ''; ?>"
+                        class="folder-item hover-zoom"
                         data-skip-js-handler="true"
                     >
                         <img src="<?php echo htmlspecialchars($iconPath); ?>" alt="<?php echo htmlspecialchars($catName); ?>">
@@ -85,10 +170,82 @@ $categoryNames = [
                 <?php endforeach; ?>
             </div>
         </div>
+        <?php endif; ?>
+
+        <!-- Subcategories Section (shown when category is selected and no subcategory selected) -->
+        <?php if ($selectedCategory && !$selectedSubcategory && !empty($subcategories)): ?>
+        <div id="subcategoriesSection" class="mb-6 md:mb-8">
+            <div class="documents-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                <?php 
+                $folderImagePath = ASSETS_URL . '/IMG/folder.png';
+                $folderIndex = 1; // Start numbering from 1
+                foreach ($subcategories as $subcat): 
+                    $fileCount = $subcategoryCounts[$subcat] ?? 0;
+                    $subcatDisplay = htmlspecialchars($subcat);
+                    $folderNumber = str_pad($folderIndex, 2, '0', STR_PAD_LEFT); // Format as 01, 02, 03, etc.
+                ?>
+                    <!-- Folder Container with Label Below -->
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <!-- Group 49 - Main Container (Folder Link) -->
+                        <a
+                            href="<?php echo PUBLIC_URL; ?>/documents.php?category=<?php echo $selectedCategory; ?>&subcategory=<?php echo urlencode($subcat); ?>"
+                            class="folder-item hover-zoom <?php echo $selectedSubcategory === $subcat ? 'active' : ''; ?>"
+                            style="position: relative; width: 202px; height: 141px; display: block; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; text-decoration: none; transform-origin: center center;"
+                            title="<?php echo htmlspecialchars($subcat); ?> - <?php echo $fileCount; ?> file(s)"
+                        >
+                            <!-- Group 46 - Folder Image Container -->
+                            <div style="position: absolute; width: 190px; height: 141px; left: 6px; top: 0;">
+                                <!-- Vector - Folder Image (The actual folder.png) -->
+                                <img 
+                                    src="<?php echo htmlspecialchars($folderImagePath); ?>" 
+                                    alt="<?php echo htmlspecialchars($subcat); ?> folder" 
+                                    style="width: 190px; height: 141px; object-fit: contain; display: block; position: absolute; left: 0; top: 0;"
+                                >
+                            </div>
+                            
+                            <!-- Folder Number Overlay (01, 02, 03, etc.) - Centered horizontally, positioned 10% lower -->
+                            <div style="position: absolute; width: 190px; height: 141px; left: 6px; top: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 50px; font-family: 'Sora', sans-serif; font-style: normal; font-weight: 700; font-size: 20px; line-height: 25px; text-align: center; text-transform: capitalize; color: #FFFFFF; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
+                                <?php echo $folderNumber; ?>
+                            </div>
+                        </a>
+                        <!-- Subcategory Name Label Below Folder -->
+                        <div style="margin-top: 0.5rem; text-align: center; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 0.875rem; color: #1f2937;">
+                            <a href="<?php echo PUBLIC_URL; ?>/documents.php?category=<?php echo $selectedCategory; ?>&subcategory=<?php echo urlencode($subcat); ?>" class="hover-zoom" style="color: inherit; text-decoration: none; display: inline-block; transition: transform 0.3s ease, color 0.3s ease;">
+                                <?php echo $subcatDisplay; ?>
+                            </a>
+                        </div>
+                    </div>
+                    <?php $folderIndex++; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- Documents Section -->
+        <?php 
+        $showDocuments = false;
+        if ($selectedSubcategory) {
+            $showDocuments = true;
+        } elseif (!$selectedCategory) {
+            $showDocuments = true;
+        } elseif ($selectedCategory && (empty($subcategories) || !isset($subcategories))) {
+            $showDocuments = true;
+        }
+        if ($showDocuments): 
+        ?>
         <div id="documentsSection">
-            <h2 class="section-title"><?php echo $selectedCategory && isset($categoryNames[$selectedCategory]) ? $categoryNames[$selectedCategory] : 'Documents'; ?></h2>
+            <h2 class="section-title">
+                <?php 
+                if ($selectedSubcategory && $selectedCategory) {
+                    // Show the clicked subcategory name (the folder that was clicked)
+                    echo htmlspecialchars($selectedSubcategory);
+                } elseif ($selectedCategory && isset($categoryNames[$selectedCategory])) {
+                    echo $categoryNames[$selectedCategory];
+                } else {
+                    echo 'Documents';
+                }
+                ?>
+            </h2>
             <div id="documentsContainer">
                 <!-- List View -->
                 <div class="documents-list" id="listView">
@@ -111,7 +268,7 @@ $categoryNames = [
                             $fileSize = !empty($doc['file_size']) ? number_format($doc['file_size'] / 1024 / 1024, 2) . ' MB' : 'N/A';
                             $fileName = !empty($doc['file_path']) ? basename($doc['file_path']) : '';
                         ?>
-                            <div class="document-item">
+                            <div class="document-item hover-zoom">
                                 <div class="doc-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" role="img" focusable="false">
                                         <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h4.5L13 3.5z"/>
@@ -134,12 +291,12 @@ $categoryNames = [
                                             <?php $docUrl = getDocumentUrl($doc['file_path']); ?>
                                             <button 
                                                 type="button" 
-                                                class="doc-preview-btn" 
+                                                class="doc-preview-btn hover-zoom" 
                                                 data-preview-url="<?php echo htmlspecialchars($docUrl); ?>"
                                             >
                                                 Preview
                                             </button>
-                                            <a href="<?php echo $docUrl; ?>" target="_blank" class="doc-download-btn">Download</a>
+                                            <a href="<?php echo $docUrl; ?>" target="_blank" class="doc-download-btn hover-zoom">Download</a>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -151,7 +308,7 @@ $categoryNames = [
                 <div class="documents-grid hidden" id="gridView">
                     <?php if (!empty($documents)): ?>
                         <?php foreach ($documents as $doc): ?>
-                            <div class="document-card">
+                            <div class="document-card hover-zoom">
                                 <div class="doc-card-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24" role="img" focusable="false">
                                         <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h4.5L13 3.5z"/>
@@ -164,12 +321,12 @@ $categoryNames = [
                                     <div class="doc-card-actions">
                                         <button 
                                             type="button" 
-                                            class="doc-card-preview-btn" 
+                                            class="doc-card-preview-btn hover-zoom" 
                                             data-preview-url="<?php echo htmlspecialchars($docUrl); ?>"
                                         >
                                             Preview
                                         </button>
-                                        <a href="<?php echo $docUrl; ?>" target="_blank" class="doc-card-download">Download</a>
+                                        <a href="<?php echo $docUrl; ?>" target="_blank" class="doc-card-download hover-zoom">Download</a>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -178,6 +335,7 @@ $categoryNames = [
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         </div>
     </div>

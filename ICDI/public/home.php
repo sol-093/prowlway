@@ -45,8 +45,10 @@ try {
 }
 
 $pageTitle = 'PROWLWAY - ICDISG Archive Website';
-// Enable intro animation (can be skipped with ?skip_intro=1)
-$showIntro = !isset($_GET['skip_intro']);
+// Enable intro animation only if not shown before (check cookie)
+// Can be skipped with ?skip_intro=1
+$introShownCookie = $_COOKIE['prowlway_intro_shown'] ?? null;
+$showIntro = !isset($_GET['skip_intro']) && empty($introShownCookie);
 $bodyClass = $showIntro ? 'intro-active' : '';
 include '../includes/header.php';
 
@@ -66,7 +68,7 @@ $upcomingMeetings = [];
 
 // Fetch events for carousel (with error handling)
 try {
-    $events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY date DESC, display_order ASC LIMIT 5");
+    $events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY display_order ASC, created_at DESC LIMIT 5");
     if (!is_array($events)) {
         $events = [];
     }
@@ -240,13 +242,20 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                             // Escape JSON for data attribute (double encode to prevent issues)
                             $announcementJson = htmlspecialchars(json_encode($announcement, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8');
                         ?>
-                            <div class="announcement-card" data-announcement='<?php echo $announcementJson; ?>' style="cursor: pointer;">
-                                <div class="announcement-title"><?php echo htmlspecialchars($announcement['title'] ?? ''); ?></div>
-                                <div class="announcement-date"><?php echo $annDate->format('M d, Y'); ?></div>
-                                <div class="card-divider"></div>
-                                <p class="announcement-desc"><?php echo htmlspecialchars($announcement['description'] ?? ''); ?></p>
-                                <button class="btn-read-more" data-announcement='<?php echo $announcementJson; ?>'>READ MORE ></button>
-                            </div>
+                            <a href="<?php echo PUBLIC_URL; ?>/announcement-detail.php?id=<?php echo $announcement['id']; ?>" class="announcement-card-link">
+                                <div class="announcement-card">
+                                    <?php if (!empty($announcement['image'])): ?>
+                                        <div class="announcement-image-wrapper">
+                                            <img src="<?php echo getImageUrl($announcement['image']); ?>" alt="<?php echo htmlspecialchars($announcement['title'] ?? ''); ?>" class="announcement-image" onerror="this.style.display='none';">
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="announcement-title"><?php echo htmlspecialchars($announcement['title'] ?? ''); ?></div>
+                                    <div class="announcement-date"><?php echo $annDate->format('M d, Y'); ?></div>
+                                    <div class="card-divider"></div>
+                                    <p class="announcement-desc"><?php echo htmlspecialchars($announcement['description'] ?? ''); ?></p>
+                                    <div class="btn-read-more hover-zoom">READ MORE ></div>
+                                </div>
+                            </a>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
@@ -440,23 +449,6 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
                     <div class="footer-divider"></div>
                 </div>
                 
-                <!-- Footer Right: Tech Care Platform -->
-                <aside class="footer-techcare">
-                    <h3 class="techcare-title">TECH CARE<br>PLATFORM</h3>
-                    <ul class="techcare-links">
-                        <?php foreach ($techcareLinks as $item): 
-                            $id    = isset($item['id']) ? $item['id'] : '';
-                            $label = isset($item['label']) ? $item['label'] : $id;
-                            if ($label === '') continue;
-                        ?>
-                            <li>
-                                <a href="<?php echo $id !== '' ? '#'.htmlspecialchars($id) : '#'; ?>">
-                                    <?php echo htmlspecialchars($label); ?>
-                                </a>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </aside>
             </div>
             
             <!-- Copyright - Below footer content -->
@@ -465,6 +457,160 @@ $footerCopy = $settings['footer_copy'] ?? 'Copyright © ' . date('Y') . '. ' . $
     </main>
  
 </div>
+
+<!-- Sponsor Popup -->
+<?php
+// Fetch active sponsors
+$sponsorsSetting = dbFetchOne("SELECT setting_value FROM site_settings WHERE setting_key = 'sponsors'");
+$activeSponsors = [];
+if ($sponsorsSetting && !empty($sponsorsSetting['setting_value'])) {
+    $decoded = json_decode($sponsorsSetting['setting_value'], true);
+    if (is_array($decoded)) {
+        // Filter only active sponsors
+        $activeSponsors = array_filter($decoded, function($sponsor) {
+            return !empty($sponsor['active']) && $sponsor['active'] == 1;
+        });
+        // Sort by display_order
+        usort($activeSponsors, function($a, $b) {
+            return ($a['display_order'] ?? 0) - ($b['display_order'] ?? 0);
+        });
+    }
+}
+?>
+<?php if (!empty($activeSponsors)): ?>
+<div id="sponsor-popup" class="sponsor-popup" style="display: none;">
+    <div class="sponsor-popup-backdrop" onclick="closeSponsorPopup()"></div>
+    <div class="sponsor-popup-content">
+        <button class="sponsor-popup-close" onclick="closeSponsorPopup()" aria-label="Close">&times;</button>
+        <div class="sponsor-popup-header">
+            <h3>Our Sponsors</h3>
+        </div>
+        <div class="sponsor-popup-body">
+            <?php foreach ($activeSponsors as $sponsor): ?>
+                <div class="sponsor-item">
+                    <?php if (!empty($sponsor['image'])): ?>
+                        <?php if (!empty($sponsor['link_url'])): ?>
+                            <a href="<?php echo htmlspecialchars($sponsor['link_url']); ?>" target="_blank" rel="noopener noreferrer">
+                                <img src="<?php echo getImageUrl($sponsor['image']); ?>" alt="<?php echo htmlspecialchars($sponsor['title']); ?>" class="sponsor-image">
+                            </a>
+                        <?php else: ?>
+                            <img src="<?php echo getImageUrl($sponsor['image']); ?>" alt="<?php echo htmlspecialchars($sponsor['title']); ?>" class="sponsor-image">
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <?php if (!empty($sponsor['title'])): ?>
+                        <p class="sponsor-title"><?php echo htmlspecialchars($sponsor['title']); ?></p>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+
+<style>
+.sponsor-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sponsor-popup-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+.sponsor-popup-content {
+    position: relative;
+    background: white;
+    border-radius: 1rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    z-index: 10001;
+}
+.sponsor-popup-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #6b7280;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+.sponsor-popup-close:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+.sponsor-popup-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+.sponsor-popup-header h3 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin: 0;
+}
+.sponsor-popup-body {
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+.sponsor-item {
+    text-align: center;
+}
+.sponsor-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.sponsor-title {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0;
+}
+</style>
+
+<script>
+(function() {
+    // Check if popup was already shown in this session
+    if (sessionStorage.getItem('sponsor_popup_shown') === '1') {
+        return;
+    }
+    
+    // Show popup after a short delay
+    setTimeout(function() {
+        const popup = document.getElementById('sponsor-popup');
+        if (popup) {
+            popup.style.display = 'flex';
+            // Mark as shown in session
+            sessionStorage.setItem('sponsor_popup_shown', '1');
+        }
+    }, 2000); // Show after 2 seconds
+    
+    window.closeSponsorPopup = function() {
+        const popup = document.getElementById('sponsor-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+    };
+})();
+</script>
+<?php endif; ?>
 
 <?php include '../includes/footer.php'; ?>
 

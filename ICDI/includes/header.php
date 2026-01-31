@@ -1,14 +1,17 @@
 <?php
 // Fetch organizations for mobile dropdown if database functions are available
 $mobileOrganizations = [];
+$mobileFacultySubcategories = [];
 if (!function_exists('dbFetchAll') && file_exists(__DIR__ . '/database.php')) {
     require_once __DIR__ . '/database.php';
 }
 if (function_exists('dbFetchAll')) {
     try {
         $mobileOrganizations = dbFetchAll("SELECT id, name, acronym FROM student_organizations WHERE status = 'active' ORDER BY display_order ASC");
+        $mobileFacultySubcategories = dbFetchAll("SELECT * FROM institute_sections WHERE type = 'faculty_subcategory' AND status = 'published' ORDER BY display_order ASC, title ASC");
     } catch (Exception $e) {
         $mobileOrganizations = [];
+        $mobileFacultySubcategories = [];
     }
 }
 ?>
@@ -140,8 +143,25 @@ if (function_exists('dbFetchAll')) {
                         </button>
                         <ul class="mobile-dropdown-menu">
                             <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about" class="mobile-dropdown-link">About</a></li>
-                            <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=faculty" class="mobile-dropdown-link">Faculty Unit</a></li>
-                            <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=admin" class="mobile-dropdown-link">Admin Representative</a></li>
+                            <li class="mobile-org-item-with-batch">
+                                <a href="<?php echo PUBLIC_URL; ?>/faculty.php" class="mobile-dropdown-link">Faculty Unit</a>
+                                
+                                <!-- Subcategories - Show below Faculty Unit on hover/tap -->
+                                <?php if (!empty($mobileFacultySubcategories)): ?>
+                                <ul class="mobile-batch-hover-menu">
+                                    <?php foreach ($mobileFacultySubcategories as $subcat): ?>
+                                    <li>
+                                        <a href="<?php echo htmlspecialchars($subcat['description'] ?: '#'); ?>" 
+                                           class="mobile-dropdown-link"
+                                           style="font-size: 13px; text-transform: uppercase; padding-left: 2.5rem;">
+                                            <?php echo htmlspecialchars($subcat['title']); ?>
+                                        </a>
+                                    </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                                <?php endif; ?>
+                            </li>
+                            <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative.php" class="mobile-dropdown-link">Admin Representative</a></li>
                             <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program" class="mobile-dropdown-link">Program</a></li>
                         </ul>
                     </li>
@@ -157,8 +177,27 @@ if (function_exists('dbFetchAll')) {
                         </button>
                         <ul class="mobile-dropdown-menu">
                             <?php if (!empty($mobileOrganizations)): ?>
-                                <?php foreach ($mobileOrganizations as $org): ?>
-                                    <li><a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $org['id']; ?>" class="mobile-dropdown-link"><?php echo htmlspecialchars($org['acronym'] ? $org['acronym'] . ' - ' . $org['name'] : $org['name']); ?></a></li>
+                                <?php 
+                                // Check if we're currently on the batches page
+                                $isBatchesPageMobile = (basename($_SERVER['PHP_SELF']) === 'batches.php' && isset($_GET['org_id']));
+                                $currentBatchOrgIdMobile = $isBatchesPageMobile ? (int)$_GET['org_id'] : null;
+                                
+                                foreach ($mobileOrganizations as $org): 
+                                ?>
+                                    <li class="mobile-org-item-with-batch">
+                                        <a href="<?php echo PUBLIC_URL; ?>/organization.php?id=<?php echo $org['id']; ?>" class="mobile-dropdown-link mobile-org-link"><?php echo htmlspecialchars($org['name']); ?></a>
+                                        
+                                        <!-- BATCH Subcategory - Show below organization on hover/tap in mobile menu -->
+                                        <ul class="mobile-batch-hover-menu">
+                                            <li>
+                                                <a href="<?php echo PUBLIC_URL; ?>/batches.php?org_id=<?php echo $org['id']; ?>" 
+                                                   class="mobile-dropdown-link <?php echo ($isBatchesPageMobile && $currentBatchOrgIdMobile == $org['id']) ? 'active' : ''; ?>"
+                                                   style="font-size: 13px; text-transform: uppercase; padding-left: 2.5rem;">
+                                                    BATCH
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <li><a href="<?php echo PUBLIC_URL; ?>/institute.php" class="mobile-dropdown-link">View Organizations</a></li>
@@ -394,6 +433,27 @@ if (function_exists('dbFetchAll')) {
             max-height: 500px;
         }
 
+        /* Mobile BATCH hover menu - show on hover/tap */
+        .mobile-batch-hover-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            padding-left: 0;
+        }
+
+        .mobile-org-item-with-batch:hover .mobile-batch-hover-menu,
+        .mobile-org-item-with-batch:active .mobile-batch-hover-menu {
+            max-height: 100px;
+            opacity: 1;
+            visibility: visible;
+            margin-top: 0.25rem;
+        }
+
         .mobile-dropdown-link {
             display: block;
             padding: 0.75rem 1.25rem;
@@ -406,6 +466,28 @@ if (function_exists('dbFetchAll')) {
         .mobile-dropdown-link:hover {
             color: rgba(255, 255, 255, 0.9);
             padding-left: 1.5rem;
+        }
+
+        .mobile-dropdown-link.active {
+            color: rgba(255, 255, 255, 1);
+            font-weight: 600;
+        }
+
+        /* Nested mobile dropdown menu for subcategories */
+        .mobile-dropdown-menu .mobile-dropdown-menu {
+            padding-left: 2.5rem;
+            margin-top: 0.25rem;
+            max-height: none;
+        }
+
+        .mobile-dropdown-menu .mobile-dropdown-menu li {
+            margin-bottom: 0;
+        }
+
+        .mobile-dropdown-menu .mobile-dropdown-menu .mobile-dropdown-link {
+            font-size: 13px;
+            padding: 0.5rem 1.25rem;
+            text-transform: uppercase;
         }
 
         /* Mobile Search Toggle Button */

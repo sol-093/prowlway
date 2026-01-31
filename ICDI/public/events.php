@@ -7,8 +7,8 @@ $pageTitle = 'Events - PROWLWAY ICDISG';
 $bodyClass = 'events-page';
 include '../includes/header.php';
 
-// Fetch events from database
-$events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY date DESC, display_order ASC");
+// Fetch events from database - display_order first, then by creation date
+$events = dbFetchAll("SELECT * FROM events WHERE status = 'published' ORDER BY display_order ASC, created_at DESC");
 ?>
 
 <!-- Main Container -->

@@ -31,6 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             APIError::json('Description is required', 400);
         }
         
+        // Image is required for published or pinned announcements (strong announcements)
+        $isStrongAnnouncement = ($requestedStatus === 'published' || isset($_POST['pinned']));
+        $hasImage = (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) || (!empty($_POST['old_image']));
+        
+        if ($isStrongAnnouncement && !$hasImage) {
+            APIError::json('Image is required for published or pinned announcements', 400);
+        }
+        
         $data = [
             'title' => $title,
             'description' => $description,
@@ -70,22 +78,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data['image'] = $_POST['old_image'];
         }
         
-        if ($action === 'create') {
-            $result = dbInsert('announcements', $data);
-            if ($result) {
-                if ($data['status'] === 'pending_review') {
-                    auditLog('submit_review', 'Announcement submitted for review', 'announcement', $result);
-                } elseif ($data['status'] === 'published') {
-                    auditLog('publish', 'Announcement created and published', 'announcement', $result);
+        // Handle PDF upload
+        if (isset($_FILES['pdf_file']) && $_FILES['pdf_file']['error'] === UPLOAD_ERR_OK) {
+            $uploadResult = uploadDocument($_FILES['pdf_file']);
+            if ($uploadResult['success']) {
+                // Delete old PDF if updating
+                if ($action === 'update' && !empty($_POST['old_pdf'])) {
+                    deleteUploadedFile($_POST['old_pdf']);
                 }
-                echo json_encode(['success' => true, 'message' => 'Announcement created successfully', 'id' => $result]);
+                $data['pdf_file'] = $uploadResult['path'];
             } else {
-                $errorMsg = getLastDbError();
-                if (empty($errorMsg)) {
-                    $errorMsg = 'Failed to insert announcement. Database operation returned false.';
+                APIError::upload($uploadResult['error'], true);
+            }
+        } elseif ($action === 'update' && !empty($_POST['old_pdf'])) {
+            // Keep existing PDF if no new upload
+            $data['pdf_file'] = $_POST['old_pdf'];
+        }
+        
+        // Remove pdf_file from data if column doesn't exist (to prevent SQL errors)
+        // This allows the system to work even if migration hasn't been run yet
+        if (isset($data['pdf_file'])) {
+            try {
+                $testColumn = dbFetchOne("SHOW COLUMNS FROM announcements LIKE 'pdf_file'");
+                if (empty($testColumn)) {
+                    unset($data['pdf_file']);
                 }
-                error_log("Announcement insert failed. Error: " . $errorMsg);
-                APIError::database(new Exception($errorMsg), true);
+            } catch (Exception $e) {
+                // If check fails, remove pdf_file to be safe
+                unset($data['pdf_file']);
+                error_log("Warning: Could not check for pdf_file column: " . $e->getMessage());
+            }
+        }
+        
+        if ($action === 'create') {
+            try {
+                $result = dbInsert('announcements', $data);
+                if ($result) {
+                    if ($data['status'] === 'pending_review') {
+                        auditLog('submit_review', 'Announcement submitted for review', 'announcement', $result);
+                    } elseif ($data['status'] === 'published') {
+                        auditLog('publish', 'Announcement created and published', 'announcement', $result);
+                    }
+                    echo json_encode(['success' => true, 'message' => 'Announcement created successfully', 'id' => $result]);
+                } else {
+                    $errorMsg = getLastDbError();
+                    if (empty($errorMsg)) {
+                        $errorMsg = 'Failed to insert announcement. Database operation returned false.';
+                    }
+                    error_log("Announcement insert failed. Error: " . $errorMsg);
+                    error_log("Announcement data: " . json_encode($data));
+                    APIError::database(new Exception($errorMsg), true);
+                }
+            } catch (Exception $e) {
+                error_log("Announcement insert exception: " . $e->getMessage());
+                error_log("Announcement data: " . json_encode($data));
+                APIError::database($e, true);
             }
         } else {
             $id = intval($_POST['id'] ?? 0);

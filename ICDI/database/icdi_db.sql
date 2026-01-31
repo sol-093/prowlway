@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 30, 2026 at 08:05 PM
+-- Generation Time: Jan 31, 2026 at 05:41 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -64,6 +64,7 @@ CREATE TABLE `announcements` (
   `content` text DEFAULT NULL,
   `category` enum('general','academic','event','maintenance','urgent') DEFAULT 'general',
   `image` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded image file',
+  `pdf_file` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded PDF file',
   `pinned` tinyint(1) DEFAULT 0,
   `is_meeting` tinyint(1) DEFAULT 0,
   `meeting_date` datetime DEFAULT NULL,
@@ -86,8 +87,10 @@ CREATE TABLE `announcements` (
 -- Dumping data for table `announcements`
 --
 
-INSERT INTO `announcements` (`id`, `title`, `description`, `content`, `category`, `image`, `pinned`, `is_meeting`, `meeting_date`, `meeting_end_date`, `meeting_location`, `status`, `academic_year`, `created_by`, `reviewed_by`, `reviewed_at`, `review_notes`, `approved_by`, `approved_at`, `approval_notes`, `created_at`, `updated_at`) VALUES
-(1, 'Meeting', '123', '123', 'academic', 'images/img_697b5a022cfad0.14140578_1769691650.png', 0, 1, '2026-01-30 17:41:00', NULL, 'cb1 309', 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-29 13:00:50', '2026-01-30 04:48:02');
+INSERT INTO `announcements` (`id`, `title`, `description`, `content`, `category`, `image`, `pdf_file`, `pinned`, `is_meeting`, `meeting_date`, `meeting_end_date`, `meeting_location`, `status`, `academic_year`, `created_by`, `reviewed_by`, `reviewed_at`, `review_notes`, `approved_by`, `approved_at`, `approval_notes`, `created_at`, `updated_at`) VALUES
+(1, 'Meeting', '123', '- Migration: Add subcategories table for document hierarchy management -- Date: 2026-01-31 -- Description: Creates a subcategories table to manage document subcategories with proper data integrity -- Create subcategories table CREATE TABLE IF NOT EXISTS `subcategories` ( `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, `category` enum(&amp;amp;amp;amp;amp;#039;01&amp;amp;amp;amp;amp;#039;,&amp;amp;amp;amp;amp;#039;02&amp;amp;amp;amp;amp;#039;,&amp;amp;amp;amp;amp;#039;03&amp;amp;amp;amp;amp;#039;,&amp;amp;amp;amp;amp;#039;04&amp;amp;amp;amp;amp;#039;,&amp;amp;amp;amp;amp;#039;05&amp;amp;amp;amp;amp;#039;) NOT NULL COMMENT &amp;amp;amp;amp;amp;#039;Parent category: 01=OFFICES REPORT, 02=EXECUTIVE ORDER, 03=ORDINANCE, 04=RESOLUTION, 05=OTHER&amp;amp;amp;amp;amp;#039;, `name` varchar(100) NOT NULL COMMENT &amp;amp;amp;amp;amp;#039;Subcategory name (e.g., OTP, OVIA, OVPEA, OS, OTA, OBPR)&amp;amp;amp;amp;amp;#039;, `status` enum(&amp;amp;amp;amp;amp;#039;active&amp;amp;amp;amp;amp;#039;,&amp;amp;amp;amp;amp;#039;inactive&amp;amp;amp;amp;amp;#039;) DEFAULT &amp;amp;amp;amp;amp;#039;active&amp;amp;amp;amp;amp;#039; COMMENT &amp;amp;amp;amp;amp;#039;Enable/disable subcategory&amp;amp;amp;amp;amp;#039;, `display_order` int(11) DEFAULT 0 COMMENT &amp;amp;amp;amp;amp;#039;Order for display&amp;amp;amp;amp;amp;#039;, `created_at` timestamp NOT NULL DEFAULT current_timestamp(), `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(), PRIMARY KEY (`id`), UNIQUE KEY `unique_category_subcategory` (`category`, `name`), KEY[...]', 'academic', 'images/img_697d7828897903.13175527_1769830440.jpg', 'documents/doc_697d765cb73329.50842592_1769829980.pdf', 0, 1, '2026-01-30 17:41:00', '2026-01-31 11:06:00', 'cb1 309', 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-29 13:00:50', '2026-01-31 03:34:00'),
+(3, '13', '1123', '-- Migration: Add PDF field to announcements table -- Date: 2026-01-31 -- Description: Adds optional PDF file upload support for announcements -- Add PDF field to announcements table ALTER TABLE `announcements` ADD COLUMN `pdf_file` varchar(500) DEFAULT NULL COMMENT &amp;#039;Relative path to uploaded PDF file&amp;#039; AFTER `image`;', 'general', 'images/img_697d797e7ffec3.14930232_1769830782.jpg', NULL, 0, 0, NULL, NULL, NULL, 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-31 03:39:32', '2026-01-31 03:39:42'),
+(4, '123123123', '123123', '-- Migration: Add PDF field to announcements table -- Date: 2026-01-31 -- Description: Adds optional PDF file upload support for announcements -- Add PDF field to announcements table ALTER TABLE `announcements` ADD COLUMN `pdf_file` varchar(500) DEFAULT NULL COMMENT &amp;#039;Relative path to uploaded PDF file&amp;#039; AFTER `image`;', 'general', 'images/img_697d799a1532e3.22133623_1769830810.jpg', NULL, 0, 1, '2026-01-31 11:39:00', NULL, NULL, 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-31 03:39:59', '2026-01-31 03:40:10');
 
 -- --------------------------------------------------------
 
@@ -159,7 +162,19 @@ INSERT INTO `audit_log` (`id`, `admin_id`, `action`, `entity_type`, `entity_id`,
 (49, 7, 'publish', 'event', 3, 'Event created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 08:49:03'),
 (50, 7, 'publish', 'event', 4, 'Event created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 08:50:09'),
 (51, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 17:25:51'),
-(52, 7, 'publish', 'institute_section', 1, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 19:04:15');
+(52, 7, 'publish', 'institute_section', 1, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 19:04:15'),
+(53, 7, 'publish', 'event', 3, 'Event published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-30 19:11:11'),
+(54, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:07:39'),
+(55, 7, 'create', 'subcategory', 1, 'Subcategory created: Zendrick Delacruz Gango under category 01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:34:43'),
+(56, 7, 'update', 'subcategory', 1, 'Subcategory status changed to inactive', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:38:37'),
+(57, 7, 'update', 'subcategory', 1, 'Subcategory status changed to active', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:38:43'),
+(58, 7, 'update', 'subcategory', 1, 'Subcategory updated: Zett pogi under category 01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:38:56'),
+(59, 7, 'update', 'subcategory', 1, 'Subcategory updated: Zett pogi under category 01', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:39:07'),
+(60, 7, 'update', 'subcategory', 1, 'Subcategory status changed to inactive', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:52:11'),
+(61, 7, 'update', 'subcategory', 1, 'Subcategory status changed to active', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:52:24'),
+(62, 7, 'publish', 'announcement', 3, 'Announcement published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 03:39:42'),
+(63, 7, 'publish', 'announcement', 4, 'Announcement published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 03:40:10'),
+(64, 7, 'publish', 'institute_section', 2, 'Institute section published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 04:38:19');
 
 -- --------------------------------------------------------
 
@@ -264,6 +279,7 @@ CREATE TABLE `documents` (
   `description` text DEFAULT NULL,
   `category` enum('01','02','03','04','05') NOT NULL COMMENT '01=OFFICES REPORT, 02=EXECUTIVE ORDER, 03=ORDINANCE, 04=RESOLUTION, 05=OTHER',
   `subcategory` varchar(100) DEFAULT NULL COMMENT 'OTP, OVIA, OVPEA, OS, OTA, OBPR, Media Publication, Arts Craft, Documentation, Business, etc.',
+  `display_order` int(11) DEFAULT 0 COMMENT 'Display order within category/subcategory',
   `series_year` varchar(20) DEFAULT NULL COMMENT 'e.g., 2025',
   `document_type` enum('executive_order','administrative_order','memorandum') DEFAULT NULL COMMENT 'For Orders category (02)',
   `academic_year` varchar(20) DEFAULT NULL COMMENT 'e.g., 2024-2025',
@@ -286,8 +302,8 @@ CREATE TABLE `documents` (
 -- Dumping data for table `documents`
 --
 
-INSERT INTO `documents` (`id`, `title`, `description`, `category`, `subcategory`, `series_year`, `document_type`, `academic_year`, `file_path`, `file_size`, `file_type`, `status`, `created_by`, `reviewed_by`, `reviewed_at`, `review_notes`, `approved_by`, `approved_at`, `approval_notes`, `created_at`, `updated_at`) VALUES
-(1, '123123123', '345', '01', NULL, NULL, NULL, NULL, 'documents/doc_697b5cf47aca74.10396727_1769692404.pdf', 809982, 'application/pdf', 'published', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-29 13:13:24', '2026-01-29 13:47:17');
+INSERT INTO `documents` (`id`, `title`, `description`, `category`, `subcategory`, `display_order`, `series_year`, `document_type`, `academic_year`, `file_path`, `file_size`, `file_type`, `status`, `created_by`, `reviewed_by`, `reviewed_at`, `review_notes`, `approved_by`, `approved_at`, `approval_notes`, `created_at`, `updated_at`) VALUES
+(1, '123123123', '345', '01', 'Zett pogi', 0, NULL, NULL, NULL, 'documents/doc_697b5cf47aca74.10396727_1769692404.pdf', 809982, 'application/pdf', 'published', 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-29 13:13:24', '2026-01-31 02:51:07');
 
 -- --------------------------------------------------------
 
@@ -328,7 +344,7 @@ CREATE TABLE `events` (
 
 INSERT INTO `events` (`id`, `title`, `caption`, `description`, `summary`, `category`, `schedule_type`, `image`, `gallery`, `date`, `end_date`, `location`, `display_order`, `status`, `academic_year`, `created_by`, `reviewed_by`, `reviewed_at`, `review_notes`, `approved_by`, `approved_at`, `approval_notes`, `created_at`, `updated_at`) VALUES
 (2, '123', '123', '<p>Lorem ipsum dolor sit amet. Nam ipsam libero ut reprehenderit magnam ut consequuntur animi qui optio commodi qui voluptatem nulla et doloremque quisquam nam odio maiores. Et mollitia sint ut error error eum autem rerum ab sequi vero. Non placeat modi sit magni debitis est praesentium dolorum nam perferendis aspernatur quo placeat quas eum voluptate quisquam. </p><p>Et enim cumque quo quisquam quae est molestiae exercitationem qui nemo laboriosam. Sed consequatur fugit ea Quis alias id quis vitae et doloremque laborum. </p><p>Ut odio ipsam qui consequatur quasi a sunt cupiditate est voluptas corporis At enim dolorem et placeat porro? Nam officiis officia ut galisum doloremque et deleniti nostrum aut voluptates illo! </p>\r\n', '<p>Lorem ipsum dolor sit amet. Nam ipsam libero ut reprehenderit magnam ut consequuntur animi qui optio commodi qui voluptatem nulla et doloremque quisquam nam odio maiores. Et mollitia sint ut error error eum autem rerum ab sequi vero. Non placeat modi sit magni debitis est praesentium dolorum nam perferendis aspernatur quo placeat quas eum voluptate quisquam. </p><p>Et enim cumque quo quisquam quae est molestiae exercitationem qui nemo laboriosam. Sed consequatur fugit ea Quis alias id quis vitae et doloremque laborum. </p><p>Ut odio ipsam qui consequatur quasi a sunt cupiditate est voluptas corporis At enim dolorem et placeat porro? Nam officiis officia ut galisum doloremque et deleniti nostrum aut voluptates illo! </p>\r\n', 'service', 'event', 'images/img_697bed9f7a1b01.33693340_1769729439.png', '[\"images\\/img_697bed9f7a66c4.42230535_1769729439.png\",\"images\\/img_697bed9f7abdc3.58164822_1769729439.png\",\"images\\/img_697bed9f7aeb16.47373279_1769729439.png\",\"images\\/img_697bed9f7b1253.26797268_1769729439.png\",\"images\\/img_697bed9f7f7529.36375870_1769729439.png\",\"images\\/img_697bed9f7fac94.99555281_1769729439.png\",\"images\\/img_697bed9f7fd8e1.20610900_1769729439.png\"]', '2026-01-06', NULL, '', 0, 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-29 23:30:39', '2026-01-30 07:47:00'),
-(3, 'ito ang title ', 'ito ang title ', '<p>Lorem ipsum dolor sit amet. Ab tenetur velit non maiores esse sit reprehenderit iste ut consequatur architecto et nostrum obcaecati! Aut iure nostrum ut repudiandae amet quo impedit eveniet. Cum quidem optio hic natus excepturi qui itaque quia et minus autem et minima necessitatibus. Eos libero voluptate rem corporis dolor qui tenetur rerum. </p><p>Et autem magnam et iste Quis et doloribus magnam ex accusamus voluptatem est quibusdam explicabo. Cum alias rerum rem natus nihil ea distinctio rerum ad quam quis. Ut laborum culpa ea obcaecati aspernatur qui quibusdam quisquam sed nobis aspernatur aut voluptatem quidem id repudiandae delectus. </p><p>Sit distinctio magnam eum quam magni sit dignissimos mollitia non dolorum magni qui eveniet nihil quo mollitia voluptates. Ad officiis minima qui velit voluptas aut quia quisquam sit voluptate enim qui quia quia 33 unde galisum. Est neque eligendi eos debitis voluptatem sit voluptatem consequatur aut porro deserunt! </p>\r\n', '<p>Lorem ipsum dolor sit amet. Ab tenetur velit non maiores esse sit reprehenderit iste ut consequatur architecto et nostrum obcaecati! Aut iure nostrum ut repudiandae amet quo impedit eveniet. Cum quidem optio hic natus excepturi qui itaque quia et minus autem et minima necessitatibus. Eos libero voluptate rem corporis dolor qui tenetur rerum. </p><p>Et autem magnam et iste Quis et doloribus magnam ex accusamus voluptatem est quibusdam explicabo. Cum alias rerum rem natus nihil ea distinctio rerum ad quam quis. Ut laborum culpa ea obcaecati aspernatur qui quibusdam quisquam sed nobis aspernatur aut voluptatem quidem id repudiandae delectus. </p><p>Sit distinctio magnam eum quam magni sit dignissimos mollitia non dolorum magni qui eveniet nihil quo mollitia voluptates. Ad officiis minima qui velit voluptas aut quia quisquam sit voluptate enim qui quia quia 33 unde galisum. Est neque eligendi eos debitis voluptatem sit voluptatem consequatur aut porro deserunt! </p>\r\n', 'workshop', 'event', 'images/img_697c707fa70dd4.11447913_1769762943.jpg', NULL, '2026-01-31', NULL, 'Aurora St., Makati City', 0, 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-30 08:49:03', '2026-01-30 08:49:03'),
+(3, 'ito ang title ', 'ito ang title ', '<p>Lorem ipsum dolor sit amet. Ab tenetur velit non maiores esse sit reprehenderit iste ut consequatur architecto et nostrum obcaecati! Aut iure nostrum ut repudiandae amet quo impedit eveniet. Cum quidem optio hic natus excepturi qui itaque quia et minus autem et minima necessitatibus. Eos libero voluptate rem corporis dolor qui tenetur rerum. </p><p>Et autem magnam et iste Quis et doloribus magnam ex accusamus voluptatem est quibusdam explicabo. Cum alias rerum rem natus nihil ea distinctio rerum ad quam quis. Ut laborum culpa ea obcaecati aspernatur qui quibusdam quisquam sed nobis aspernatur aut voluptatem quidem id repudiandae delectus. </p><p>Sit distinctio magnam eum quam magni sit dignissimos mollitia non dolorum magni qui eveniet nihil quo mollitia voluptates. Ad officiis minima qui velit voluptas aut quia quisquam sit voluptate enim qui quia quia 33 unde galisum. Est neque eligendi eos debitis voluptatem sit voluptatem consequatur aut porro deserunt! </p>\r\n', '<p>Lorem ipsum dolor sit amet. Ab tenetur velit non maiores esse sit reprehenderit iste ut consequatur architecto et nostrum obcaecati! Aut iure nostrum ut repudiandae amet quo impedit eveniet. Cum quidem optio hic natus excepturi qui itaque quia et minus autem et minima necessitatibus. Eos libero voluptate rem corporis dolor qui tenetur rerum. </p><p>Et autem magnam et iste Quis et doloribus magnam ex accusamus voluptatem est quibusdam explicabo. Cum alias rerum rem natus nihil ea distinctio rerum ad quam quis. Ut laborum culpa ea obcaecati aspernatur qui quibusdam quisquam sed nobis aspernatur aut voluptatem quidem id repudiandae delectus. </p><p>Sit distinctio magnam eum quam magni sit dignissimos mollitia non dolorum magni qui eveniet nihil quo mollitia voluptates. Ad officiis minima qui velit voluptas aut quia quisquam sit voluptate enim qui quia quia 33 unde galisum. Est neque eligendi eos debitis voluptatem sit voluptatem consequatur aut porro deserunt! </p>\r\n', 'workshop', 'event', 'images/img_697d0246a97dd9.89311076_1769800262.png', NULL, '2026-01-31', NULL, 'Aurora St., Makati City', 0, 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-30 08:49:03', '2026-01-30 19:11:11'),
 (4, 'asdasdasda', 'ito ang title ', '<p>Lorem ipsum dolor sit amet. Ab tenetur velit non maiores esse sit reprehenderit iste ut consequatur architecto et nostrum obcaecati! Aut iure nostrum ut repudiandae amet quo impedit eveniet. Cum quidem optio hic natus excepturi qui itaque quia et minus autem et minima necessitatibus. Eos libero voluptate rem corporis dolor qui tenetur rerum. </p><p>Et autem magnam et iste Quis et doloribus magnam ex accusamus voluptatem est quibusdam explicabo. Cum alias rerum rem natus nihil ea distinctio rerum ad quam quis. Ut laborum culpa ea obcaecati aspernatur qui quibusdam quisquam sed nobis aspernatur aut voluptatem quidem id repudiandae delectus. </p><p>Sit distinctio magnam eum quam magni sit dignissimos mollitia non dolorum magni qui eveniet nihil quo mollitia voluptates. Ad officiis minima qui velit voluptas aut quia quisquam sit voluptate enim qui quia quia 33 unde galisum. Est neque eligendi eos debitis voluptatem sit voluptatem consequatur aut porro deserunt! </p>\r\n', '<p>Lorem ipsum dolor sit amet. Ab tenetur velit non maiores esse sit reprehenderit iste ut consequatur architecto et nostrum obcaecati! Aut iure nostrum ut repudiandae amet quo impedit eveniet. Cum quidem optio hic natus excepturi qui itaque quia et minus autem et minima necessitatibus. Eos libero voluptate rem corporis dolor qui tenetur rerum. </p><p>Et autem magnam et iste Quis et doloribus magnam ex accusamus voluptatem est quibusdam explicabo. Cum alias rerum rem natus nihil ea distinctio rerum ad quam quis. Ut laborum culpa ea obcaecati aspernatur qui quibusdam quisquam sed nobis aspernatur aut voluptatem quidem id repudiandae delectus. </p><p>Sit distinctio magnam eum quam magni sit dignissimos mollitia non dolorum magni qui eveniet nihil quo mollitia voluptates. Ad officiis minima qui velit voluptas aut quia quisquam sit voluptate enim qui quia quia 33 unde galisum. Est neque eligendi eos debitis voluptatem sit voluptatem consequatur aut porro deserunt! </p>\r\n', 'workshop', 'event', 'images/img_697c70c1401780.50778454_1769763009.png', NULL, '2026-02-07', NULL, 'Guadalupe, Makaci City', 0, 'published', NULL, 7, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-30 08:50:09', '2026-01-30 08:50:09');
 
 -- --------------------------------------------------------
@@ -434,7 +450,7 @@ INSERT INTO `institute_info` (`id`, `section`, `title`, `content`, `image`, `dis
 
 CREATE TABLE `institute_sections` (
   `id` int(11) UNSIGNED NOT NULL,
-  `type` enum('faculty_unit','admin_representative','program') NOT NULL,
+  `type` enum('faculty_unit','admin_representative','program','faculty_subcategory') NOT NULL,
   `title` varchar(255) NOT NULL,
   `position_title` varchar(255) DEFAULT NULL,
   `description` text DEFAULT NULL,
@@ -452,7 +468,9 @@ CREATE TABLE `institute_sections` (
 --
 
 INSERT INTO `institute_sections` (`id`, `type`, `title`, `position_title`, `description`, `content`, `image`, `display_order`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 'faculty_unit', '123', '123', '123', '123', NULL, 0, 'published', 7, '2026-01-30 19:04:15', '2026-01-30 19:04:15');
+(1, 'faculty_unit', '123', '123', '123', '123', NULL, 0, 'published', 7, '2026-01-30 19:04:15', '2026-01-30 19:04:15'),
+(2, 'faculty_subcategory', 'is', NULL, '123', '', NULL, 0, 'published', 7, '2026-01-31 04:36:18', '2026-01-31 04:38:19'),
+(3, 'program', '123', NULL, '123', '', NULL, 0, 'draft', 7, '2026-01-31 04:37:23', '2026-01-31 04:37:23');
 
 -- --------------------------------------------------------
 
@@ -542,6 +560,29 @@ INSERT INTO `student_organizations` (`id`, `name`, `acronym`, `description`, `mi
 (3, 'IS Society', 'ISS', 'Information Systems Society', NULL, NULL, '', 'images/img_697be79bc9bfb5.10416983_1769727899.png', NULL, '', NULL, 3, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:04:59'),
 (4, 'GITCUB', 'GITCUB', 'Google IT Community University Branch', NULL, NULL, '', 'images/img_697be7a638b0c1.09519661_1769727910.png', NULL, '', NULL, 4, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:05:10'),
 (5, 'JPCS', 'JPCS', 'Junior Philippine Computer Society', NULL, NULL, '', 'images/img_697be7acf324b0.58611005_1769727916.png', NULL, '', NULL, 5, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:05:17');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subcategories`
+--
+
+CREATE TABLE `subcategories` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `category` enum('01','02','03','04','05') NOT NULL COMMENT 'Parent category: 01=OFFICES REPORT, 02=EXECUTIVE ORDER, 03=ORDINANCE, 04=RESOLUTION, 05=OTHER',
+  `name` varchar(100) NOT NULL COMMENT 'Subcategory name (e.g., OTP, OVIA, OVPEA, OS, OTA, OBPR)',
+  `status` enum('active','inactive') DEFAULT 'active' COMMENT 'Enable/disable subcategory',
+  `display_order` int(11) DEFAULT 0 COMMENT 'Order for display',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Document subcategories linked to parent categories';
+
+--
+-- Dumping data for table `subcategories`
+--
+
+INSERT INTO `subcategories` (`id`, `category`, `name`, `status`, `display_order`, `created_at`, `updated_at`) VALUES
+(1, '01', 'Zett pogi', 'active', 1, '2026-01-31 02:34:43', '2026-01-31 02:52:24');
 
 --
 -- Indexes for dumped tables
@@ -694,6 +735,15 @@ ALTER TABLE `student_organizations`
   ADD KEY `idx_orgs_status_order` (`status`,`display_order`);
 
 --
+-- Indexes for table `subcategories`
+--
+ALTER TABLE `subcategories`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_category_subcategory` (`category`,`name`),
+  ADD KEY `idx_category` (`category`),
+  ADD KEY `idx_status` (`status`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -707,13 +757,13 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `announcements`
 --
 ALTER TABLE `announcements`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
 -- AUTO_INCREMENT for table `batches`
@@ -761,7 +811,7 @@ ALTER TABLE `institute_info`
 -- AUTO_INCREMENT for table `institute_sections`
 --
 ALTER TABLE `institute_sections`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `organization_core_values`
@@ -780,6 +830,12 @@ ALTER TABLE `site_settings`
 --
 ALTER TABLE `student_organizations`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `subcategories`
+--
+ALTER TABLE `subcategories`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables

@@ -17,16 +17,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($action === 'create' || $action === 'update') {
         $requestedStatus = $_POST['status'] ?? 'draft';
+        
+        // Validate required fields
+        $title = trim($_POST['title'] ?? '');
+        $date = trim($_POST['date'] ?? '');
+        $endDate = !empty($_POST['end_date']) ? trim($_POST['end_date']) : null;
+        
+        if (empty($title)) {
+            APIError::json('Title is required', 400);
+        }
+        
+        if (empty($date)) {
+            APIError::json('Start date is required', 400);
+        }
+        
+        // Validate date format
+        if (!validateDate($date, 'Y-m-d')) {
+            APIError::json('Invalid start date format', 400);
+        }
+        
+        // Validate end_date if provided
+        if ($endDate !== null) {
+            if (!validateDate($endDate, 'Y-m-d')) {
+                APIError::json('Invalid end date format', 400);
+            }
+            // Ensure end_date is not before start date
+            if (strtotime($endDate) < strtotime($date)) {
+                APIError::json('End date must be on or after start date', 400);
+            }
+        }
+        
         $data = [
-            'title' => $_POST['title'] ?? '',
-            'caption' => $_POST['caption'] ?? '',
-            'description' => $_POST['description'] ?? '',
-            'summary' => $_POST['summary'] ?? '',
-            'category' => $_POST['category'] ?? 'other',
-            'schedule_type' => $_POST['schedule_type'] ?? 'event',
-            'date' => $_POST['date'] ?? date('Y-m-d'),
-            'end_date' => !empty($_POST['end_date']) ? $_POST['end_date'] : null,
-            'location' => $_POST['location'] ?? '',
+            'title' => sanitizeString($title, 255),
+            'caption' => sanitizeString($_POST['caption'] ?? '', 500),
+            'description' => sanitizeString($_POST['description'] ?? ''),
+            'summary' => sanitizeString($_POST['summary'] ?? ''),
+            'category' => sanitizeString($_POST['category'] ?? 'other', 50),
+            'schedule_type' => sanitizeString($_POST['schedule_type'] ?? 'event', 50),
+            'date' => $date,
+            'end_date' => $endDate,
+            'location' => sanitizeString($_POST['location'] ?? '', 255),
             'display_order' => intval($_POST['order'] ?? 0),
             'status' => normalizeStatusByRole($requestedStatus),
             'created_by' => $_SESSION['admin_id'] ?? null
@@ -90,23 +120,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         if ($action === 'create') {
-            $result = dbInsert('events', $data);
-            if ($result) {
+            try {
+                $result = dbInsert('events', $data);
+                if ($result === false) {
+                    $errorMsg = getLastDbError() ?? 'Failed to create event. Please check all required fields.';
+                    error_log("Event creation failed. Error: " . $errorMsg);
+                    APIError::database(new Exception($errorMsg), true);
+                }
+                
                 if ($data['status'] === 'pending_review') {
                     auditLog('submit_review', 'Event submitted for review', 'event', $result);
                 } elseif ($data['status'] === 'published') {
                     auditLog('publish', 'Event created and published', 'event', $result);
                 }
                 echo json_encode(['success' => true, 'message' => 'Event created successfully', 'id' => $result]);
-            } else {
-                $errorMsg = getLastDbError() ?? 'Error creating event';
-                echo json_encode(['success' => false, 'error' => $errorMsg]);
+            } catch (Exception $e) {
+                error_log("Event creation exception: " . $e->getMessage());
+                APIError::database($e, true);
             }
         } else {
             $id = intval($_POST['id'] ?? 0);
-            $existing = dbFetchOne("SELECT status FROM events WHERE id = ?", [$id]);
-            $result = dbUpdate('events', $data, 'id = :id', ['id' => $id]);
-            if ($result) {
+            if ($id <= 0) {
+                APIError::json('Invalid event ID', 400);
+            }
+            
+            // Check if event exists
+            $existing = dbFetchOne("SELECT status, image FROM events WHERE id = ?", [$id]);
+            if (!$existing) {
+                APIError::json('Event not found', 404);
+            }
+            
+            try {
+                $result = dbUpdate('events', $data, 'id = :id', ['id' => $id]);
+                if ($result === false) {
+                    $errorMsg = getLastDbError() ?? 'Failed to update event. Please check all fields.';
+                    error_log("Event update failed. Error: " . $errorMsg);
+                    APIError::database(new Exception($errorMsg), true);
+                }
+                
                 if ($existing && $data['status'] !== $existing['status']) {
                     if ($data['status'] === 'pending_review' && $existing['status'] === 'draft') {
                         auditLog('submit_review', 'Event submitted for review', 'event', $id);
@@ -117,9 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 echo json_encode(['success' => true, 'message' => 'Event updated successfully']);
-            } else {
-                $errorMsg = getLastDbError() ?? 'Error updating event';
-                echo json_encode(['success' => false, 'error' => $errorMsg]);
+            } catch (Exception $e) {
+                error_log("Event update exception: " . $e->getMessage());
+                APIError::database($e, true);
             }
         }
     } elseif ($action === 'approve') {

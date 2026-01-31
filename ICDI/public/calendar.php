@@ -17,7 +17,7 @@ $firstDayStr = $calFirst->format('Y-m-d');
 $lastDayStr = $calLast->format('Y-m-d');
 
 $events = dbFetchAll(
-    "SELECT * FROM events WHERE status = 'published' AND date <= ? AND (end_date IS NULL OR end_date >= ?) ORDER BY date ASC, display_order ASC",
+    "SELECT * FROM events WHERE status = 'published' AND date <= ? AND (end_date IS NULL OR end_date >= ?) ORDER BY date ASC, created_at ASC",
     [$lastDayStr, $firstDayStr]
 );
 
@@ -68,7 +68,7 @@ try {
              OR 
              (meeting_date IS NULL AND DATE(created_at) <= ? AND DATE(created_at) >= ?)
          )
-         ORDER BY COALESCE(meeting_date, created_at) DESC",
+         ORDER BY COALESCE(meeting_date, created_at) ASC",
         [$lastDayStr, $firstDayStr, $lastDayStr, $firstDayStr]
     );
     
@@ -131,34 +131,61 @@ $cutoffStr = date('Y-m-d', strtotime('+2 months')); // Reminders: only next 1–
 
 // Upcoming events: within next 2 months only (starts by cutoff, and starts today+ or ongoing)
 $upcomingEvents = dbFetchAll(
-    "SELECT * FROM events WHERE status = 'published' AND date <= ? AND (date >= ? OR (end_date IS NOT NULL AND end_date >= ?)) ORDER BY date ASC, display_order ASC LIMIT 15",
+    "SELECT * FROM events WHERE status = 'published' AND date <= ? AND (date >= ? OR (end_date IS NOT NULL AND end_date >= ?)) ORDER BY display_order ASC, date ASC, created_at ASC LIMIT 15",
     [$cutoffStr, $todayStr, $todayStr]
 );
-
-// Upcoming meetings removed - all announcements go to regular announcements panel
-$upcomingMeetings = [];
-
-// Use only events
-$upcomingEvents = $upcomingEvents;
-usort($upcomingEvents, function($a, $b) {
-    $dateA = isset($a['date']) ? $a['date'] : (isset($a['meeting_date']) ? date('Y-m-d', strtotime($a['meeting_date'])) : '9999-12-31');
-    $dateB = isset($b['date']) ? $b['date'] : (isset($b['meeting_date']) ? date('Y-m-d', strtotime($b['meeting_date'])) : '9999-12-31');
-    return strcmp($dateA, $dateB);
-});
 
 // Upcoming calendar entries (holidays / school): within next 2 months only
 $upcomingHolidays = [];
 try {
     $upcomingHolidays = dbFetchAll(
-        "SELECT id, date, end_date, name, type, type_label, region FROM holidays WHERE date <= ? AND (date >= ? OR (end_date IS NOT NULL AND end_date >= ?)) ORDER BY date ASC LIMIT 10",
+        "SELECT id, date, end_date, name, type, type_label, region FROM holidays WHERE date <= ? AND (date >= ? OR (end_date IS NOT NULL AND end_date >= ?)) ORDER BY date ASC, created_at ASC LIMIT 10",
         [$cutoffStr, $todayStr, $todayStr]
     );
 } catch (Throwable $e) {}
 
 // Recent announcements for Reminders (connect events + announcements in one place)
 $recentAnnouncements = dbFetchAll(
-    "SELECT id, title, description, category, created_at FROM announcements WHERE status = 'published' ORDER BY created_at DESC LIMIT 5"
+    "SELECT id, title, description, category, created_at FROM announcements WHERE status = 'published' ORDER BY created_at ASC LIMIT 5"
 );
+
+// Merge all reminder items and sort by date (earliest first)
+$allReminderItems = [];
+
+// Add announcements
+foreach ($recentAnnouncements as $ann) {
+    $annDate = !empty($ann['created_at']) ? date('Y-m-d', strtotime($ann['created_at'])) : '9999-12-31';
+    $allReminderItems[] = [
+        'type' => 'announcement',
+        'sort_date' => $annDate,
+        'data' => $ann
+    ];
+}
+
+// Add holidays
+foreach ($upcomingHolidays as $hol) {
+    $holDate = $hol['date'] ?? '9999-12-31';
+    $allReminderItems[] = [
+        'type' => 'holiday',
+        'sort_date' => $holDate,
+        'data' => $hol
+    ];
+}
+
+// Add events
+foreach ($upcomingEvents as $ev) {
+    $evDate = $ev['date'] ?? '9999-12-31';
+    $allReminderItems[] = [
+        'type' => 'event',
+        'sort_date' => $evDate,
+        'data' => $ev
+    ];
+}
+
+// Sort by date (earliest first)
+usort($allReminderItems, function($a, $b) {
+    return strcmp($a['sort_date'], $b['sort_date']);
+});
 
 $prevMonth = clone $calFirst; $prevMonth->modify('-1 month');
 $nextMonth = clone $calFirst; $nextMonth->modify('+1 month');
@@ -349,14 +376,38 @@ include '../includes/header.php';
                 </div>
             </div>
 
-            <?php if (!empty($upcomingEvents) || !empty($upcomingHolidays) || !empty($recentAnnouncements)): ?>
+            <?php if (!empty($allReminderItems)): ?>
             <aside class="calendar-reminders">
                 <h3 class="calendar-reminders-title">Reminders &amp; Upcoming</h3>
                 <div class="calendar-reminders-list">
-                    <?php if (!empty($upcomingEvents)): ?>
-                    <div class="calendar-reminders-block">
-                        <h4 class="calendar-reminders-subtitle">Upcoming events</h4>
-                        <?php foreach ($upcomingEvents as $ev):
+                    <?php foreach ($allReminderItems as $item): 
+                        $type = $item['type'];
+                        $data = $item['data'];
+                        
+                        if ($type === 'announcement'):
+                            $annDate = !empty($data['created_at']) ? date('M j, Y', strtotime($data['created_at'])) : '';
+                    ?>
+                            <a href="<?php echo PUBLIC_URL; ?>/home.php#announcements" class="calendar-reminder-item calendar-reminder-announcement">
+                                <span class="reminder-date"><?php echo $annDate; ?></span>
+                                <span class="reminder-schedule-badge"><?php echo htmlspecialchars($data['category'] ?? 'general'); ?></span>
+                                <span class="reminder-title"><?php echo htmlspecialchars($data['title']); ?></span>
+                            </a>
+                        <?php elseif ($type === 'holiday'):
+                            $hol = $data;
+                            $holStart = new DateTime($hol['date']);
+                            $holEnd = !empty($hol['end_date']) ? new DateTime($hol['end_date']) : null;
+                            $holDateDisplay = $holEnd && $holEnd != $holStart
+                                ? $holStart->format('M j') . ' – ' . $holEnd->format('j, Y')
+                                : $holStart->format('M j, Y');
+                            $holLabel = !empty($hol['type_label']) ? $hol['type_label'] : (isset($holidayTypeLabels[$hol['type'] ?? '']) ? $holidayTypeLabels[$hol['type']] : 'Calendar');
+                        ?>
+                            <div class="calendar-reminder-item calendar-reminder-holiday" title="<?php echo htmlspecialchars($hol['name']); ?>">
+                                <span class="reminder-date"><?php echo $holDateDisplay; ?></span>
+                                <span class="reminder-schedule-badge"><?php echo htmlspecialchars($holLabel); ?></span>
+                                <span class="reminder-title"><?php echo htmlspecialchars($hol['name']); ?></span>
+                            </div>
+                        <?php elseif ($type === 'event'):
+                            $ev = $data;
                             $evStart = new DateTime($ev['date']);
                             $evEnd = !empty($ev['end_date']) ? new DateTime($ev['end_date']) : null;
                             $evDateDisplay = $evEnd && $evEnd != $evStart
@@ -368,10 +419,8 @@ include '../includes/header.php';
                             $isMeeting = isset($ev['is_meeting']) && $ev['is_meeting'];
                             $isAnnouncement = isset($ev['is_announcement']) && $ev['is_announcement'];
                             $announcementId = isset($ev['announcement_id']) ? $ev['announcement_id'] : null;
-                        ?>
-                            <?php 
                             $displayLocation = isset($ev['meeting_location']) && !empty($ev['meeting_location']) ? $ev['meeting_location'] : ($ev['location'] ?? '');
-                            ?>
+                        ?>
                             <?php if (($isMeeting || $isAnnouncement) && $announcementId): ?>
                                 <span onclick="openAnnouncementFromCalendar(<?php echo htmlspecialchars($announcementId); ?>)" 
                                       class="calendar-reminder-item reminder-schedule-<?php echo htmlspecialchars($st); ?> <?php echo $isTodayEv ? 'reminder-today' : ''; ?>" 
@@ -388,49 +437,13 @@ include '../includes/header.php';
                                     <span class="reminder-date"><?php echo $evDateDisplay; ?></span>
                                     <span class="reminder-schedule-badge"><?php echo htmlspecialchars($stLabel); ?></span>
                                     <span class="reminder-title"><?php echo htmlspecialchars($ev['title']); ?></span>
-                                    <?php 
-                                    $displayLocation = isset($ev['meeting_location']) && !empty($ev['meeting_location']) ? $ev['meeting_location'] : ($ev['location'] ?? '');
-                                    if (!empty($displayLocation)): ?>
+                                    <?php if (!empty($displayLocation)): ?>
                                         <span class="reminder-location">📍 <?php echo htmlspecialchars($displayLocation); ?></span>
                                     <?php endif; ?>
                                 </a>
                             <?php endif; ?>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($upcomingHolidays)): ?>
-                    <div class="calendar-reminders-block">
-                        <h4 class="calendar-reminders-subtitle">Upcoming (calendar)</h4>
-                        <?php foreach ($upcomingHolidays as $hol):
-                            $holStart = new DateTime($hol['date']);
-                            $holEnd = !empty($hol['end_date']) ? new DateTime($hol['end_date']) : null;
-                            $holDateDisplay = $holEnd && $holEnd != $holStart
-                                ? $holStart->format('M j') . ' – ' . $holEnd->format('j, Y')
-                                : $holStart->format('M j, Y');
-                            $holLabel = !empty($hol['type_label']) ? $hol['type_label'] : (isset($holidayTypeLabels[$hol['type'] ?? '']) ? $holidayTypeLabels[$hol['type']] : 'Calendar');
-                        ?>
-                            <div class="calendar-reminder-item calendar-reminder-holiday" title="<?php echo htmlspecialchars($hol['name']); ?>">
-                                <span class="reminder-date"><?php echo $holDateDisplay; ?></span>
-                                <span class="reminder-schedule-badge"><?php echo htmlspecialchars($holLabel); ?></span>
-                                <span class="reminder-title"><?php echo htmlspecialchars($hol['name']); ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($recentAnnouncements)): ?>
-                    <div class="calendar-reminders-block">
-                        <h4 class="calendar-reminders-subtitle">Recent announcements</h4>
-                        <?php foreach ($recentAnnouncements as $ann):
-                            $annDate = !empty($ann['created_at']) ? date('M j, Y', strtotime($ann['created_at'])) : '';
-                        ?>
-                            <a href="<?php echo PUBLIC_URL; ?>/home.php#announcements" class="calendar-reminder-item calendar-reminder-announcement">
-                                <span class="reminder-date"><?php echo $annDate; ?></span>
-                                <span class="reminder-schedule-badge"><?php echo htmlspecialchars($ann['category'] ?? 'general'); ?></span>
-                                <span class="reminder-title"><?php echo htmlspecialchars($ann['title']); ?></span>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
                 </div>
             </aside>
             <?php endif; ?>
@@ -564,56 +577,29 @@ function openAnnouncementFromCalendar(eventData) {
         } catch (e) {
             // If parsing fails, treat as ID and fetch from API
             const actualId = parseInt(eventData);
-            fetch('<?php echo BASE_URL; ?>/admin/announcements.php?page=1&per_page=100')
-                .then(res => res.json())
-                .then(result => {
-                    if (result.success && result.data) {
-                        const ann = result.data.find(a => a.id == actualId);
-                        if (ann) {
-                            showAnnouncementModalFromData(ann);
-                        } else {
-                            alert('Announcement not found.');
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching announcement:', error);
-                    alert('Error loading announcement details.');
-                });
+            // Redirect directly to detail page
+            const baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : '/ICDI/public');
+            window.location.href = baseUrl + '/announcement-detail.php?id=' + actualId;
             return;
         }
     }
     
-    // Convert calendar event data to announcement format expected by modal
-    const announcementData = {
-        id: announcement.announcement_id || (typeof announcement.id === 'string' && announcement.id.startsWith('ann_') 
-            ? parseInt(announcement.id.replace('ann_', '')) 
-            : announcement.id),
-        title: announcement.title || '',
-        description: announcement.description || '',
-        content: announcement.content || announcement.summary || '',
-        image: announcement.image || '',
-        created_at: announcement.created_at || '',
-        is_meeting: announcement.is_meeting || (announcement.meeting_date ? 1 : 0),
-        meeting_date: announcement.meeting_date || null,
-        meeting_end_date: announcement.meeting_end_date || null,
-        meeting_location: announcement.meeting_location || announcement.location || null,
-        category: announcement.category || 'general'
-    };
-    
-    // Show the modal with the announcement data
-    showAnnouncementModalFromData(announcementData);
+    // Redirect to announcement detail page
+    const id = announcement.announcement_id || (typeof announcement.id === 'string' && announcement.id.startsWith('ann_') 
+        ? parseInt(announcement.id.replace('ann_', '')) 
+        : announcement.id);
+    if (id) {
+        const baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : '/ICDI/public');
+        window.location.href = baseUrl + '/announcement-detail.php?id=' + id;
+    }
 }
 
-// Helper function to show announcement modal
+// Helper function - redirect to detail page instead of modal
 function showAnnouncementModalFromData(announcement) {
-    if (typeof showAnnouncementModal === 'function') {
-        showAnnouncementModal(announcement);
-    } else if (typeof window.showAnnouncementModal === 'function') {
-        window.showAnnouncementModal(announcement);
-    } else {
-        console.error('Announcement modal function not available');
-        alert('Unable to display announcement details. Please refresh the page and try again.');
+    const announcementId = announcement.id;
+    if (announcementId) {
+        const baseUrl = window.PUBLIC_URL || (window.BASE_URL ? window.BASE_URL + '/public' : '/ICDI/public');
+        window.location.href = baseUrl + '/announcement-detail.php?id=' + announcementId;
     }
 }
 </script>

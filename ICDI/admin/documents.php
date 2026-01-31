@@ -35,6 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             APIError::json('Title is required', 400);
         }
         
+        // Validate subcategory is required
+        if (empty($subcategory)) {
+            APIError::json('Subcategory is required', 400);
+        }
+        
         $data = [
             'title' => $title,
             'description' => $description,
@@ -43,9 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'series_year' => $seriesYear,
             'document_type' => $documentType,
             'academic_year' => $academicYear,
-            'status' => normalizeStatusByRole($requestedStatus),
-            'created_by' => $_SESSION['admin_id'] ?? null
+            'status' => normalizeStatusByRole($requestedStatus)
         ];
+        
+        // Only set created_by for new documents
+        if ($action === 'create') {
+            $data['created_by'] = $_SESSION['admin_id'] ?? null;
+        }
         
         // Handle review/approval notes if provided
         if (!empty($_POST['review_notes'])) {
@@ -97,10 +106,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 APIError::database(new Exception($errorMsg), true);
             }
         } else {
+            // UPDATE action
             $id = intval($_POST['id'] ?? 0);
-            $existing = dbFetchOne("SELECT status FROM documents WHERE id = ?", [$id]);
-            $result = dbUpdate('documents', $data, 'id = :id', ['id' => $id]);
-            if ($result) {
+            if ($id <= 0) {
+                APIError::json('Invalid document ID', 400);
+            }
+            
+            // Check if document exists and get current file path and subcategory
+            $existing = dbFetchOne("SELECT id, status, file_path, subcategory FROM documents WHERE id = ?", [$id]);
+            if (!$existing) {
+                APIError::json('Document not found', 404);
+            }
+            
+            // Validate subcategory - use existing if not provided in update
+            if (empty($subcategory)) {
+                if (!empty($existing['subcategory'])) {
+                    // Keep existing subcategory if not provided in update
+                    $subcategory = $existing['subcategory'];
+                    $data['subcategory'] = $subcategory;
+                } else {
+                    APIError::json('Subcategory is required', 400);
+                }
+            }
+            
+            // Track old file path for deletion if new file is uploaded
+            $oldFilePath = $existing['file_path'] ?? null;
+            $newFileUploaded = isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK;
+            
+            // Only update file-related fields if a new file is uploaded
+            if (!$newFileUploaded) {
+                // Remove file-related fields from update if no new file
+                unset($data['file_path'], $data['file_size'], $data['file_type']);
+            }
+            
+            try {
+                // Use proper WHERE clause with id parameter
+                $result = dbUpdate('documents', $data, 'id = :id', ['id' => $id]);
+                
+                if ($result === false) {
+                    $errorMsg = getLastDbError() ?? 'Failed to update document. Please check all fields.';
+                    error_log("Document update failed. Error: " . $errorMsg);
+                    APIError::database(new Exception($errorMsg), true);
+                }
+                
+                // Only delete old file AFTER successful update and if new file was uploaded
+                if ($newFileUploaded && $oldFilePath && !empty($oldFilePath)) {
+                    $newFilePath = $data['file_path'] ?? null;
+                    // Only delete if paths are different
+                    if ($newFilePath && $oldFilePath !== $newFilePath) {
+                        // Verify new file exists before deleting old one
+                        $newFileFullPath = UPLOAD_BASE_PATH . '/' . $newFilePath;
+                        if (file_exists($newFileFullPath)) {
+                            deleteUploadedFile($oldFilePath);
+                        } else {
+                            error_log("Warning: New file not found after update: " . $newFileFullPath);
+                        }
+                    }
+                }
+                
                 // Track status changes
                 if ($existing && $data['status'] !== $existing['status']) {
                     if ($data['status'] === 'pending_review' && $existing['status'] === 'draft') {
@@ -112,9 +175,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 echo json_encode(['success' => true, 'message' => 'Document updated successfully']);
-            } else {
-                $errorMsg = getLastDbError() ?? 'Failed to update document';
-                APIError::database(new Exception($errorMsg), true);
+            } catch (Exception $e) {
+                error_log("Document update exception: " . $e->getMessage());
+                APIError::database($e, true);
             }
         }
     } elseif ($action === 'review') {
