@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 31, 2026 at 05:41 AM
+-- Generation Time: Jan 31, 2026 at 03:16 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -174,7 +174,10 @@ INSERT INTO `audit_log` (`id`, `admin_id`, `action`, `entity_type`, `entity_id`,
 (61, 7, 'update', 'subcategory', 1, 'Subcategory status changed to active', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 02:52:24'),
 (62, 7, 'publish', 'announcement', 3, 'Announcement published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 03:39:42'),
 (63, 7, 'publish', 'announcement', 4, 'Announcement published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 03:40:10'),
-(64, 7, 'publish', 'institute_section', 2, 'Institute section published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 04:38:19');
+(64, 7, 'publish', 'institute_section', 2, 'Institute section published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 04:38:19'),
+(65, 7, 'delete', 'institute_section', 2, 'Institute section deleted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 04:41:41'),
+(66, 7, 'publish', 'institute_section', 4, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 04:41:52'),
+(67, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 13:35:14');
 
 -- --------------------------------------------------------
 
@@ -469,8 +472,8 @@ CREATE TABLE `institute_sections` (
 
 INSERT INTO `institute_sections` (`id`, `type`, `title`, `position_title`, `description`, `content`, `image`, `display_order`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
 (1, 'faculty_unit', '123', '123', '123', '123', NULL, 0, 'published', 7, '2026-01-30 19:04:15', '2026-01-30 19:04:15'),
-(2, 'faculty_subcategory', 'is', NULL, '123', '', NULL, 0, 'published', 7, '2026-01-31 04:36:18', '2026-01-31 04:38:19'),
-(3, 'program', '123', NULL, '123', '', NULL, 0, 'draft', 7, '2026-01-31 04:37:23', '2026-01-31 04:37:23');
+(3, 'program', '123', NULL, '123', '', NULL, 0, 'draft', 7, '2026-01-31 04:37:23', '2026-01-31 04:37:23'),
+(4, 'faculty_subcategory', 'is ', NULL, '/public/faculty-is.php', NULL, NULL, 0, 'published', 7, '2026-01-31 04:41:52', '2026-01-31 04:41:52');
 
 -- --------------------------------------------------------
 
@@ -763,7 +766,7 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
 
 --
 -- AUTO_INCREMENT for table `batches`
@@ -811,7 +814,7 @@ ALTER TABLE `institute_info`
 -- AUTO_INCREMENT for table `institute_sections`
 --
 ALTER TABLE `institute_sections`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `organization_core_values`

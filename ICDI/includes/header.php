@@ -50,13 +50,13 @@ if (function_exists('dbFetchAll')) {
          ======================================== -->
     <header class="site-header">
         <div class="header-container">
-            <!-- Logo Section -->
+            <!-- Logo Section - Left Side -->
             <a href="<?php echo BASE_URL ? BASE_URL : '/'; ?>" class="brand" aria-label="PROWLWAY home">
                 <img src="<?php echo ASSETS_URL; ?>/IMG/ICONS/logo.png" alt="PROWLWAY Logo" class="logo-icon">
                 <div class="logo-text">PROWLWAY</div>
             </a>
             
-            <!-- Search Bar - Hidden on mobile -->
+            <!-- Search Bar - Middle -->
             <form method="GET" action="<?php echo PUBLIC_URL; ?>/search.php" class="search-form">
                 <input 
                     type="search" 
@@ -75,11 +75,10 @@ if (function_exists('dbFetchAll')) {
                 </button>
             </form>
             
-            <!-- Navigation Menu - Hidden on mobile -->
+            <!-- Navigation Menu - Right Side -->
             <nav class="main-nav">
                 <a href="<?php echo PUBLIC_URL; ?>/home.php" class="nav-link">Home</a>
                 <a href="<?php echo PUBLIC_URL; ?>/institute.php" class="nav-link">Institute</a>
-                <a href="<?php echo PUBLIC_URL; ?>/calendar.php" class="nav-link">Calendar</a>
                 <a href="<?php echo PUBLIC_URL; ?>/events.php" class="nav-link">Events</a>
                 <a href="<?php echo PUBLIC_URL; ?>/documents.php" class="nav-link">Documents</a>
                 <a href="<?php echo PUBLIC_URL; ?>/contact.php" class="nav-link nav-icon" aria-label="Get in touch">✉</a>
