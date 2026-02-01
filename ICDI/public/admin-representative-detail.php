@@ -3,18 +3,23 @@ require_once '../includes/config.php';
 require_once '../includes/database.php';
 require_once '../includes/upload.php';
 
-$facultyId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$sectionId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-// Fetch faculty subcategory (or faculty_unit) by id — dynamic page like batch-detail.php?id=
-$faculty = null;
-if ($facultyId > 0) {
-    $faculty = dbFetchOne("SELECT * FROM institute_sections WHERE id = ? AND type IN ('faculty_subcategory', 'faculty_unit') AND status = 'published'", [$facultyId]);
+// Fetch admin representative section: by id, or first published if no id (one page only)
+$section = null;
+if ($sectionId > 0) {
+    $section = dbFetchOne("SELECT * FROM institute_sections WHERE id = ? AND type = 'admin_representative' AND status = 'published'", [$sectionId]);
+} else {
+    $section = dbFetchOne("SELECT * FROM institute_sections WHERE type = 'admin_representative' AND status = 'published' ORDER BY display_order ASC, id ASC LIMIT 1");
+    if ($section) {
+        $sectionId = (int) $section['id'];
+    }
 }
 
-if ($faculty) {
-    $pageTitle = htmlspecialchars($faculty['title']) . ' - Faculty Unit - PROWLWAY';
+if ($section) {
+    $pageTitle = 'Admin Representative - Institute - PROWLWAY';
 } else {
-    $pageTitle = 'Faculty Unit - PROWLWAY';
+    $pageTitle = 'Admin Representative - PROWLWAY';
 }
 
 $bodyClass = 'origin-page';
@@ -26,10 +31,10 @@ $organizationsList = dbFetchAll("SELECT * FROM student_organizations WHERE statu
 // Fetch faculty subcategories for sidebar
 $facultySubcategories = dbFetchAll("SELECT * FROM institute_sections WHERE type = 'faculty_subcategory' AND status = 'published' ORDER BY display_order ASC, title ASC");
 
-// Fetch members for this faculty section (like batch-detail members)
-$facultyMembers = [];
-if ($faculty && $facultyId > 0) {
-    $facultyMembers = dbFetchAll("SELECT * FROM faculty_section_members WHERE institute_section_id = ? ORDER BY display_order ASC, id ASC", [$facultyId]);
+// Fetch members for this section (reuse faculty_section_members)
+$sectionMembers = [];
+if ($section && $sectionId > 0) {
+    $sectionMembers = dbFetchAll("SELECT * FROM faculty_section_members WHERE institute_section_id = ? ORDER BY display_order ASC, id ASC", [$sectionId]);
 }
 ?>
 
@@ -38,9 +43,9 @@ if ($faculty && $facultyId > 0) {
     <div class="origin-main-content">
         <div class="origin-content-panel">
             <div class="batches-inner-panel batch-detail-inner-panel">
-                <?php if (!$faculty): ?>
-                    <h1 class="origin-page-title">Faculty Unit</h1>
-                    <p>Faculty section not found.</p>
+                <?php if (!$section): ?>
+                    <h1 class="origin-page-title">Admin Representative</h1>
+                    <p>No admin representative page found.</p>
                 <?php else: ?>
                     <div class="mb-4">
                         <a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about" class="text-sm text-black inline-flex items-center gap-1">
@@ -48,25 +53,25 @@ if ($faculty && $facultyId > 0) {
                         </a>
                     </div>
                     
-                    <!-- Page title (subcategory name) -->
+                    <!-- Page title -->
                     <div class="mb-6 md:mb-8">
-                        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 px-2 md:px-0"><?php echo htmlspecialchars($faculty['title']); ?></h1>
-                        <?php if (!empty($faculty['description'])): ?>
-                            <p class="text-base md:text-lg text-gray-600 mt-2 px-2 md:px-0 font-semibold"><?php echo htmlspecialchars($faculty['description']); ?></p>
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 px-2 md:px-0"><?php echo htmlspecialchars($section['title'] ?: 'Admin Representative'); ?></h1>
+                        <?php if (!empty($section['description'])): ?>
+                            <p class="text-base md:text-lg text-gray-600 mt-2 px-2 md:px-0 font-semibold"><?php echo htmlspecialchars($section['description']); ?></p>
                         <?php endif; ?>
                     </div>
 
-                    <!-- Section heading (editable in admin, e.g. EXECUTIVE OFFICERS) + Members grid -->
+                    <!-- Section heading + Members grid (first row 2 cols, rest 3 cols) -->
                     <?php
-                    $sectionHeading = !empty($faculty['position_title']) ? $faculty['position_title'] : 'MEMBERS';
+                    $sectionHeading = !empty($section['position_title']) ? $section['position_title'] : 'ADMIN REPRESENTATIVE';
                     ?>
                     <section class="batch-detail-section mt-6 md:mt-8 px-2 md:px-0">
                         <h2 class="batch-section-heading mb-4 md:mb-6 text-xl md:text-2xl lg:text-[32px]"><?php echo htmlspecialchars(strtoupper($sectionHeading)); ?></h2>
-                        <?php if (empty($facultyMembers)): ?>
-                            <p class="batch-section-empty text-sm md:text-base">No members added for this section yet.</p>
+                        <?php if (empty($sectionMembers)): ?>
+                            <p class="batch-section-empty text-sm md:text-base">No members added yet.</p>
                         <?php else:
-                            $firstRow = array_slice($facultyMembers, 0, 2);
-                            $restRows = array_slice($facultyMembers, 2);
+                            $firstRow = array_slice($sectionMembers, 0, 2);
+                            $restRows = array_slice($sectionMembers, 2);
                         ?>
                             <?php if (!empty($firstRow)): ?>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 justify-items-center mb-6 md:mb-8">
@@ -113,23 +118,11 @@ if ($faculty && $facultyId > 0) {
                         <?php endif; ?>
                     </section>
 
-                    <!-- Optional faculty section image (for faculty_unit style) -->
-                    <?php if (!empty($faculty['image'])): ?>
-                        <section class="batch-detail-section px-2 md:px-0 mb-6 md:mb-8 mt-8">
-                            <div class="flex justify-center">
-                                <div class="w-full max-w-[400px] aspect-[196/182]">
-                                    <img src="<?php echo getImageUrl($faculty['image']); ?>" alt="<?php echo htmlspecialchars($faculty['title']); ?>" class="w-full h-full rounded-[30px] object-cover bg-[#D9D9D9]">
-                                </div>
-                            </div>
-                        </section>
-                    <?php endif; ?>
-
-                    <!-- Faculty Content (optional about text) -->
-                    <?php if (!empty($faculty['content'])): ?>
+                    <?php if (!empty($section['content'])): ?>
                         <section class="batch-detail-section mt-8 md:mt-12 lg:mt-16 px-2 md:px-0">
                             <h2 class="batch-section-heading mb-4 md:mb-6 text-xl md:text-2xl lg:text-[32px]">ABOUT</h2>
                             <div class="text-sm md:text-base text-black leading-relaxed">
-                                <?php echo nl2br(htmlspecialchars($faculty['content'])); ?>
+                                <?php echo nl2br(htmlspecialchars($section['content'])); ?>
                             </div>
                         </section>
                     <?php endif; ?>
@@ -141,19 +134,17 @@ if ($faculty && $facultyId > 0) {
     <!-- Sidebar / Directory -->
     <aside class="origin-sidebar">
         <div class="sidebar-panel">
-            <!-- INSTITUTE Section -->
             <div class="sidebar-section">
                 <h2 class="sidebar-title">INSTITUTE</h2>
                 <ul class="sidebar-links">
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about">About</a></li>
                     <li class="org-item-with-batch">
                         <span class="sidebar-label cursor-default">Faculty Unit</span>
-                        <!-- Subcategories - Show below Faculty Unit on hover -->
                         <?php if (!empty($facultySubcategories)): ?>
                         <ul class="sidebar-sublinks batch-hover-menu">
                             <?php foreach ($facultySubcategories as $subcat): ?>
                             <li>
-                                <a href="<?php echo PUBLIC_URL; ?>/faculty-detail.php?id=<?php echo (int)$subcat['id']; ?>" class="sidebar-sublink <?php echo ($faculty && (int)$subcat['id'] === (int)$faculty['id']) ? 'active' : ''; ?>">
+                                <a href="<?php echo PUBLIC_URL; ?>/faculty-detail.php?id=<?php echo (int)$subcat['id']; ?>" class="sidebar-sublink">
                                     <?php echo htmlspecialchars($subcat['title']); ?>
                                 </a>
                             </li>
@@ -161,12 +152,10 @@ if ($faculty && $facultyId > 0) {
                         </ul>
                         <?php endif; ?>
                     </li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative-detail.php">Admin Representative</a></li>
+                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative-detail.php<?php echo $sectionId > 0 ? '?id=' . $sectionId : ''; ?>" class="active">Admin Representative</a></li>
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program">Program</a></li>
                 </ul>
             </div>
-
-            <!-- STUDENT ORGANIZATION Section -->
             <div class="sidebar-section">
                 <h2 class="sidebar-title">STUDENT ORGANIZATION</h2>
                 <ul class="sidebar-links">

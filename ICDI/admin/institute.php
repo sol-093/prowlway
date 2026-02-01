@@ -9,6 +9,41 @@ requireAdmin(null, false);
 
 $message = '';
 $messageType = '';
+
+// Handle success messages from redirects (faculty section members)
+if (isset($_GET['message'])) {
+    switch ($_GET['message']) {
+        case 'faculty_member_added':
+            $message = 'Faculty section member added successfully!';
+            $messageType = 'success';
+            break;
+        case 'faculty_member_updated':
+            $message = 'Faculty section member updated successfully!';
+            $messageType = 'success';
+            break;
+        case 'faculty_member_deleted':
+            $message = 'Faculty section member deleted successfully!';
+            $messageType = 'success';
+            break;
+        case 'admin_member_added':
+            $message = 'Admin representative member added successfully!';
+            $messageType = 'success';
+            break;
+        case 'admin_member_updated':
+            $message = 'Admin representative member updated successfully!';
+            $messageType = 'success';
+            break;
+        case 'admin_member_deleted':
+            $message = 'Admin representative member deleted successfully!';
+            $messageType = 'success';
+            break;
+        case 'section_created':
+            $message = 'Section created successfully!';
+            $messageType = 'success';
+            break;
+    }
+}
+
 $activeTab = $_GET['tab'] ?? 'info'; // 'info', 'faculty', 'admin', 'programs'
 
 // Handle form submissions
@@ -82,16 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (($_POST['type'] ?? '') === 'program' && !empty($_POST['program_category'])) {
                 $description = $_POST['program_category']; // Store program category in description
             } elseif (($_POST['type'] ?? '') === 'faculty_subcategory') {
-                // Auto-generate URL from title (convert to lowercase slug)
-                $title = $_POST['title'] ?? '';
-                if (!empty($title)) {
-                    // Convert title to URL-friendly slug
-                    $slug = strtolower(trim($title));
-                    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
-                    $slug = trim($slug, '-');
-                    // Generate URL path (relative to public directory)
-                    $description = '/public/faculty-' . $slug . '.php';
-                }
+                // Subcategories use dynamic URL: faculty-detail.php?id=X (no static path stored)
+                $description = null;
             } elseif (!empty($_POST['description'])) {
                 $description = $_POST['description'];
             }
@@ -122,7 +149,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($_POST['action'] === 'update_section' && !empty($_POST['old_image'])) {
                 $data['image'] = $_POST['old_image'];
             }
-            
+            // For admin_representative update: preserve section heading image when no new upload
+            if ($_POST['action'] === 'update_section' && ($_POST['type'] ?? '') === 'admin_representative') {
+                if (empty($data['image'])) {
+                    $existingSection = dbFetchOne("SELECT image FROM institute_sections WHERE id = ?", [intval($_POST['id'] ?? 0)]);
+                    if ($existingSection && !empty($existingSection['image'])) {
+                        $data['image'] = $existingSection['image'];
+                    }
+                }
+            }
+
             if ($_POST['action'] === 'create_section') {
                 $newId = dbInsert('institute_sections', $data);
                 if ($newId) {
@@ -131,6 +167,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     $message = 'Institute section created successfully!';
                     $messageType = 'success';
+                    $sectionType = $data['type'] ?? '';
+                    if ($sectionType === 'admin_representative') {
+                        header('Location: ' . ADMIN_URL . '/institute.php?tab=admin&edit_section=' . $newId . '&message=section_created');
+                        exit;
+                    }
+                    if ($sectionType === 'faculty_unit' || $sectionType === 'faculty_subcategory') {
+                        header('Location: ' . ADMIN_URL . '/institute.php?tab=faculty&edit_section=' . $newId . '&message=section_created');
+                        exit;
+                    }
+                    if ($sectionType === 'program') {
+                        header('Location: ' . ADMIN_URL . '/institute.php?tab=programs&edit_section=' . $newId . '&message=section_created');
+                        exit;
+                    }
                 } else {
                     $message = 'Error creating institute section.';
                     $messageType = 'error';
@@ -203,6 +252,143 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $messageType = 'error';
                 }
             }
+        } elseif ($_POST['action'] === 'add_faculty_member' || $_POST['action'] === 'update_faculty_member') {
+            $sectionId = intval($_POST['section_id'] ?? 0);
+            $section = $sectionId > 0 ? dbFetchOne("SELECT id, type FROM institute_sections WHERE id = ? AND type = 'faculty_subcategory'", [$sectionId]) : null;
+            if (!$section) {
+                $message = 'Invalid faculty section.';
+                $messageType = 'error';
+            } else {
+                $memberData = [
+                    'institute_section_id' => $sectionId,
+                    'name' => trim($_POST['name'] ?? ''),
+                    'position_title' => trim($_POST['position_title'] ?? ''),
+                    'display_order' => intval($_POST['display_order'] ?? 0)
+                ];
+                if (empty($memberData['name']) || empty($memberData['position_title'])) {
+                    $message = 'Name and position title are required.';
+                    $messageType = 'error';
+                } else {
+                    $imageUploadError = false;
+                    if (isset($_FILES['member_image']) && $_FILES['member_image']['error'] === UPLOAD_ERR_OK) {
+                        $uploadResult = uploadImage($_FILES['member_image'], 'images');
+                        if ($uploadResult['success']) {
+                            if ($_POST['action'] === 'update_faculty_member' && !empty($_POST['old_member_image'])) {
+                                deleteUploadedFile($_POST['old_member_image']);
+                            }
+                            $memberData['image'] = $uploadResult['path'];
+                        }
+                    } elseif ($_POST['action'] === 'update_faculty_member' && !empty($_POST['old_member_image'])) {
+                        $memberData['image'] = $_POST['old_member_image'];
+                    }
+                    if ($_POST['action'] === 'add_faculty_member') {
+                        $result = dbInsert('faculty_section_members', $memberData);
+                        if ($result) {
+                            header('Location: ' . ADMIN_URL . '/institute.php?tab=faculty&edit_section=' . $sectionId . '&message=faculty_member_added');
+                            exit;
+                        }
+                        $message = 'Error adding member.';
+                        $messageType = 'error';
+                    } else {
+                        $memberId = intval($_POST['member_id'] ?? 0);
+                        if ($memberId <= 0) {
+                            $message = 'Invalid member ID.';
+                            $messageType = 'error';
+                        } else {
+                            $result = dbUpdate('faculty_section_members', $memberData, 'id = :id', ['id' => $memberId]);
+                            if ($result) {
+                                header('Location: ' . ADMIN_URL . '/institute.php?tab=faculty&edit_section=' . $sectionId . '&message=faculty_member_updated');
+                                exit;
+                            }
+                            $message = 'Error updating member.';
+                            $messageType = 'error';
+                        }
+                    }
+                }
+            }
+        } elseif ($_POST['action'] === 'delete_faculty_member') {
+            $memberId = intval($_POST['member_id'] ?? 0);
+            $sectionId = intval($_POST['section_id'] ?? 0);
+            $member = dbFetchOne("SELECT id, image, institute_section_id FROM faculty_section_members WHERE id = ?", [$memberId]);
+            if ($member) {
+                if ($sectionId <= 0) $sectionId = $member['institute_section_id'];
+                $result = dbDelete('faculty_section_members', 'id = :id', ['id' => $memberId]);
+                if ($result) {
+                    if (!empty($member['image'])) deleteUploadedFile($member['image']);
+                    header('Location: ' . ADMIN_URL . '/institute.php?tab=faculty&edit_section=' . $sectionId . '&message=faculty_member_deleted');
+                    exit;
+                }
+            }
+            $message = 'Error deleting member.';
+            $messageType = 'error';
+        } elseif ($_POST['action'] === 'add_admin_member' || $_POST['action'] === 'update_admin_member') {
+            $sectionId = intval($_POST['section_id'] ?? 0);
+            $section = $sectionId > 0 ? dbFetchOne("SELECT id, type FROM institute_sections WHERE id = ? AND type = 'admin_representative'", [$sectionId]) : null;
+            if (!$section) {
+                $message = 'Invalid admin section.';
+                $messageType = 'error';
+            } else {
+                $memberData = [
+                    'institute_section_id' => $sectionId,
+                    'name' => trim($_POST['name'] ?? ''),
+                    'position_title' => trim($_POST['position_title'] ?? ''),
+                    'display_order' => intval($_POST['display_order'] ?? 0)
+                ];
+                if (empty($memberData['name']) || empty($memberData['position_title'])) {
+                    $message = 'Name and position title are required.';
+                    $messageType = 'error';
+                } else {
+                    if (isset($_FILES['member_image']) && $_FILES['member_image']['error'] === UPLOAD_ERR_OK) {
+                        $uploadResult = uploadImage($_FILES['member_image'], 'images');
+                        if ($uploadResult['success']) {
+                            if ($_POST['action'] === 'update_admin_member' && !empty($_POST['old_member_image'])) {
+                                deleteUploadedFile($_POST['old_member_image']);
+                            }
+                            $memberData['image'] = $uploadResult['path'];
+                        }
+                    } elseif ($_POST['action'] === 'update_admin_member' && !empty($_POST['old_member_image'])) {
+                        $memberData['image'] = $_POST['old_member_image'];
+                    }
+                    if ($_POST['action'] === 'add_admin_member') {
+                        $result = dbInsert('faculty_section_members', $memberData);
+                        if ($result) {
+                            header('Location: ' . ADMIN_URL . '/institute.php?tab=admin&edit_section=' . $sectionId . '&message=admin_member_added');
+                            exit;
+                        }
+                        $message = 'Error adding member.';
+                        $messageType = 'error';
+                    } else {
+                        $memberId = intval($_POST['member_id'] ?? 0);
+                        if ($memberId <= 0) {
+                            $message = 'Invalid member ID.';
+                            $messageType = 'error';
+                        } else {
+                            $result = dbUpdate('faculty_section_members', $memberData, 'id = :id', ['id' => $memberId]);
+                            if ($result) {
+                                header('Location: ' . ADMIN_URL . '/institute.php?tab=admin&edit_section=' . $sectionId . '&message=admin_member_updated');
+                                exit;
+                            }
+                            $message = 'Error updating member.';
+                            $messageType = 'error';
+                        }
+                    }
+                }
+            }
+        } elseif ($_POST['action'] === 'delete_admin_member') {
+            $memberId = intval($_POST['member_id'] ?? 0);
+            $sectionId = intval($_POST['section_id'] ?? 0);
+            $member = dbFetchOne("SELECT id, image, institute_section_id FROM faculty_section_members WHERE id = ?", [$memberId]);
+            if ($member) {
+                if ($sectionId <= 0) $sectionId = $member['institute_section_id'];
+                $result = dbDelete('faculty_section_members', 'id = :id', ['id' => $memberId]);
+                if ($result) {
+                    if (!empty($member['image'])) deleteUploadedFile($member['image']);
+                    header('Location: ' . ADMIN_URL . '/institute.php?tab=admin&edit_section=' . $sectionId . '&message=admin_member_deleted');
+                    exit;
+                }
+            }
+            $message = 'Error deleting member.';
+            $messageType = 'error';
         }
     }
 }
@@ -216,6 +402,8 @@ $instituteSections = dbFetchAll("SELECT * FROM institute_sections ORDER BY type 
 // Fetch single item for editing
 $editInfo = null;
 $editSection = null;
+$facultySectionMembers = [];
+$editFacultyMember = null;
 if (isset($_GET['edit_info'])) {
     $editInfo = dbFetchOne("SELECT * FROM institute_info WHERE id = ?", [intval($_GET['edit_info'])]);
     $activeTab = 'info';
@@ -232,6 +420,31 @@ if (isset($_GET['edit_info'])) {
             $activeTab = 'programs';
         } else {
             $activeTab = 'faculty'; // Default fallback
+        }
+        // For faculty_subcategory, fetch members and optional edit_faculty_member
+        if ($sectionType === 'faculty_subcategory') {
+            $facultySectionMembers = dbFetchAll("SELECT * FROM faculty_section_members WHERE institute_section_id = ? ORDER BY display_order ASC, id ASC", [$editSection['id']]);
+            if (isset($_GET['edit_faculty_member'])) {
+                $editFacultyMember = dbFetchOne("SELECT * FROM faculty_section_members WHERE id = ? AND institute_section_id = ?", [intval($_GET['edit_faculty_member']), $editSection['id']]);
+            }
+        }
+        // For admin_representative, fetch members and optional edit_admin_member
+        if ($sectionType === 'admin_representative') {
+            $facultySectionMembers = dbFetchAll("SELECT * FROM faculty_section_members WHERE institute_section_id = ? ORDER BY display_order ASC, id ASC", [$editSection['id']]);
+            if (isset($_GET['edit_admin_member'])) {
+                $editFacultyMember = dbFetchOne("SELECT * FROM faculty_section_members WHERE id = ? AND institute_section_id = ?", [intval($_GET['edit_admin_member']), $editSection['id']]);
+            }
+        }
+    }
+}
+// When tab=admin and no edit_section, auto-load the single admin representative page (one page only)
+if ($activeTab === 'admin' && !isset($_GET['edit_section'])) {
+    $firstAdmin = dbFetchOne("SELECT * FROM institute_sections WHERE type = 'admin_representative' ORDER BY display_order ASC, id ASC LIMIT 1");
+    if ($firstAdmin) {
+        $editSection = $firstAdmin;
+        $facultySectionMembers = dbFetchAll("SELECT * FROM faculty_section_members WHERE institute_section_id = ? ORDER BY display_order ASC, id ASC", [$editSection['id']]);
+        if (isset($_GET['edit_admin_member'])) {
+            $editFacultyMember = dbFetchOne("SELECT * FROM faculty_section_members WHERE id = ? AND institute_section_id = ?", [intval($_GET['edit_admin_member']), $editSection['id']]);
         }
     }
 }
@@ -259,8 +472,8 @@ include '../includes/header.php';
         </div>
 
         <?php 
-        // Get message from URL if redirected
-        if (isset($_GET['message'])) {
+        // Get message from URL if redirected (don't overwrite faculty member messages set by switch above)
+        if (isset($_GET['message']) && !in_array($_GET['message'], ['faculty_member_added', 'faculty_member_updated', 'faculty_member_deleted', 'admin_member_added', 'admin_member_updated', 'admin_member_deleted'], true)) {
             $message = urldecode($_GET['message']);
             $messageType = $_GET['messageType'] ?? 'success';
         }
@@ -487,9 +700,13 @@ include '../includes/header.php';
                     </div>
                     <?php elseif ($currentType === 'faculty_subcategory'): ?>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Subcategory URL *</label>
-                        <input type="text" name="subcategory_url" value="<?php echo htmlspecialchars($editSection['description'] ?? ''); ?>" required placeholder="e.g., /public/faculty-research.php or /public/faculty-awards.php" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <p class="mt-1 text-xs text-gray-500">Enter the URL path for this subcategory (e.g., /public/faculty-research.php). This will appear in the sidebar below Faculty Unit.</p>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Header section title (optional)</label>
+                        <input type="text" name="position_title" value="<?php echo htmlspecialchars($editSection['position_title'] ?? ''); ?>" placeholder="e.g., Research team, Awards" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500">Optional heading shown on the public page</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Public URL: <code class="bg-gray-100 px-2 py-1 rounded"><?php echo PUBLIC_URL; ?>/faculty-detail.php?id=<?php echo !empty($editSection['id']) ? (int)$editSection['id'] : '(after save)'; ?></code></p>
+                        <p class="mt-1 text-xs text-gray-500">Subcategory pages use this dynamic URL. It appears in the sidebar under Faculty Unit (hover).</p>
                     </div>
                     <?php endif; ?>
                     
@@ -497,18 +714,6 @@ include '../includes/header.php';
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Content</label>
                         <textarea name="content" rows="6" placeholder="Detailed content" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editSection['content'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Image</label>
-                        <?php if ($editSection && !empty($editSection['image'])): ?>
-                            <div class="mb-3">
-                                <img src="<?php echo getImageUrl($editSection['image']); ?>" alt="Current image" class="max-w-xs max-h-48 rounded-xl border border-gray-200">
-                            </div>
-                            <p class="text-xs text-gray-500 mb-2">Upload a new image to replace the current one.</p>
-                        <?php endif; ?>
-                        <input type="file" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                        <p class="mt-2 text-xs text-gray-500">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP.</p>
                     </div>
                     <?php endif; ?>
                     
@@ -535,6 +740,96 @@ include '../includes/header.php';
                     </div>
                 </form>
             </div>
+
+            <!-- Section Members (for faculty_subcategory only, like batches.php members) -->
+            <?php if ($editSection && ($editSection['type'] ?? '') === 'faculty_subcategory'): ?>
+            <div class="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Section Members</h2>
+                        <p class="text-sm text-gray-500 mt-1">Add members to this faculty subcategory. Each member has a name, position/role (e.g. Auditor, Governor), and optional image. Shown on the public page like batch-detail.</p>
+                    </div>
+                </div>
+                <!-- Add/Edit Member Form -->
+                <div id="faculty-member-form-section" class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2"><?php echo $editFacultyMember ? 'Edit Member' : 'Add New Member'; ?></h3>
+                    <?php if (!$editFacultyMember): ?>
+                        <p class="text-sm text-gray-600 mb-4">Fill in the form below to add a member. You can add multiple members.</p>
+                    <?php endif; ?>
+                    <form method="POST" action="" enctype="multipart/form-data" class="space-y-4">
+                        <input type="hidden" name="action" value="<?php echo $editFacultyMember ? 'update_faculty_member' : 'add_faculty_member'; ?>">
+                        <input type="hidden" name="section_id" value="<?php echo $editSection['id']; ?>">
+                        <?php if ($editFacultyMember): ?>
+                            <input type="hidden" name="member_id" value="<?php echo $editFacultyMember['id']; ?>">
+                            <input type="hidden" name="old_member_image" value="<?php echo htmlspecialchars($editFacultyMember['image'] ?? ''); ?>">
+                        <?php endif; ?>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Name *</label>
+                                <input type="text" name="name" value="<?php echo htmlspecialchars($editFacultyMember['name'] ?? ''); ?>" required class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Position / Role (member type) *</label>
+                                <input type="text" name="position_title" value="<?php echo htmlspecialchars($editFacultyMember['position_title'] ?? ''); ?>" required placeholder="e.g., Auditor, Governor, Vice Governor" class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Display Order</label>
+                                <input type="number" name="display_order" value="<?php echo (int)($editFacultyMember['display_order'] ?? 0); ?>" class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Profile Image</label>
+                                <?php if ($editFacultyMember && !empty($editFacultyMember['image'])): ?>
+                                    <div class="mb-2">
+                                        <img src="<?php echo getImageUrl($editFacultyMember['image']); ?>" alt="Current" class="max-w-xs max-h-32 rounded-xl border border-gray-200">
+                                    </div>
+                                <?php endif; ?>
+                                <input type="file" name="member_image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                <p class="mt-1 text-xs text-gray-500">Max 5MB. JPEG, PNG, GIF, WebP.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 pt-2">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+                                <?php echo $editFacultyMember ? 'Update Member' : 'Add Member'; ?>
+                            </button>
+                            <?php if ($editFacultyMember): ?>
+                                <a href="?tab=faculty&edit_section=<?php echo $editSection['id']; ?>" class="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors">Cancel</a>
+                            <?php endif; ?>
+                        </div>
+                    </form>
+                </div>
+                <!-- Members List -->
+                <?php if (empty($facultySectionMembers)): ?>
+                    <p class="text-gray-500 text-sm">No members yet. Add members above.</p>
+                <?php else: ?>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <?php foreach ($facultySectionMembers as $m): ?>
+                        <div class="flex items-center gap-3 p-4 bg-white border-2 border-gray-200 rounded-lg hover:shadow-md transition-all">
+                            <?php if (!empty($m['image'])): ?>
+                                <img src="<?php echo getImageUrl($m['image']); ?>" alt="<?php echo htmlspecialchars($m['name']); ?>" class="w-12 h-12 rounded-full object-cover border-2 border-gray-200 flex-shrink-0">
+                            <?php else: ?>
+                                <div class="w-12 h-12 rounded-full bg-gray-200 border-2 border-gray-300 flex items-center justify-center text-gray-400 text-sm flex-shrink-0">👤</div>
+                            <?php endif; ?>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-gray-900 truncate" title="<?php echo htmlspecialchars($m['name']); ?>"><?php echo htmlspecialchars($m['name']); ?></p>
+                                <p class="text-xs text-gray-500 truncate" title="<?php echo htmlspecialchars($m['position_title']); ?>"><?php echo htmlspecialchars($m['position_title']); ?></p>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <a href="?tab=faculty&edit_section=<?php echo $editSection['id']; ?>&edit_faculty_member=<?php echo $m['id']; ?>" class="px-2.5 py-1 text-xs font-semibold text-white bg-indigo-600 rounded hover:bg-indigo-700 transition-colors shadow-sm">Edit</a>
+                                <form method="POST" class="inline" onsubmit="return confirm('Delete this member?');">
+                                    <input type="hidden" name="action" value="delete_faculty_member">
+                                    <input type="hidden" name="member_id" value="<?php echo $m['id']; ?>">
+                                    <input type="hidden" name="section_id" value="<?php echo $editSection['id']; ?>">
+                                    <button type="submit" class="px-2.5 py-1 text-xs font-semibold text-white bg-red-600 rounded hover:bg-red-700 transition-colors shadow-sm">Del</button>
+                                </form>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
 
             <!-- Faculty Sections List -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -574,9 +869,7 @@ include '../includes/header.php';
                                                         <?php echo htmlspecialchars($subcat['status']); ?>
                                                     </span>
                                                     <h4 class="font-semibold text-gray-900"><?php echo htmlspecialchars($subcat['title']); ?></h4>
-                                                    <?php if ($subcat['description']): ?>
-                                                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded"><?php echo htmlspecialchars($subcat['description']); ?></span>
-                                                    <?php endif; ?>
+                                                    <a href="<?php echo PUBLIC_URL; ?>/faculty-detail.php?id=<?php echo (int)$subcat['id']; ?>" target="_blank" class="text-xs text-indigo-600 hover:text-indigo-800">View</a>
                                                 </div>
                                             </div>
                                             <div class="flex gap-2">
@@ -655,6 +948,9 @@ include '../includes/header.php';
                 $editSection = null;
             }
         ?>
+            <?php if (empty($adminSections)): ?>
+            <p class="mb-6 text-gray-600">Create an Admin Representative section below. After saving, the page will reload and you can add members.</p>
+            <?php endif; ?>
             <!-- Create/Edit Form -->
             <div class="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -681,37 +977,15 @@ include '../includes/header.php';
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Name/Title *</label>
-                        <input type="text" name="title" value="<?php echo htmlspecialchars($editSection['title'] ?? ''); ?>" required placeholder="Admin representative name" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <p class="mt-1 text-xs text-gray-500">Full name of the admin representative</p>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Page title *</label>
+                        <input type="text" name="title" value="<?php echo htmlspecialchars($editSection['title'] ?? ''); ?>" required placeholder="e.g., Admin Representative" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500">Title shown at the top of the public page</p>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Position Title</label>
-                        <input type="text" name="position_title" value="<?php echo htmlspecialchars($editSection['position_title'] ?? ''); ?>" placeholder="e.g., Director, Administrator" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <p class="mt-1 text-xs text-gray-500">Position or role title (displayed below name)</p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                        <textarea name="description" rows="3" placeholder="Short description" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editSection['description'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Content</label>
-                        <textarea name="content" rows="6" placeholder="Detailed content" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editSection['content'] ?? ''); ?></textarea>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Image</label>
-                        <?php if ($editSection && !empty($editSection['image'])): ?>
-                            <div class="mb-3">
-                                <img src="<?php echo getImageUrl($editSection['image']); ?>" alt="Current image" class="max-w-xs max-h-48 rounded-xl border border-gray-200">
-                            </div>
-                            <p class="text-xs text-gray-500 mb-2">Upload a new image to replace the current one.</p>
-                        <?php endif; ?>
-                        <input type="file" name="image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                        <p class="mt-2 text-xs text-gray-500">Max size: 5MB. Formats: JPEG, PNG, GIF, WebP.</p>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Header section title (optional)</label>
+                        <input type="text" name="position_title" value="<?php echo htmlspecialchars($editSection['position_title'] ?? ''); ?>" placeholder="e.g., Meet our administrators" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <p class="mt-1 text-xs text-gray-500">Optional heading shown on the public page below the page title</p>
                     </div>
                     
                     <div>
@@ -738,42 +1012,93 @@ include '../includes/header.php';
                 </form>
             </div>
 
-            <!-- Admin Sections List -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Admin Representatives</h2>
-                <div class="space-y-3">
-                    <?php if (empty($adminSections)): ?>
-                        <p class="text-gray-500 text-center py-8">No admin representatives found.</p>
-                    <?php else: ?>
-                        <?php foreach ($adminSections as $section): ?>
-                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-3">
-                                        <span class="px-2 py-1 text-xs font-medium rounded <?php echo $section['status'] === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'; ?>">
-                                            <?php echo htmlspecialchars($section['status']); ?>
-                                        </span>
-                                        <h3 class="font-semibold text-gray-900"><?php echo htmlspecialchars($section['title']); ?></h3>
-                                        <?php if (!empty($section['position_title'])): ?>
-                                            <span class="text-sm text-gray-500 ml-2">- <?php echo htmlspecialchars($section['position_title']); ?></span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <?php if ($section['description']): ?>
-                                        <p class="text-sm text-gray-600 mt-1 line-clamp-2"><?php echo htmlspecialchars(substr($section['description'], 0, 100)); ?>...</p>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="flex gap-2">
-                                    <a href="?tab=admin&edit_section=<?php echo $section['id']; ?>" class="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">Edit</a>
-                                    <form method="POST" action="" class="inline" onsubmit="return confirm('Are you sure you want to delete this admin representative?');">
-                                        <input type="hidden" name="action" value="delete_section">
-                                        <input type="hidden" name="id" value="<?php echo $section['id']; ?>">
-                                        <button type="submit" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">Delete</button>
-                                    </form>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+            <!-- Section Members (one page only: add members to this Admin Representative page) -->
+            <?php if ($editSection && ($editSection['type'] ?? '') === 'admin_representative'): ?>
+            <div class="mb-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Section Members</h2>
+                        <p class="text-sm text-gray-500 mt-1">Add members to this Admin Representative page. Each member has a name, position/role, and optional image.</p>
+                    </div>
+                    <a href="<?php echo PUBLIC_URL; ?>/admin-representative-detail.php<?php echo $editSection['id'] ? '?id=' . $editSection['id'] : ''; ?>" target="_blank" class="text-sm text-indigo-600 hover:text-indigo-800 font-semibold">View page</a>
                 </div>
+                <div id="admin-member-form-section" class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2"><?php echo $editFacultyMember ? 'Edit Member' : 'Add New Member'; ?></h3>
+                    <?php if (!$editFacultyMember): ?>
+                        <p class="text-sm text-gray-600 mb-4">Fill in the form below to add a member.</p>
+                    <?php endif; ?>
+                    <form method="POST" action="" enctype="multipart/form-data" class="space-y-4">
+                        <input type="hidden" name="action" value="<?php echo $editFacultyMember ? 'update_admin_member' : 'add_admin_member'; ?>">
+                        <input type="hidden" name="section_id" value="<?php echo $editSection['id']; ?>">
+                        <?php if ($editFacultyMember): ?>
+                            <input type="hidden" name="member_id" value="<?php echo $editFacultyMember['id']; ?>">
+                            <input type="hidden" name="old_member_image" value="<?php echo htmlspecialchars($editFacultyMember['image'] ?? ''); ?>">
+                        <?php endif; ?>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Name *</label>
+                                <input type="text" name="name" value="<?php echo htmlspecialchars($editFacultyMember['name'] ?? ''); ?>" required class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Position / Role *</label>
+                                <input type="text" name="position_title" value="<?php echo htmlspecialchars($editFacultyMember['position_title'] ?? ''); ?>" required placeholder="e.g., Director, Administrator" class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Display Order</label>
+                                <input type="number" name="display_order" value="<?php echo (int)($editFacultyMember['display_order'] ?? 0); ?>" class="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Profile Image</label>
+                                <?php if ($editFacultyMember && !empty($editFacultyMember['image'])): ?>
+                                    <div class="mb-2">
+                                        <img src="<?php echo getImageUrl($editFacultyMember['image']); ?>" alt="Current" class="max-w-xs max-h-32 rounded-xl border border-gray-200">
+                                    </div>
+                                <?php endif; ?>
+                                <input type="file" name="member_image" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 pt-2">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors">
+                                <?php echo $editFacultyMember ? 'Update Member' : 'Add Member'; ?>
+                            </button>
+                            <?php if ($editFacultyMember): ?>
+                                <a href="?tab=admin&edit_section=<?php echo $editSection['id']; ?>" class="px-4 py-2 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors">Cancel</a>
+                            <?php endif; ?>
+                        </div>
+                    </form>
+                </div>
+                <?php if (empty($facultySectionMembers)): ?>
+                    <p class="text-gray-500 text-sm">No members yet. Add members above.</p>
+                <?php else: ?>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <?php foreach ($facultySectionMembers as $m): ?>
+                        <div class="flex items-center gap-3 p-4 bg-white border-2 border-gray-200 rounded-lg hover:shadow-md transition-all">
+                            <?php if (!empty($m['image'])): ?>
+                                <img src="<?php echo getImageUrl($m['image']); ?>" alt="<?php echo htmlspecialchars($m['name']); ?>" class="w-12 h-12 rounded-full object-cover border-2 border-gray-200 flex-shrink-0">
+                            <?php else: ?>
+                                <div class="w-12 h-12 rounded-full bg-gray-200 border-2 border-gray-300 flex items-center justify-center text-gray-400 text-sm flex-shrink-0">👤</div>
+                            <?php endif; ?>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-gray-900 truncate" title="<?php echo htmlspecialchars($m['name']); ?>"><?php echo htmlspecialchars($m['name']); ?></p>
+                                <p class="text-xs text-gray-500 truncate" title="<?php echo htmlspecialchars($m['position_title']); ?>"><?php echo htmlspecialchars($m['position_title']); ?></p>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <a href="?tab=admin&edit_section=<?php echo $editSection['id']; ?>&edit_admin_member=<?php echo $m['id']; ?>" class="px-2.5 py-1 text-xs font-semibold text-white bg-indigo-600 rounded hover:bg-indigo-700 transition-colors shadow-sm">Edit</a>
+                                <form method="POST" class="inline" onsubmit="return confirm('Delete this member?');">
+                                    <input type="hidden" name="action" value="delete_admin_member">
+                                    <input type="hidden" name="member_id" value="<?php echo $m['id']; ?>">
+                                    <input type="hidden" name="section_id" value="<?php echo $editSection['id']; ?>">
+                                    <button type="submit" class="px-2.5 py-1 text-xs font-semibold text-white bg-red-600 rounded hover:bg-red-700 transition-colors shadow-sm">Del</button>
+                                </form>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <!-- Programs Tab -->

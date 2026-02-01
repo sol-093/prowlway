@@ -550,7 +550,7 @@ function validateEventForm(formData) {
                     // Skip page transition for origin-page type pages (same behavior as organization.php)
                     if (href.includes('faculty.php') || 
                         href.includes('faculty-detail.php') ||
-                        href.includes('admin-representative.php') || 
+                        href.includes('admin-representative-detail.php') || 
                         href.includes('batch-detail.php') ||
                         href.includes('organization.php') ||
                         href.includes('batches.php') ||

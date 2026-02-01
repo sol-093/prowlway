@@ -239,14 +239,13 @@ include '../includes/header.php';
                 <ul class="sidebar-links">
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about" class="<?php echo $section === 'about' ? 'active' : ''; ?>">About</a></li>
                     <li class="org-item-with-batch">
-                        <a href="<?php echo PUBLIC_URL; ?>/faculty.php" class="<?php echo $section === 'faculty' ? 'active' : ''; ?>">Faculty Unit</a>
-                        
+                        <span class="sidebar-label">Faculty Unit</span>
                         <!-- Subcategories - Show below Faculty Unit on hover -->
                         <?php if (!empty($facultySubcategories)): ?>
                         <ul class="sidebar-sublinks batch-hover-menu">
                             <?php foreach ($facultySubcategories as $subcat): ?>
                             <li>
-                                <a href="<?php echo htmlspecialchars($subcat['description'] ?: '#'); ?>" class="sidebar-sublink">
+                                <a href="<?php echo PUBLIC_URL; ?>/faculty-detail.php?id=<?php echo (int)$subcat['id']; ?>" class="sidebar-sublink">
                                     <?php echo htmlspecialchars($subcat['title']); ?>
                                 </a>
                             </li>
@@ -254,7 +253,7 @@ include '../includes/header.php';
                         </ul>
                         <?php endif; ?>
                     </li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative.php" class="<?php echo $section === 'admin' ? 'active' : ''; ?>">Admin Representative</a></li>
+                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative-detail.php" class="<?php echo $section === 'admin' ? 'active' : ''; ?>">Admin Representative</a></li>
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program" class="<?php echo $section === 'program' ? 'active' : ''; ?>">Program</a></li>
                 </ul>
             </div>

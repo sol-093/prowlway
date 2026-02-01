@@ -143,14 +143,13 @@ if (function_exists('dbFetchAll')) {
                         <ul class="mobile-dropdown-menu">
                             <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about" class="mobile-dropdown-link">About</a></li>
                             <li class="mobile-org-item-with-batch">
-                                <a href="<?php echo PUBLIC_URL; ?>/faculty.php" class="mobile-dropdown-link">Faculty Unit</a>
-                                
+                                <span class="mobile-dropdown-link" style="cursor: default;">Faculty Unit</span>
                                 <!-- Subcategories - Show below Faculty Unit on hover/tap -->
                                 <?php if (!empty($mobileFacultySubcategories)): ?>
                                 <ul class="mobile-batch-hover-menu">
                                     <?php foreach ($mobileFacultySubcategories as $subcat): ?>
                                     <li>
-                                        <a href="<?php echo htmlspecialchars($subcat['description'] ?: '#'); ?>" 
+                                        <a href="<?php echo PUBLIC_URL; ?>/faculty-detail.php?id=<?php echo (int)$subcat['id']; ?>" 
                                            class="mobile-dropdown-link"
                                            style="font-size: 13px; text-transform: uppercase; padding-left: 2.5rem;">
                                             <?php echo htmlspecialchars($subcat['title']); ?>
@@ -160,7 +159,7 @@ if (function_exists('dbFetchAll')) {
                                 </ul>
                                 <?php endif; ?>
                             </li>
-                            <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative.php" class="mobile-dropdown-link">Admin Representative</a></li>
+                            <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative-detail.php" class="mobile-dropdown-link">Admin Representative</a></li>
                             <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program" class="mobile-dropdown-link">Program</a></li>
                         </ul>
                     </li>

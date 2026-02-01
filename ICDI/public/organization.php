@@ -204,14 +204,13 @@ $facultySubcategories = dbFetchAll("SELECT * FROM institute_sections WHERE type 
                 <ul class="sidebar-links">
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=about">About</a></li>
                     <li class="org-item-with-batch">
-                        <a href="<?php echo PUBLIC_URL; ?>/faculty.php">Faculty Unit</a>
-                        
+                        <span class="sidebar-label">Faculty Unit</span>
                         <!-- Subcategories - Show below Faculty Unit on hover -->
                         <?php if (!empty($facultySubcategories)): ?>
                         <ul class="sidebar-sublinks batch-hover-menu">
                             <?php foreach ($facultySubcategories as $subcat): ?>
                             <li>
-                                <a href="<?php echo htmlspecialchars($subcat['description'] ?: '#'); ?>" class="sidebar-sublink">
+                                <a href="<?php echo PUBLIC_URL; ?>/faculty-detail.php?id=<?php echo (int)$subcat['id']; ?>" class="sidebar-sublink">
                                     <?php echo htmlspecialchars($subcat['title']); ?>
                                 </a>
                             </li>
@@ -219,7 +218,7 @@ $facultySubcategories = dbFetchAll("SELECT * FROM institute_sections WHERE type 
                         </ul>
                         <?php endif; ?>
                     </li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative.php">Admin Representative</a></li>
+                    <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative-detail.php">Admin Representative</a></li>
                     <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program">Program</a></li>
                 </ul>
             </div>

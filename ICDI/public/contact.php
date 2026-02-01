@@ -5,13 +5,17 @@ require_once '../includes/database.php';
 $pageTitle = 'Get in Touch - PROWLWAY';
 $bodyClass = 'contact-page';
 
-// Fetch site settings for contact email
+// Fetch site settings
 $settingsRows = dbFetchAll("SELECT setting_key, setting_value, setting_type FROM site_settings");
 $settings = [];
 foreach ($settingsRows as $row) {
     $key = $row['setting_key'];
     $value = $row['setting_value'];
     switch ($row['setting_type']) {
+        case 'json':
+            $decoded = json_decode($value, true);
+            $settings[$key] = $decoded !== null ? $decoded : $value;
+            break;
         case 'boolean':
             $settings[$key] = $value === '1' || $value === 'true';
             break;
@@ -22,8 +26,19 @@ foreach ($settingsRows as $row) {
             $settings[$key] = $value;
     }
 }
-$contactEmail = $settings['contact_email'] ?? '';
-$siteName = $settings['site_name'] ?? 'PROWLWAY';
+
+$defaultTechcareLinks = [
+    ['id' => 'concern',  'label' => 'Concern Form'],
+    ['id' => 'printing', 'label' => 'Diy Printing Station'],
+    ['id' => 'wiring',   'label' => 'Lab Wiring'],
+    ['id' => 'outreach', 'label' => 'Outreach'],
+];
+$techcareLinks = [];
+if (!empty($settings['techcare_links']) && is_array($settings['techcare_links'])) {
+    $techcareLinks = $settings['techcare_links'];
+} else {
+    $techcareLinks = $defaultTechcareLinks;
+}
 
 $success = isset($_GET['sent']) && $_GET['sent'] === '1';
 $error = '';
@@ -50,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'message' => $message,
             'status' => 'open',
         ]);
-        // Redirect to avoid resubmit (even if insert failed, e.g. table not yet migrated)
         header('Location: ' . PUBLIC_URL . '/contact.php?sent=1');
         exit;
     }
@@ -66,53 +80,23 @@ include '../includes/header.php';
             <p class="contact-page-intro">Have a question or feedback? Reach out to us and we’ll get back to you as soon as we can.</p>
 
             <div class="contact-layout">
+                <!-- Left: Tech Care Platform only (no contact info) -->
                 <div class="contact-info">
-                    <h2 class="contact-info-title">Contact information</h2>
-                    <?php if ($contactEmail): ?>
-                        <p class="contact-email">
-                            <span class="contact-label">Email</span>
-                            <a href="mailto:<?php echo htmlspecialchars($contactEmail); ?>"><?php echo htmlspecialchars($contactEmail); ?></a>
-                        </p>
-                    <?php endif; ?>
-                    <p class="contact-org-room">
-                        <span class="contact-label">Org room</span>
-                        CB1 2052
-                    </p>
-                    <p class="contact-note"><?php echo htmlspecialchars($siteName); ?> – ICDISG Archive Website</p>
-                    
-                    <!-- Tech Care Platform Section -->
-                    <div class="contact-techcare mt-8">
-                        <h3 class="techcare-title" style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; color: #1f2937;">TECH CARE<br>PLATFORM</h3>
-                        <ul class="techcare-links" style="list-style: none; padding: 0; margin: 0;">
-                            <?php 
-                            // Fetch techcare links from settings
-                            $defaultTechcareLinks = [
-                                ['id' => 'concern',  'label' => 'Concern Form'],
-                                ['id' => 'printing', 'label' => 'Diy Printing Station'],
-                                ['id' => 'wiring',   'label' => 'Lab Wiring'],
-                                ['id' => 'outreach', 'label' => 'Outreach'],
-                            ];
-                            $techcareLinks = [];
-                            if (!empty($settings['techcare_links']) && is_array($settings['techcare_links'])) {
-                                $techcareLinks = $settings['techcare_links'];
-                            } else {
-                                $techcareLinks = $defaultTechcareLinks;
-                            }
-                            foreach ($techcareLinks as $item): 
+                    <div class="contact-techcare">
+                        <h3 class="techcare-title">TECH CARE<br>PLATFORM</h3>
+                        <ul class="techcare-links">
+                            <?php foreach ($techcareLinks as $item):
                                 $id    = isset($item['id']) ? $item['id'] : '';
                                 $label = isset($item['label']) ? $item['label'] : $id;
                                 if ($label === '') continue;
                             ?>
-                                <li style="margin-bottom: 0.5rem;">
-                                    <a href="<?php echo $id !== '' ? '#'.htmlspecialchars($id) : '#'; ?>" style="color: #4b5563; text-decoration: none; font-weight: 500; transition: color 0.2s;" onmouseover="this.style.color='#1f2937';" onmouseout="this.style.color='#4b5563';">
-                                        <?php echo htmlspecialchars($label); ?>
-                                    </a>
-                                </li>
+                            <li><a href="<?php echo $id ? '#' . htmlspecialchars($id) : '#'; ?>"><?php echo htmlspecialchars($label); ?></a></li>
                             <?php endforeach; ?>
                         </ul>
                     </div>
                 </div>
 
+                <!-- Right: Submit form -->
                 <div class="contact-form-wrap flex-1">
                     <?php if ($success): ?>
                         <div class="contact-success" role="alert">

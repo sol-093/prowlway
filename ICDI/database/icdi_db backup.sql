@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 31, 2026 at 03:16 PM
+-- Generation Time: Feb 01, 2026 at 03:09 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -177,7 +177,11 @@ INSERT INTO `audit_log` (`id`, `admin_id`, `action`, `entity_type`, `entity_id`,
 (64, 7, 'publish', 'institute_section', 2, 'Institute section published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 04:38:19'),
 (65, 7, 'delete', 'institute_section', 2, 'Institute section deleted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 04:41:41'),
 (66, 7, 'publish', 'institute_section', 4, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 04:41:52'),
-(67, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 13:35:14');
+(67, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-01-31 13:35:14'),
+(68, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:13:46'),
+(69, 7, 'publish', 'institute_section', 5, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:38:57'),
+(70, 7, 'publish', 'institute_section', 6, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:49:05'),
+(71, 7, 'publish', 'institute_section', 7, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:54:08');
 
 -- --------------------------------------------------------
 
@@ -206,7 +210,7 @@ CREATE TABLE `batches` (
 --
 
 INSERT INTO `batches` (`id`, `organization_id`, `academic_year`, `start_year`, `end_year`, `image`, `description`, `target_group`, `status`, `display_order`, `created_by`, `created_at`, `updated_at`) VALUES
-(2, 4, 'A.Y 2025-2026', '2026', '2027', 'images/img_697c0c55aa70f3.35873857_1769737301.png', '1312231', 'all', 'active', 0, 7, '2026-01-30 01:41:41', '2026-01-30 07:57:15');
+(2, 4, 'A.Y 2025-2026', '2026', '2027', 'images/img_697e9ea90b1a64.87860522_1769905833.png', '1312231', 'all', 'active', 0, 7, '2026-01-30 01:41:41', '2026-02-01 00:30:33');
 
 -- --------------------------------------------------------
 
@@ -353,6 +357,39 @@ INSERT INTO `events` (`id`, `title`, `caption`, `description`, `summary`, `categ
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `faculty_section_members`
+--
+
+CREATE TABLE `faculty_section_members` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `institute_section_id` int(11) UNSIGNED NOT NULL COMMENT 'institute_sections.id (type=faculty_subcategory)',
+  `name` varchar(255) NOT NULL,
+  `position_title` varchar(255) NOT NULL COMMENT 'Role/title e.g. Auditor, Governor',
+  `image` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded profile image',
+  `display_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `faculty_section_members`
+--
+
+INSERT INTO `faculty_section_members` (`id`, `institute_section_id`, `name`, `position_title`, `image`, `display_order`, `created_at`, `updated_at`) VALUES
+(1, 4, 'Zendrick Delacruz Gango', 'business manager', 'images/img_697ea00f02a7f5.97815397_1769906191.png', 0, '2026-02-01 00:36:31', '2026-02-01 00:36:31'),
+(2, 4, 'CS Society', 'co adviser', 'images/img_697ea050b65dc8.58550666_1769906256.png', 1, '2026-02-01 00:37:36', '2026-02-01 00:37:36'),
+(3, 4, 'Zendrick Delacruz Gango', 'Governor', 'images/img_697ea05c8f7f42.23196820_1769906268.png', 0, '2026-02-01 00:37:48', '2026-02-01 00:37:48'),
+(4, 4, 'Zendrick Delacruz Gango', 'co adviser', 'images/img_697ea07a55dd85.77805907_1769906298.png', 0, '2026-02-01 00:38:18', '2026-02-01 00:38:18'),
+(5, 5, 'Zendrick Delacruz Gango', 'co adviser', 'images/img_697ea0cb078b71.78254148_1769906379.png', 0, '2026-02-01 00:39:39', '2026-02-01 00:39:39'),
+(6, 5, 'Zendrick Delacruz Gango', 'business manager', 'images/img_697ea0d41fe396.69886037_1769906388.png', 0, '2026-02-01 00:39:48', '2026-02-01 00:39:48'),
+(7, 5, 'Zendrick Delacruz Gango', 'business manager', 'images/img_697ea0e1c5ca57.27112974_1769906401.png', 0, '2026-02-01 00:40:01', '2026-02-01 00:40:01'),
+(8, 7, 'Zendrick Delacruz Gango', 'business manager', 'images/img_697ea828317a42.58378279_1769908264.png', 0, '2026-02-01 01:11:04', '2026-02-01 01:11:04'),
+(9, 7, 'Zendrick Delacruz Gango', 'business manager', 'images/img_697ea834cce173.28250455_1769908276.png', 0, '2026-02-01 01:11:16', '2026-02-01 01:11:16'),
+(10, 7, 'Zendrick Delacruz Gango', 'business manager', 'images/img_697ea83d04e546.40019327_1769908285.png', 0, '2026-02-01 01:11:25', '2026-02-01 01:11:25');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `holidays`
 --
 
@@ -473,31 +510,10 @@ CREATE TABLE `institute_sections` (
 INSERT INTO `institute_sections` (`id`, `type`, `title`, `position_title`, `description`, `content`, `image`, `display_order`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
 (1, 'faculty_unit', '123', '123', '123', '123', NULL, 0, 'published', 7, '2026-01-30 19:04:15', '2026-01-30 19:04:15'),
 (3, 'program', '123', NULL, '123', '', NULL, 0, 'draft', 7, '2026-01-31 04:37:23', '2026-01-31 04:37:23'),
-(4, 'faculty_subcategory', 'is ', 'EXECUTIVE OFFICERS', NULL, NULL, NULL, 0, 'published', 7, '2026-01-31 04:41:52', '2026-01-31 04:41:52');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `faculty_section_members`
---
-
-CREATE TABLE `faculty_section_members` (
-  `id` int(11) UNSIGNED NOT NULL,
-  `institute_section_id` int(11) UNSIGNED NOT NULL COMMENT 'institute_sections.id (type=faculty_subcategory)',
-  `name` varchar(255) NOT NULL,
-  `position_title` varchar(255) NOT NULL COMMENT 'Role/title e.g. Auditor, Governor',
-  `image` varchar(500) DEFAULT NULL COMMENT 'Relative path to uploaded profile image',
-  `display_order` int(11) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `faculty_section_members`
---
-
-INSERT INTO `faculty_section_members` (`id`, `institute_section_id`, `name`, `position_title`, `image`, `display_order`, `created_at`, `updated_at`) VALUES
-(1, 4, 'Sample Member', 'Auditor', NULL, 0, '2026-01-31 12:00:00', '2026-01-31 12:00:00');
+(4, 'faculty_subcategory', 'is ', '234234', NULL, NULL, NULL, 0, 'published', 7, '2026-01-31 04:41:52', '2026-02-01 01:12:53'),
+(5, 'faculty_subcategory', 'cs', 'cs', NULL, NULL, NULL, 1, 'published', 7, '2026-02-01 00:38:57', '2026-02-01 00:39:19'),
+(6, 'program', '123123', NULL, '123123', '123123', NULL, 0, 'published', 7, '2026-02-01 00:49:05', '2026-02-01 00:49:05'),
+(7, 'admin_representative', 'Admin Representative', '123123', NULL, NULL, 'images/img_697ea47528fa90.80861305_1769907317.png', 0, 'published', 7, '2026-02-01 00:54:08', '2026-02-01 01:13:04');
 
 -- --------------------------------------------------------
 
@@ -582,7 +598,7 @@ CREATE TABLE `student_organizations` (
 --
 
 INSERT INTO `student_organizations` (`id`, `name`, `acronym`, `description`, `mission`, `vision`, `content`, `logo`, `banner_image`, `website`, `social_media`, `display_order`, `status`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 'ICDI Student Government', 'ICDISG', 'The official student government of the Institute of Computing and Digital Innovation', NULL, NULL, '', 'images/img_697be78e6255c8.35536392_1769727886.png', 'images/img_697bee6a997750.76772622_1769729642.png', '', NULL, 1, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:34:02'),
+(1, 'ICDI Student Government', 'ICDISG', 'The official student government of the Institute of Computing and Digital Innovation', '', '', '', 'images/img_697eadd94658a0.85624464_1769909721.png', 'images/img_697bee6a997750.76772622_1769729642.png', '', NULL, 1, 'active', 7, '2026-01-29 12:02:15', '2026-02-01 01:35:21'),
 (2, 'CS Society', 'CSS', '<p>Lorem ipsum dolor sit amet. Et quidem cupiditate ut galisum dignissimos et velit eligendi et minima tenetur et nemo dignissimos. Ea sunt numquam in eveniet sunt est dignissimos incidunt ut dolores nobis est numquam ipsum! Sit repellat necessitatibus qui odit adipisci cum alias incidunt sit nulla optio. Non quod alias hic obcaecati enim aut itaque internos est quia quibusdam qui molestiae fugit aut dolor facere et sint iste. </p><p>Ut enim vero quo cupiditate sint est perferendis minus eos repellat voluptas hic doloremque nihil et quis iusto aut quibusdam dolore. At dolorum atque qui quasi molestiae aut voluptatem perferendis aut quas quia? Ea nobis dolorum eos dolor deleniti rem nobis quisquam qui officia nisi rem suscipit quam aut voluptas blanditiis. </p><p>Qui praesentium dolorum ut omnis eligendi cum provident saepe? Sit voluptatem quisquam qui exercitationem sint et veniam voluptatem. Eos voluptas iure in libero aliquam ut dolore officia ut aperiam dolores. </p>\r\n', 'Empower Student Leadership Through Forward-Thinking Initiatives That Inspire Creativity And Progress. Solidify The Institute\'s Reputation As A Leader In Both Academic And Extracurricular Excellence.', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.\r\n', '', 'images/img_697be785d35d70.38210289_1769727877.png', 'images/img_697bf028ca1272.91783756_1769730088.png', '', NULL, 2, 'active', 7, '2026-01-29 12:02:15', '2026-01-30 09:07:20'),
 (3, 'IS Society', 'ISS', 'Information Systems Society', NULL, NULL, '', 'images/img_697be79bc9bfb5.10416983_1769727899.png', NULL, '', NULL, 3, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:04:59'),
 (4, 'GITCUB', 'GITCUB', 'Google IT Community University Branch', NULL, NULL, '', 'images/img_697be7a638b0c1.09519661_1769727910.png', NULL, '', NULL, 4, 'active', NULL, '2026-01-29 12:02:15', '2026-01-29 23:05:10'),
@@ -710,6 +726,13 @@ ALTER TABLE `events`
 ALTER TABLE `events` ADD FULLTEXT KEY `ft_search` (`title`,`caption`,`description`);
 
 --
+-- Indexes for table `faculty_section_members`
+--
+ALTER TABLE `faculty_section_members`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_faculty_section_members_section` (`institute_section_id`);
+
+--
 -- Indexes for table `holidays`
 --
 ALTER TABLE `holidays`
@@ -735,13 +758,6 @@ ALTER TABLE `institute_sections`
   ADD KEY `idx_status` (`status`),
   ADD KEY `fk_institute_sections_admin` (`created_by`),
   ADD KEY `idx_institute_sections_type_status_order` (`type`,`status`,`display_order`);
-
---
--- Indexes for table `faculty_section_members`
---
-ALTER TABLE `faculty_section_members`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_faculty_section_members_section` (`institute_section_id`);
 
 --
 -- Indexes for table `organization_core_values`
@@ -797,7 +813,7 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
 
 --
 -- AUTO_INCREMENT for table `batches`
@@ -830,6 +846,12 @@ ALTER TABLE `events`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
+-- AUTO_INCREMENT for table `faculty_section_members`
+--
+ALTER TABLE `faculty_section_members`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
 -- AUTO_INCREMENT for table `holidays`
 --
 ALTER TABLE `holidays`
@@ -845,13 +867,7 @@ ALTER TABLE `institute_info`
 -- AUTO_INCREMENT for table `institute_sections`
 --
 ALTER TABLE `institute_sections`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- AUTO_INCREMENT for table `faculty_section_members`
---
-ALTER TABLE `faculty_section_members`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `organization_core_values`
@@ -931,6 +947,12 @@ ALTER TABLE `events`
   ADD CONSTRAINT `fk_events_reviewed_by` FOREIGN KEY (`reviewed_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
+-- Constraints for table `faculty_section_members`
+--
+ALTER TABLE `faculty_section_members`
+  ADD CONSTRAINT `fk_faculty_section_members_section` FOREIGN KEY (`institute_section_id`) REFERENCES `institute_sections` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `institute_info`
 --
 ALTER TABLE `institute_info`
@@ -941,12 +963,6 @@ ALTER TABLE `institute_info`
 --
 ALTER TABLE `institute_sections`
   ADD CONSTRAINT `fk_institute_sections_admin` FOREIGN KEY (`created_by`) REFERENCES `admins` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
-
---
--- Constraints for table `faculty_section_members`
---
-ALTER TABLE `faculty_section_members`
-  ADD CONSTRAINT `fk_faculty_section_members_section` FOREIGN KEY (`institute_section_id`) REFERENCES `institute_sections` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `organization_core_values`
