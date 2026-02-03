@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 01, 2026 at 03:09 AM
+-- Generation Time: Feb 03, 2026 at 09:28 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -181,7 +181,14 @@ INSERT INTO `audit_log` (`id`, `admin_id`, `action`, `entity_type`, `entity_id`,
 (68, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:13:46'),
 (69, 7, 'publish', 'institute_section', 5, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:38:57'),
 (70, 7, 'publish', 'institute_section', 6, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:49:05'),
-(71, 7, 'publish', 'institute_section', 7, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:54:08');
+(71, 7, 'publish', 'institute_section', 7, 'Institute section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-01 00:54:08'),
+(72, 7, 'login', 'admin', 7, 'Login successful', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-03 07:01:32'),
+(73, 7, 'delete', 'institute_info', 2, 'Institute info section deleted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-03 07:31:02'),
+(74, 7, 'delete', 'institute_info', 4, 'Institute info section deleted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-03 07:31:32'),
+(75, 7, 'delete', 'institute_info', 3, 'Institute info section deleted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-03 07:32:57'),
+(76, 7, 'publish', 'institute_info', 6, 'Institute info section published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-03 07:34:01'),
+(77, 7, 'publish', 'institute_info', 7, 'Institute info section created and published', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-03 07:43:08'),
+(78, 7, 'delete', 'institute_info', 6, 'Institute info section deleted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-03 07:43:13');
 
 -- --------------------------------------------------------
 
@@ -476,11 +483,9 @@ CREATE TABLE `institute_info` (
 --
 
 INSERT INTO `institute_info` (`id`, `section`, `title`, `content`, `image`, `display_order`, `status`, `updated_by`, `created_at`, `updated_at`) VALUES
-(1, 'about', 'About', 'The Institute Of Computing And Digital Innovation (ICDI) was established in 2020, with roots in Kolehiyo Ng Lungsod Ng Dasmariñas (KLD). It has evolved through various iterations including the Institute Of Information And Computing Sciences (IICS) and the Institute Of Mathematical Application And Computing Sciences (IMACS), culminating in its current role as a Dynamic Academic Hub.', NULL, 1, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
-(2, 'mission', 'Mission', 'Empower Student Leadership Through Forward-Thinking Initiatives That Inspire Creativity And Progress. Solidify The Institute\'s Reputation As A Leader In Both Academic And Extracurricular Excellence.', NULL, 2, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
-(3, 'vision', 'Vision', 'To Effectively Bridge The Nodes Of Communication And Collaboration Among The Student Body, Organizations, Committees, And Administration, Both Within And Outside The Institution By Leveraging The Power Of Knowledge, Leadership, And Dedication.', NULL, 3, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 12:02:14'),
-(4, 'logo', 'Logo', 'Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod Tempor Incididunt Ut Labore Et Dolore Magna Aliqua.', 'images/img_697bf389255db0.47581274_1769730953.jpg', 4, 'published', NULL, '2026-01-29 12:02:14', '2026-01-29 23:55:53'),
-(5, 'banner', 'Banner', '', 'images/img_697bf3969f3ff5.33128309_1769730966.png', 0, 'published', NULL, '2026-01-29 23:56:06', '2026-01-29 23:56:06');
+(1, 'about', 'About', 'The Institute of Computing and Digital Innovation (ICDI) was officially established in 2025, but its roots go back to the early years of the Kolehiyo ng Lungsod ng Dasmariñas (KLD), which was founded during the country’s recovery from the COVID-19 pandemic in 2021. In response to the growing demand for accessible, relevant, and future-ready education, KLD initially opened with two pioneering academic programs—one of which was the Bachelor of Science in Information Systems (BSIS), a program that would later become a foundational part of the institute.\r\n\r\nOver time, the institute underwent several name transitions, each reflecting a shift in direction and a deepening commitment to digital advancement. It began as the Institute of Information and Computing Sciences (IICS), then evolved into the Institute of Mathematical Application and Computing Sciences (IMACS). The recent transformation came in 2025 with the launch of the Bachelor of Science in Computer Science and the official adoption of the name ICDI which marked a bold step forward toward a more comprehensive and innovation-driven future.\r\n\r\nToday, the institute stands as a dynamic academic hub for aspiring developers, systems thinkers, data explorers, and digital innovators, all committed to shaping the future through technology and creative solutions for the City of Dasmariñas.\r\n', NULL, 1, 'published', 7, '2026-01-29 12:02:14', '2026-02-03 07:43:36'),
+(5, 'banner', 'Banner', '', 'images/img_6981a486392d57.20726191_1770103942.png', 0, 'published', 7, '2026-01-29 23:56:06', '2026-02-03 07:32:22'),
+(7, 'goals', ' The Institute of Computing and Digital Innovation Goals is to:', '1. Provide high-quality instruction in order to produce transformed, highly skilled, and globally competitive computing graduates by subjecting its programs to national and international accreditations;\r\n2. Develop and pursue computing-based research and development activities that will translate into policy, publication, patents, and technology transfer that will contribute to the onward-forward direction of the City of Dasmariñas and beyond;\r\n3. Develop and conduct extension services that will elevate the quality of life of Dasmarineños, the quality of certain services, products, or systems of business, organization, and social enterprise; and\r\n4. Develop and link with government, academia, industry, and organizations through strong partnership and collaboration activities that will benefit students, faculty members, and stakeholders.\r\n', NULL, 0, 'published', 7, '2026-02-03 07:43:08', '2026-02-03 07:43:08');
 
 -- --------------------------------------------------------
 
@@ -813,7 +818,7 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
 
 --
 -- AUTO_INCREMENT for table `batches`
@@ -861,7 +866,7 @@ ALTER TABLE `holidays`
 -- AUTO_INCREMENT for table `institute_info`
 --
 ALTER TABLE `institute_info`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `institute_sections`

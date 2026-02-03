@@ -530,6 +530,7 @@ include '../includes/header.php';
                                 <option value="about" <?php echo ($editInfo['section'] ?? '') === 'about' ? 'selected' : ''; ?>>About</option>
                                 <option value="mission" <?php echo ($editInfo['section'] ?? '') === 'mission' ? 'selected' : ''; ?>>Mission</option>
                                 <option value="vision" <?php echo ($editInfo['section'] ?? '') === 'vision' ? 'selected' : ''; ?>>Vision</option>
+                                <option value="goals" <?php echo ($editInfo['section'] ?? '') === 'goals' ? 'selected' : ''; ?>>Goals</option>
                                 <option value="logo" <?php echo ($editInfo['section'] ?? '') === 'logo' ? 'selected' : ''; ?>>Logo</option>
                                 <option value="banner" <?php echo ($editInfo['section'] ?? '') === 'banner' ? 'selected' : ''; ?>>Banner</option>
                             </select>
@@ -550,7 +551,7 @@ include '../includes/header.php';
                     
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Content</label>
-                        <textarea name="content" rows="6" placeholder="Section content (for About, Mission, Vision)" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editInfo['content'] ?? ''); ?></textarea>
+                        <textarea name="content" rows="6" placeholder="Section content (for About, Mission, Vision, Goals)" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"><?php echo htmlspecialchars($editInfo['content'] ?? ''); ?></textarea>
                     </div>
                     
                     <div>

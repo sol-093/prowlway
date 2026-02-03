@@ -2,7 +2,7 @@ PROWLWAY - ICDISG Archive Website
 Comprehensive Project Documentation
 
 Version: 1.0.0  
-Last Updated: January 30, 2026  
+Last Updated: February 3, 2026  
 Platform: PHP 8.2+ / MySQL / Tailwind CSS
 
 ---
@@ -113,6 +113,11 @@ ICDI/
 ├── public/                   # Public-facing pages
 │   ├── home.php             # Homepage with intro animation
 │   ├── institute.php        # Institute information
+│   ├── faculty-detail.php   # Faculty subcategory detail page
+│   ├── admin-representative-detail.php # Admin representative detail page
+│   ├── program-detail-1.php # Program detail (Computer Science)
+│   ├── program-detail-2.php # Program detail (Information Systems)
+│   ├── program-detail-3.php # Program detail (Data Science)
 │   ├── calendar.php         # Event calendar
 │   ├── events.php           # Events listing
 │   ├── event-detail.php     # Event detail page
@@ -122,6 +127,7 @@ ICDI/
 │   ├── organization.php     # Organization detail page
 │   ├── search.php           # Search functionality
 │   ├── contact.php          # Contact form
+│   ├── announcement-detail.php # Announcement detail page
 │   ├── download.php         # Document download handler
 │   └── image.php            # Image display handler
 │
@@ -133,7 +139,8 @@ ICDI/
 │   ├── upload.php           # File upload utilities
 │   ├── validation.php       # Input validation functions
 │   ├── header.php           # Site header template
-│   └── footer.php           # Site footer template
+│   ├── footer.php           # Footer wrapper (includes footer section + scripts)
+│   └── footer_section.php   # Footer markup (static)
 │
 ├── assets/                   # Static assets
 │   ├── css/
@@ -154,7 +161,7 @@ ICDI/
 │
 ├── docs/                     # Documentation
 │   ├── PROJECT_DOCUMENTATION.md
-│   └── COMPLETION_PROGRESS.md
+│   └── FUNCTION_ANALYSIS.md
 │
 ├── index.php                 # Entry point (redirects to home)
 ├── CREDENTIALS.md            # Admin credentials reference
@@ -324,7 +331,7 @@ Institute information sections.
 
 Columns:
 - id (INT UNSIGNED, PRIMARY KEY, AUTO_INCREMENT)
-- section (VARCHAR 100, NOT NULL) - 'about', 'mission', 'vision', 'logo', 'banner'
+- section (VARCHAR 100, NOT NULL) - 'about', 'mission', 'vision', 'goals', 'logo', 'banner'
 - title (VARCHAR 255, NULL)
 - content (TEXT, NULL)
 - image (VARCHAR 500, NULL)

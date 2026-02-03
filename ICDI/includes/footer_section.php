@@ -1,58 +1,20 @@
 <?php
 /**
  * Shared footer section (About, Social, Copyright). No Tech Care in footer.
- * Loads settings if not already available; outputs footer HTML.
+ * Footer is fully static (no DB calls). Edit $footerAboutText to update the About blurb.
  */
 if (!defined('ASSETS_URL')) {
     require_once __DIR__ . '/config.php';
 }
-if (!function_exists('dbFetchAll')) {
-    require_once __DIR__ . '/database.php';
-}
 
-$footerSettings = [];
-try {
-    $settingsRows = dbFetchAll("SELECT setting_key, setting_value, setting_type FROM site_settings");
-    if (is_array($settingsRows)) {
-        foreach ($settingsRows as $row) {
-            $key = $row['setting_key'];
-            $value = $row['setting_value'];
-            switch ($row['setting_type'] ?? '') {
-                case 'json':
-                    $decoded = json_decode($value, true);
-                    $footerSettings[$key] = $decoded !== null ? $decoded : $value;
-                    break;
-                case 'boolean':
-                    $footerSettings[$key] = $value === '1' || $value === 'true';
-                    break;
-                case 'number':
-                    $footerSettings[$key] = is_numeric($value) ? (float)$value : $value;
-                    break;
-                default:
-                    $footerSettings[$key] = $value;
-            }
-        }
-    }
-} catch (Exception $e) {
-    $footerSettings = [];
-}
+// Static footer links (avoid settings-driven footer)
+$facebookUrl  = 'https://www.facebook.com/profile.php?id=61569058340306';
+$instagramUrl = 'https://www.instagram.com/imacssc/';
+$tiktokUrl    = 'https://www.tiktok.com/@imacssc';
+$twitterUrl   = 'https://twitter.com/imacssc';
+$footerCopy   = 'Copyright © ' . date('Y') . '. PROWLWAY · The ICDISG Archival Website';
 
-$siteName = $footerSettings['site_name'] ?? 'PROWLWAY';
-$facebookUrl  = $footerSettings['social_facebook']  ?? 'https://www.facebook.com/profile.php?id=61569058340306';
-$instagramUrl = $footerSettings['social_instagram'] ?? 'https://www.instagram.com/imacssc/';
-$tiktokUrl    = $footerSettings['social_tiktok']    ?? 'https://www.tiktok.com/@tiktok';
-$twitterUrl   = $footerSettings['social_twitter']   ?? 'https://twitter.com/';
-$footerCopy   = $footerSettings['footer_copy'] ?? ('Copyright © ' . date('Y') . '. ' . $siteName . ' · The ICDISG Archival Website');
-
-$footerAboutText = 'The Institute Of Computing And Digital Innovation (ICDI) was established in 2020, with roots in Kolehiyo Ng Lungsod Ng Dasmariñas (KLD). It has evolved through various iterations including the Institute Of Information And Computing Sciences (IICS) and the Institute Of Mathematical Application And Computing Sciences (IMACS), culminating in its current role as a Dynamic Academic Hub.';
-try {
-    $aboutRow = dbFetchOne("SELECT title, content FROM institute_info WHERE section = 'about' AND status = 'published' LIMIT 1");
-    if ($aboutRow && !empty($aboutRow['content'])) {
-        $footerAboutText = $aboutRow['content'];
-    }
-} catch (Exception $e) {
-    // keep default
-}
+$footerAboutText = "The Institute of Computing and Digital Innovation (ICDI) is a technology-focused academic unit of KLD, preparing future-ready innovators through computing and digital education.";
 ?>
 <footer class="footer-section" id="contact">
     <div class="footer-section-content">

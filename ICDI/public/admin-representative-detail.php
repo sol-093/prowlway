@@ -153,7 +153,27 @@ if ($section && $sectionId > 0) {
                         <?php endif; ?>
                     </li>
                     <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative-detail.php<?php echo $sectionId > 0 ? '?id=' . $sectionId : ''; ?>" class="active">Admin Representative</a></li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program">Program</a></li>
+                    <li class="org-item-with-batch">
+                        <span class="sidebar-label cursor-default">Program</span>
+                        <!-- Program submenu - Show below Program on hover -->
+                        <ul class="sidebar-sublinks batch-hover-menu">
+                            <li>
+                                <a href="<?php echo PUBLIC_URL; ?>/program-detail-2.php" class="sidebar-sublink">
+                                    Information Systems
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?php echo PUBLIC_URL; ?>/program-detail-1.php" class="sidebar-sublink">
+                                    Computer Science
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?php echo PUBLIC_URL; ?>/program-detail-3.php" class="sidebar-sublink">
+                                    Data Science
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </div>
             <div class="sidebar-section">

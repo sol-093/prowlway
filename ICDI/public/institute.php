@@ -12,6 +12,12 @@ if (!in_array($section, $allowed, true)) {
     $section = 'about';
 }
 
+// Program page should not be accessible directly; keep programs only in hover menu pages
+if ($section === 'program') {
+    header('Location: ' . PUBLIC_URL . '/institute.php?section=about');
+    exit;
+}
+
 $sectionTitles = [
     'about' => 'About',
     'faculty' => 'Faculty Unit',
@@ -36,6 +42,7 @@ if ($section === 'about') {
     $about = dbFetchOne("SELECT * FROM institute_info WHERE section = 'about' AND status = 'published'");
     $mission = dbFetchOne("SELECT * FROM institute_info WHERE section = 'mission' AND status = 'published'");
     $vision = dbFetchOne("SELECT * FROM institute_info WHERE section = 'vision' AND status = 'published'");
+    $goals = dbFetchOne("SELECT * FROM institute_info WHERE section = 'goals' AND status = 'published'");
     $logo = dbFetchOne("SELECT * FROM institute_info WHERE section = 'logo' AND status = 'published'");
     $banner = dbFetchOne("SELECT * FROM institute_info WHERE section = 'banner' AND status = 'published'");
 } else {
@@ -68,6 +75,67 @@ $logoSrc = ($logo && !empty($logo['image'])) ? getImageUrl($logo['image']) : (AS
 include '../includes/header.php';
 ?>
 
+<?php
+/**
+ * Render institute info content and auto-convert "1. item" lines into an ordered list.
+ * Keeps output safe (escapes content) while improving formatting on the public page.
+ */
+function renderInstituteInfoContent(?string $content): string
+{
+    if ($content === null || trim($content) === '') return 'Content not available.';
+
+    $content = str_replace(["\r\n", "\r"], "\n", $content);
+
+    // Detect numbered list lines like "1. text"
+    if (!preg_match('/^\s*\d+\.\s+/m', $content)) {
+        return nl2br(htmlspecialchars($content));
+    }
+
+    $lines = explode("\n", $content);
+    $introLines = [];
+    $items = [];
+    $currentItem = null;
+    $inList = false;
+
+    foreach ($lines as $line) {
+        if (preg_match('/^\s*(\d+)\.\s+(.*)$/', $line, $m)) {
+            $inList = true;
+            if ($currentItem !== null) $items[] = $currentItem;
+            $currentItem = trim($m[2]);
+            continue;
+        }
+
+        if (!$inList) {
+            $introLines[] = $line;
+        } else {
+            // Continuation of current item (or blank line)
+            if ($currentItem !== null) {
+                $append = trim($line);
+                if ($append !== '') $currentItem .= "\n" . $append;
+            }
+        }
+    }
+
+    if ($currentItem !== null) $items[] = $currentItem;
+
+    $out = '';
+    $intro = trim(implode("\n", $introLines));
+    if ($intro !== '') {
+        $out .= '<div class="institute-about-intro">' . nl2br(htmlspecialchars($intro)) . '</div>';
+    }
+
+    if (!empty($items)) {
+        $out .= '<ol class="institute-numbered-list">';
+        foreach ($items as $item) {
+            $out .= '<li>' . nl2br(htmlspecialchars($item)) . '</li>';
+        }
+        $out .= '</ol>';
+    }
+
+    return $out;
+}
+?>
+
 <div class="institute-page-container px-4 md:px-6 lg:px-8">
     <div class="institute-main-content">
         <?php if ($section === 'faculty'): ?>
@@ -79,23 +147,31 @@ include '../includes/header.php';
                 <!-- PAGE 1: ABOUT -->
                 <div class="institute-inner-panel px-4 md:px-6 lg:px-8 py-6 md:py-8">
                     <div class="institute-hero-banner mb-6 md:mb-8 rounded-lg overflow-hidden">
-                        <img src="<?php echo htmlspecialchars($bannerSrc); ?>" alt="ICDI Banner" class="w-full h-auto">
+                        <img src="<?php echo htmlspecialchars($bannerSrc); ?>" alt="ICDI Banner" class="w-full h-full object-cover">
                     </div>
                     <section class="institute-section mb-6 md:mb-8">
-                        <h2 class="section-title text-xl md:text-2xl lg:text-3xl font-bold mb-4 md:mb-6">About</h2>
+                        <h2 class="section-title text-xl md:text-2xl lg:text-3xl font-bold mb-4 md:mb-6">
+                            <?php echo ($about && !empty($about['title'])) ? htmlspecialchars($about['title']) : 'About'; ?>
+                        </h2>
                         <div class="section-content">
-                            <?php echo $about ? nl2br(htmlspecialchars($about['content'])) : 'Content not available.'; ?>
+                            <?php echo $about ? renderInstituteInfoContent($about['content'] ?? '') : 'Content not available.'; ?>
                         </div>
                         <?php if ($mission): ?>
                         <div class="institute-subsection">
-                            <h3 class="subsection-title">Mission</h3>
+                            <h3 class="subsection-title"><?php echo !empty($mission['title']) ? htmlspecialchars($mission['title']) : 'Mission'; ?></h3>
                             <div class="section-content"><?php echo nl2br(htmlspecialchars($mission['content'])); ?></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($vision): ?>
                         <div class="institute-subsection">
-                            <h3 class="subsection-title">Vision</h3>
+                            <h3 class="subsection-title"><?php echo !empty($vision['title']) ? htmlspecialchars($vision['title']) : 'Vision'; ?></h3>
                             <div class="section-content"><?php echo nl2br(htmlspecialchars($vision['content'])); ?></div>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($goals): ?>
+                        <div class="institute-subsection">
+                            <h3 class="subsection-title"><?php echo !empty($goals['title']) ? htmlspecialchars($goals['title']) : 'Goals'; ?></h3>
+                            <div class="section-content"><?php echo renderInstituteInfoContent($goals['content'] ?? ''); ?></div>
                         </div>
                         <?php endif; ?>
                     </section>
@@ -197,33 +273,65 @@ include '../includes/header.php';
                     <section class="batch-detail-section px-2 md:px-0">
                         <h2 class="batch-section-heading mb-4 md:mb-6 text-xl md:text-2xl lg:text-[32px]">PROGRAM</h2>
                         
-                        <?php if (empty($programs)): ?>
-                            <p class="batch-section-empty text-sm md:text-base">No programs found.</p>
-                        <?php else: ?>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-items-center">
-                                <?php foreach ($programs as $program): ?>
-                                    <div class="text-center w-full max-w-[300px]">
-                                        <?php if (!empty($program['image'])): ?>
-                                            <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
-                                                <img src="<?php echo getImageUrl($program['image']); ?>" alt="<?php echo htmlspecialchars($program['title']); ?>" class="w-full h-full rounded-[30px] object-cover bg-[#D9D9D9]">
-                                            </div>
-                                        <?php endif; ?>
-                                        <div class="w-full mx-auto font-['Inter'] font-semibold text-base md:text-lg leading-[22px] text-center text-[#0F181D] mb-2 px-2">
-                                            <?php echo htmlspecialchars($program['title']); ?>
-                                        </div>
-                                        <?php if (!empty($program['content'])): ?>
-                                            <div class="text-sm md:text-base text-black text-center px-2">
-                                                <?php echo nl2br(htmlspecialchars($program['content'])); ?>
-                                            </div>
-                                        <?php elseif (!empty($program['description'])): ?>
-                                            <div class="text-sm md:text-base text-black text-center px-2">
-                                                <?php echo nl2br(htmlspecialchars($program['description'])); ?>
-                                            </div>
-                                        <?php endif; ?>
+                        <!-- Static Programs with Hover Effects (Not Clickable) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-items-center">
+                            <!-- Program 1: Computer Science -->
+                            <div class="program-card-static text-center w-full max-w-[300px] relative group">
+                                <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
+                                    <div class="w-full h-full rounded-[30px] bg-[#D9D9D9] flex items-center justify-center">
+                                        <span class="text-4xl font-bold text-gray-600">CS</span>
                                     </div>
-                                <?php endforeach; ?>
+                                </div>
+                                <div class="w-full mx-auto font-['Inter'] font-semibold text-base md:text-lg leading-[22px] text-center text-[#0F181D] mb-2 px-2">
+                                    Computer Science
+                                </div>
+                                <!-- Hover Tooltip -->
+                                <div class="program-hover-tooltip">
+                                    <div class="tooltip-content">
+                                        <strong>CS</strong> is <strong>DC</strong><br>
+                                        Department of Computing
+                                    </div>
+                                </div>
                             </div>
-                        <?php endif; ?>
+
+                            <!-- Program 2: Information Systems -->
+                            <div class="program-card-static text-center w-full max-w-[300px] relative group">
+                                <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
+                                    <div class="w-full h-full rounded-[30px] bg-[#D9D9D9] flex items-center justify-center">
+                                        <span class="text-4xl font-bold text-gray-600">IS</span>
+                                    </div>
+                                </div>
+                                <div class="w-full mx-auto font-['Inter'] font-semibold text-base md:text-lg leading-[22px] text-center text-[#0F181D] mb-2 px-2">
+                                    Information Systems
+                                </div>
+                                <!-- Hover Tooltip -->
+                                <div class="program-hover-tooltip">
+                                    <div class="tooltip-content">
+                                        <strong>IS</strong> is <strong>DC</strong><br>
+                                        Department of Computing
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Program 3: Data Science -->
+                            <div class="program-card-static text-center w-full max-w-[300px] relative group">
+                                <div class="flex justify-center mb-3 w-full aspect-[196/182] max-w-[196px] mx-auto">
+                                    <div class="w-full h-full rounded-[30px] bg-[#D9D9D9] flex items-center justify-center">
+                                        <span class="text-4xl font-bold text-gray-600">DS</span>
+                                    </div>
+                                </div>
+                                <div class="w-full mx-auto font-['Inter'] font-semibold text-base md:text-lg leading-[22px] text-center text-[#0F181D] mb-2 px-2">
+                                    Data Science
+                                </div>
+                                <!-- Hover Tooltip -->
+                                <div class="program-hover-tooltip">
+                                    <div class="tooltip-content">
+                                        <strong>DS</strong> is <strong>DC</strong><br>
+                                        Department of Computing
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </section>
                 </div>
             <?php endif; ?>
@@ -254,7 +362,27 @@ include '../includes/header.php';
                         <?php endif; ?>
                     </li>
                     <li><a href="<?php echo PUBLIC_URL; ?>/admin-representative-detail.php" class="<?php echo $section === 'admin' ? 'active' : ''; ?>">Admin Representative</a></li>
-                    <li><a href="<?php echo PUBLIC_URL; ?>/institute.php?section=program" class="<?php echo $section === 'program' ? 'active' : ''; ?>">Program</a></li>
+                    <li class="org-item-with-batch">
+                        <span class="sidebar-label">Program</span>
+                        <!-- Program submenu - Show below Program on hover -->
+                        <ul class="sidebar-sublinks batch-hover-menu">
+                            <li>
+                                <a href="<?php echo PUBLIC_URL; ?>/program-detail-2.php" class="sidebar-sublink">
+                                    Information Systems
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?php echo PUBLIC_URL; ?>/program-detail-1.php" class="sidebar-sublink">
+                                    Computer Science
+                                </a>
+                            </li>
+                            <li>
+                                <a href="<?php echo PUBLIC_URL; ?>/program-detail-3.php" class="sidebar-sublink">
+                                    Data Science
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </div>
             <div class="sidebar-section">

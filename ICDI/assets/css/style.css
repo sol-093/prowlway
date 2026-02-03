@@ -5089,6 +5089,69 @@ body:has(.admin-container) {
     color: #0F181D;
 }
 
+/* Program Card Static Styles with Hover Tooltip */
+.program-card-static {
+    cursor: default;
+    transition: transform 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.program-card-static:hover {
+    transform: translateY(-5px);
+}
+
+.program-hover-tooltip {
+    pointer-events: auto;
+}
+
+.program-hover-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 10;
+    margin-bottom: 10px;
+}
+
+.program-card-static:hover .program-hover-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-content {
+    background: rgba(15, 24, 29, 0.95);
+    color: #ffffff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.tooltip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(15, 24, 29, 0.95);
+}
+
+.tooltip-content strong {
+    font-weight: 700;
+    color: #ffffff;
+}
+
 .batch-members-row {
     display: flex;
     flex-wrap: wrap;
@@ -5625,7 +5688,8 @@ body.institute-page {
 
 .institute-hero-banner {
     width: 100%;
-    height: 300px;
+    /* Keep consistent banner size across breakpoints */
+    height: clamp(170px, 22vw, 300px);
     border-radius: var(--radius-md);
     overflow: hidden;
     margin-bottom: var(--spacing-xl);
@@ -5656,6 +5720,23 @@ body.institute-page {
     color: var(--color-text-dark);
     line-height: 1.8;
     font-size: 14px;
+}
+
+/* Institute About: numbered list formatting (matches "1. 2. 3." style) */
+.institute-about-intro {
+    margin-bottom: 14px;
+}
+
+.institute-numbered-list {
+    margin: 10px 0 0 0;
+    padding-left: 22px;
+    list-style: decimal;
+    color: var(--color-text-dark);
+}
+
+.institute-numbered-list li {
+    margin: 10px 0;
+    padding-left: 6px;
 }
 
 .institute-subsection {

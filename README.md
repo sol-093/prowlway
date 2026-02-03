@@ -3,12 +3,15 @@ PROWLWAY - ICDISG Archive Website
 A comprehensive content management and archive system for the Institute of Computing and Data Science (ICDISG).
 
 Version: 1.0.0  
-Last Updated: January 30, 2026
+Last Updated: February 3, 2026
 
 Recent Updates:
 - Responsive homepage banners (desktop and mobile)
 - Institute sections with inner border panels
 - Faculty and Admin sections using batch-detail style layout
+- Institute About supports dynamic title + numbered goals list formatting
+- Program pages: hover menu + dedicated program detail pages (IS, CS, DS)
+- Footer is static via `ICDI/includes/footer_section.php`
 - Events page styling matching documents page
 - Mobile header improvements
 - Various UI/UX enhancements
@@ -211,6 +214,11 @@ prowlway/
 │   ├── public/                    # Public-facing pages
 │   │   ├── home.php              # Homepage
 │   │   ├── institute.php         # Institute information
+│   │   ├── faculty-detail.php    # Faculty subcategory detail page
+│   │   ├── admin-representative-detail.php # Admin representative detail page
+│   │   ├── program-detail-1.php  # Program detail (Computer Science)
+│   │   ├── program-detail-2.php  # Program detail (Information Systems)
+│   │   ├── program-detail-3.php  # Program detail (Data Science)
 │   │   ├── calendar.php          # Event calendar
 │   │   ├── events.php            # Events listing
 │   │   ├── event-detail.php      # Event detail page
@@ -220,6 +228,7 @@ prowlway/
 │   │   ├── organization.php      # Organization detail
 │   │   ├── search.php            # Search functionality
 │   │   ├── contact.php           # Contact form
+│   │   ├── announcement-detail.php # Announcement detail
 │   │   ├── download.php          # Document download
 │   │   └── image.php             # Image display
 │   │
@@ -231,7 +240,8 @@ prowlway/
 │   │   ├── upload.php            # File upload utilities
 │   │   ├── validation.php       # Input validation
 │   │   ├── header.php            # Site header
-│   │   └── footer.php            # Site footer
+│   │   ├── footer.php            # Footer wrapper (includes footer section + scripts)
+│   │   └── footer_section.php    # Footer markup (static)
 │   │
 │   ├── assets/                    # Static assets
 │   │   ├── css/
@@ -250,7 +260,7 @@ prowlway/
 │   │
 │   ├── docs/                      # Documentation
 │   │   ├── PROJECT_DOCUMENTATION.md
-│   │   └── COMPLETION_PROGRESS.md
+│   │   └── FUNCTION_ANALYSIS.md
 │   │
 │   ├── index.php                  # Entry point
 │   ├── CREDENTIALS.md             # Admin credentials
@@ -275,6 +285,7 @@ Homepage
 Institute Information
 - About section
 - Mission & Vision
+- Goals (numbered list formatting supported)
 - Faculty Unit information
 - Admin Representative details
 - Program information
@@ -668,11 +679,9 @@ Available Documentation
   - Security features
   - Deployment guide
 
-- Completion Progress: `ICDI/docs/COMPLETION_PROGRESS.md`
-  - Completed features checklist
-  - Pending items
-  - Testing checklist
-  - Known issues
+- Function Analysis: `ICDI/docs/FUNCTION_ANALYSIS.md`
+  - Key PHP helper functions/classes
+  - DB/Auth/Upload/Error handling references
 
 - Credentials: `ICDI/CREDENTIALS.md`
   - Admin login credentials
@@ -741,4 +750,4 @@ Version 1.0.0 (January 30, 2026)
 
 ---
 
-Last Updated: January 30, 2026  
+Last Updated: February 3, 2026  
